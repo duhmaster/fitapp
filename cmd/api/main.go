@@ -19,9 +19,13 @@ import (
 	"github.com/fitflow/fitflow/internal/pkg/postgres"
 	"github.com/fitflow/fitflow/internal/pkg/redis"
 	"github.com/fitflow/fitflow/internal/pkg/storage"
+	gymdelivery "github.com/fitflow/fitflow/internal/gym/delivery"
+	gymrepository "github.com/fitflow/fitflow/internal/gym/repository"
+	gymusecase "github.com/fitflow/fitflow/internal/gym/usecase"
 	userdelivery "github.com/fitflow/fitflow/internal/user/delivery"
 	userrepository "github.com/fitflow/fitflow/internal/user/repository"
 	userusecase "github.com/fitflow/fitflow/internal/user/usecase"
+	"github.com/fitflow/fitflow/internal/workers"
 )
 
 func main() {
@@ -32,7 +36,8 @@ func main() {
 }
 
 func run() error {
-	ctx := context.Background()
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
 
 	cfg, err := config.Load()
 	if err != nil {
@@ -81,6 +86,14 @@ func run() error {
 	userUC := userusecase.NewUserUseCase(profileRepo, metricRepo, store)
 	userHandler := userdelivery.NewHandler(userUC)
 
+	// Gym module
+	gymRepo := gymrepository.NewGymRepository(db)
+	checkInRepo := gymrepository.NewCheckInRepository(db)
+	snapshotRepo := gymrepository.NewLoadSnapshotRepository(db)
+	loadService := gymusecase.NewRedisLoadService(rdb, cfg.GymPresenceWindow)
+	gymUC := gymusecase.NewGymUseCase(gymRepo, checkInRepo, snapshotRepo, loadService)
+	gymHandler := gymdelivery.NewHandler(gymUC)
+
 	// HTTP server
 	healthHandler := httpdelivery.NewHealthHandler(db, rdb)
 	srv := httpdelivery.New(log)
@@ -88,11 +101,16 @@ func run() error {
 		HealthHandler: healthHandler,
 		AuthHandler:   authHandler,
 		UserHandler:   userHandler,
+		GymHandler:    gymHandler,
 		JWTSecret:     []byte(cfg.JWTSecret),
 		UploadsPath:   cfg.StoragePath,
 	})
 
-	// Graceful shutdown
+	// Background workers (in-process for now; split into separate worker cmd later)
+	worker := workers.NewGymLoadSnapshotWorker(log, gymRepo, snapshotRepo, loadService, cfg.GymSnapshotInterval, cfg.GymSnapshotBatchSize)
+	go worker.Run(ctx)
+
+	// Start server
 	go func() {
 		addr := fmt.Sprintf(":%d", cfg.Port)
 		if err := srv.Run(addr); err != nil && err != http.ErrServerClosed {
@@ -100,10 +118,7 @@ func run() error {
 		}
 	}()
 
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
-
+	<-ctx.Done()
 	log.Info().Msg("shutdown signal received")
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)

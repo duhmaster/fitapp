@@ -35,6 +35,11 @@ type Config struct {
 	// Storage (for avatars, etc.)
 	StoragePath  string
 	StorageBaseURL string
+
+	// Gym load tracking
+	GymPresenceWindow   time.Duration
+	GymSnapshotInterval time.Duration
+	GymSnapshotBatchSize int
 }
 
 // Load reads configuration from environment variables.
@@ -56,6 +61,9 @@ func Load() (*Config, error) {
 		JWTRefreshExpiry: getEnvDuration("JWT_REFRESH_EXPIRY", 7*24*time.Hour),
 		StoragePath:      getEnv("STORAGE_PATH", "./uploads"),
 		StorageBaseURL:   getEnv("STORAGE_BASE_URL", "http://localhost:8080/uploads"),
+		GymPresenceWindow:   getEnvDuration("GYM_PRESENCE_WINDOW", 90*time.Minute),
+		GymSnapshotInterval: getEnvDuration("GYM_SNAPSHOT_INTERVAL", 5*time.Minute),
+		GymSnapshotBatchSize: getEnvInt("GYM_SNAPSHOT_BATCH_SIZE", 1000),
 	}
 
 	return cfg, nil

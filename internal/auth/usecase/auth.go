@@ -50,6 +50,12 @@ type RegisterOutput struct {
 	ExpiresIn    int64
 }
 
+type issuedTokens struct {
+	AccessToken  string
+	RefreshToken string
+	ExpiresIn    int64
+}
+
 // Register creates a new user and returns tokens.
 func (uc *AuthUseCase) Register(ctx context.Context, in RegisterInput) (*RegisterOutput, error) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(in.Password), bcrypt.DefaultCost)
@@ -74,7 +80,17 @@ func (uc *AuthUseCase) Register(ctx context.Context, in RegisterInput) (*Registe
 		CreatedAt: rec.CreatedAt,
 	}
 
-	return uc.issueTokens(ctx, user)
+	toks, err := uc.issueTokens(ctx, user)
+	if err != nil {
+		return nil, err
+	}
+
+	return &RegisterOutput{
+		User:         user,
+		AccessToken:  toks.AccessToken,
+		RefreshToken: toks.RefreshToken,
+		ExpiresIn:    toks.ExpiresIn,
+	}, nil
 }
 
 // LoginInput for user login.
@@ -109,7 +125,17 @@ func (uc *AuthUseCase) Login(ctx context.Context, in LoginInput) (*LoginOutput, 
 		CreatedAt: rec.CreatedAt,
 	}
 
-	return uc.issueTokens(ctx, user)
+	toks, err := uc.issueTokens(ctx, user)
+	if err != nil {
+		return nil, err
+	}
+
+	return &LoginOutput{
+		User:         user,
+		AccessToken:  toks.AccessToken,
+		RefreshToken: toks.RefreshToken,
+		ExpiresIn:    toks.ExpiresIn,
+	}, nil
 }
 
 // RefreshInput for token refresh.
@@ -151,19 +177,19 @@ func (uc *AuthUseCase) Refresh(ctx context.Context, in RefreshInput) (*RefreshOu
 	// Rotation: delete old refresh token
 	_ = uc.refreshTokenRepo.DeleteByToken(ctx, in.RefreshToken)
 
-	out, err := uc.issueTokens(ctx, user)
+	toks, err := uc.issueTokens(ctx, user)
 	if err != nil {
 		return nil, err
 	}
 
 	return &RefreshOutput{
-		AccessToken:  out.AccessToken,
-		RefreshToken: out.RefreshToken,
-		ExpiresIn:    out.ExpiresIn,
+		AccessToken:  toks.AccessToken,
+		RefreshToken: toks.RefreshToken,
+		ExpiresIn:    toks.ExpiresIn,
 	}, nil
 }
 
-func (uc *AuthUseCase) issueTokens(ctx context.Context, user *domain.User) (*RegisterOutput, error) {
+func (uc *AuthUseCase) issueTokens(ctx context.Context, user *domain.User) (*issuedTokens, error) {
 	accessToken, expiresAt, err := GenerateAccessToken(user, uc.jwtSecret, uc.accessExpiry)
 	if err != nil {
 		return nil, err
@@ -179,8 +205,7 @@ func (uc *AuthUseCase) issueTokens(ctx context.Context, user *domain.User) (*Reg
 		return nil, err
 	}
 
-	return &RegisterOutput{
-		User:         user,
+	return &issuedTokens{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		ExpiresIn:    int64(time.Until(expiresAt).Seconds()),

@@ -5,6 +5,7 @@ import (
 
 	"github.com/fitflow/fitflow/internal/auth/domain"
 	authdelivery "github.com/fitflow/fitflow/internal/auth/delivery"
+	gymdelivery "github.com/fitflow/fitflow/internal/gym/delivery"
 	userdelivery "github.com/fitflow/fitflow/internal/user/delivery"
 	"github.com/fitflow/fitflow/internal/delivery/middleware"
 	"github.com/gin-gonic/gin"
@@ -15,6 +16,7 @@ type RoutesConfig struct {
 	HealthHandler *HealthHandler
 	AuthHandler   *authdelivery.Handler
 	UserHandler   *userdelivery.Handler
+	GymHandler    *gymdelivery.Handler
 	JWTSecret     []byte
 	UploadsPath   string // local path for serving uploads (e.g. ./uploads)
 }
@@ -50,6 +52,15 @@ func (s *Server) RegisterRoutes(cfg *RoutesConfig) {
 			}
 		}
 
+		if cfg.GymHandler != nil {
+			gyms := v1.Group("/gyms")
+			{
+				gyms.GET("", cfg.GymHandler.SearchGyms)
+				gyms.GET("/:gym_id/load", cfg.GymHandler.GetLoad)
+				gyms.GET("/:gym_id/load/history", cfg.GymHandler.GetLoadHistory)
+			}
+		}
+
 		if len(cfg.JWTSecret) > 0 && cfg.AuthHandler != nil {
 			protected := v1.Group("")
 			protected.Use(middleware.JWTAuth(cfg.JWTSecret))
@@ -64,6 +75,10 @@ func (s *Server) RegisterRoutes(cfg *RoutesConfig) {
 					protected.GET("/users/me/metrics/history", cfg.UserHandler.GetMetricHistory)
 					protected.POST("/users/me/metrics", cfg.UserHandler.RecordMetric)
 				}
+
+				if cfg.GymHandler != nil {
+					protected.POST("/gyms/:gym_id/checkins", cfg.GymHandler.CheckIn)
+				}
 			}
 
 			admin := v1.Group("/admin")
@@ -73,6 +88,10 @@ func (s *Server) RegisterRoutes(cfg *RoutesConfig) {
 				admin.GET("/ping", func(c *gin.Context) {
 					c.JSON(http.StatusOK, gin.H{"message": "admin pong"})
 				})
+
+				if cfg.GymHandler != nil {
+					admin.POST("/gyms", cfg.GymHandler.CreateGym)
+				}
 			}
 		}
 	}
