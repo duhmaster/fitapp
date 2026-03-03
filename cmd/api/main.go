@@ -22,9 +22,15 @@ import (
 	gymdelivery "github.com/fitflow/fitflow/internal/gym/delivery"
 	gymrepository "github.com/fitflow/fitflow/internal/gym/repository"
 	gymusecase "github.com/fitflow/fitflow/internal/gym/usecase"
+	progressdelivery "github.com/fitflow/fitflow/internal/progress/delivery"
+	progressrepository "github.com/fitflow/fitflow/internal/progress/repository"
+	progressusecase "github.com/fitflow/fitflow/internal/progress/usecase"
 	userdelivery "github.com/fitflow/fitflow/internal/user/delivery"
 	userrepository "github.com/fitflow/fitflow/internal/user/repository"
 	userusecase "github.com/fitflow/fitflow/internal/user/usecase"
+	workoutdelivery "github.com/fitflow/fitflow/internal/workout/delivery"
+	workoutrepository "github.com/fitflow/fitflow/internal/workout/repository"
+	workoutusecase "github.com/fitflow/fitflow/internal/workout/usecase"
 	"github.com/fitflow/fitflow/internal/workers"
 )
 
@@ -94,16 +100,33 @@ func run() error {
 	gymUC := gymusecase.NewGymUseCase(gymRepo, checkInRepo, snapshotRepo, loadService)
 	gymHandler := gymdelivery.NewHandler(gymUC)
 
+	// Workout module
+	exerciseRepo := workoutrepository.NewExerciseRepository(db)
+	workoutRepo := workoutrepository.NewWorkoutRepository(db)
+	workoutExerciseRepo := workoutrepository.NewWorkoutExerciseRepository(db)
+	exerciseLogRepo := workoutrepository.NewExerciseLogRepository(db)
+	workoutUC := workoutusecase.NewWorkoutUseCase(exerciseRepo, workoutRepo, workoutExerciseRepo, exerciseLogRepo)
+	workoutHandler := workoutdelivery.NewHandler(workoutUC)
+
+	// Progress module
+	weightRepo := progressrepository.NewWeightTrackingRepository(db)
+	bodyFatRepo := progressrepository.NewBodyFatTrackingRepository(db)
+	healthMetricRepo := progressrepository.NewHealthMetricRepository(db)
+	progressUC := progressusecase.NewProgressUseCase(weightRepo, bodyFatRepo, healthMetricRepo)
+	progressHandler := progressdelivery.NewHandler(progressUC)
+
 	// HTTP server
 	healthHandler := httpdelivery.NewHealthHandler(db, rdb)
 	srv := httpdelivery.New(log)
 	srv.RegisterRoutes(&httpdelivery.RoutesConfig{
-		HealthHandler: healthHandler,
-		AuthHandler:   authHandler,
-		UserHandler:   userHandler,
-		GymHandler:    gymHandler,
-		JWTSecret:     []byte(cfg.JWTSecret),
-		UploadsPath:   cfg.StoragePath,
+		HealthHandler:  healthHandler,
+		AuthHandler:    authHandler,
+		UserHandler:    userHandler,
+		GymHandler:     gymHandler,
+		WorkoutHandler:  workoutHandler,
+		ProgressHandler: progressHandler,
+		JWTSecret:       []byte(cfg.JWTSecret),
+		UploadsPath:    cfg.StoragePath,
 	})
 
 	// Background workers (in-process for now; split into separate worker cmd later)
