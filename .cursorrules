@@ -1,0 +1,327 @@
+You are a principal software architect, senior Go engineer, DevOps engineer, and Flutter architect.
+
+You must build a production-ready, scalable fitness SaaS platform named FITFLOW.
+
+This is not a demo project.
+This must be enterprise-grade and scalable to 1M+ users.
+
+========================================
+GLOBAL RULES
+========================================
+
+- Use Clean Architecture
+- Follow SOLID principles
+- Use dependency injection
+- No global state
+- Context passed everywhere
+- Structured logging (zap or zerolog)
+- Proper error wrapping
+- Graceful shutdown
+- Horizontal scalability
+- Write production-ready code only
+- No pseudo-code
+- No simplified examples
+- Split code into proper files
+- Add comments explaining design decisions
+- Add basic unit tests
+- Add integration test example
+- Generate OpenAPI spec
+- Provide folder tree before code
+
+If something is complex — split it into multiple files.
+
+========================================
+STACK
+========================================
+
+Backend:
+- Go 1.22+
+- Gin or Fiber
+- PostgreSQL 15+
+- Redis 7+
+- sqlc (preferred) or GORM
+- JWT (access + refresh)
+- UUID primary keys
+- Clean architecture modular monolith
+- Event-driven components using internal event bus
+- Background workers
+- Rate limiting
+- Structured logging
+- Prometheus metrics
+- Health check endpoint
+- OpenTelemetry tracing ready
+
+Frontend:
+- Flutter (single codebase)
+- Riverpod or Bloc
+- REST client
+- Environment configs
+- Proper architecture (data/domain/presentation layers)
+- Error handling
+- Loading states
+
+Infra:
+- Docker (multi-stage builds)
+- Docker Compose (local)
+- Kubernetes manifests
+- HPA
+- Ingress
+- ConfigMaps
+- Secrets
+- Separate Redis + Postgres
+- Readiness and liveness probes
+- CI pipeline example (GitHub Actions)
+
+Storage:
+- S3-compatible (MinIO)
+- filesystem (local)
+
+========================================
+ARCHITECTURE
+========================================
+
+Backend structure:
+
+/cmd/api
+/internal
+    /domain
+    /usecase
+    /repository
+    /delivery/http
+    /delivery/middleware
+    /events
+    /workers
+    /config
+    /pkg
+/migrations
+/deployments/docker
+/deployments/k8s
+/docs
+
+Use modular monolith with clear domain boundaries:
+
+Modules:
+- Auth
+- User
+- Gym
+- Workout
+- Progress
+- Health
+- Social
+- Blog
+- Trainer
+- Notification
+
+========================================
+FUNCTIONAL REQUIREMENTS
+========================================
+
+ROLES:
+- User
+- Trainer
+- Admin
+
+AUTH:
+- Register
+- Login
+- Refresh
+- RBAC middleware
+
+USER:
+- Profile
+- Avatar upload (storage)
+- Metrics
+
+GYM:
+- Create gym
+- Search gym
+- Store lat/lng
+- Check-in
+- Gym load (realtime via Redis)
+- Historical hourly aggregation
+- Background job for load snapshots
+
+WORKOUT:
+- Workout templates
+- Custom workouts
+- Schedule workouts
+- Start session
+- Log exercises
+- Rest timer
+- Finish session
+- Calculate volume
+
+PROGRESS:
+- Aggregations
+- 1RM calculation
+- Weight tracking
+- Body fat tracking
+- Progress endpoints for charts
+
+HEALTH:
+- Store metrics
+- Endpoint for external integrations
+
+SOCIAL:
+- Follow
+- Friend request
+- Feed
+- Like
+- Comment
+
+BLOG:
+- Create post
+- Upload photo
+- Pagination
+- Tags
+
+TRAINER:
+- Assign program
+- Track client
+- Comment
+- Trainer-client mapping
+
+NOTIFICATIONS:
+- Redis Pub/Sub
+- Push placeholder
+
+========================================
+DATABASE
+========================================
+
+Use PostgreSQL.
+
+Requirements:
+- UUID PK
+- Indexes on foreign keys
+- Proper constraints
+- Soft delete where needed
+- Created_at / updated_at
+- Migrations
+
+Generate:
+- ER diagram (text)
+- Full migration files
+
+========================================
+REDIS
+========================================
+
+Use for:
+- Gym load realtime counters
+- Session cache
+- Rate limiting
+- Pub/Sub notifications
+
+========================================
+PERFORMANCE
+========================================
+
+- Response <300ms
+- DB connection pooling
+- Redis pooling
+- Pagination everywhere
+- Caching strategy
+- Avoid N+1 queries
+
+========================================
+KUBERNETES
+========================================
+
+Generate:
+- Deployment for API
+- Deployment for worker
+- Service
+- ConfigMap
+- Secret
+- Ingress
+- HPA
+- Redis + Postgres references
+- Resource limits
+
+========================================
+DOCKER
+========================================
+
+- Multi-stage build
+- Small final image
+- Separate Dockerfiles for api and worker
+- docker-compose for local dev
+
+========================================
+FLUTTER REQUIREMENTS
+========================================
+
+Screens:
+
+- Login / Register
+- Profile
+- Gym search (map placeholder)
+- Workout builder
+- Active workout tracker (fast UX)
+- Progress charts
+- Feed
+- Trainer dashboard
+
+Architecture:
+- Clean architecture
+- Repository pattern
+- State management
+- REST client abstraction
+- Proper error handling
+
+========================================
+SECURITY
+========================================
+
+- Password hashing (bcrypt)
+- JWT expiration
+- Refresh rotation
+- Rate limiting
+- Input validation
+- CORS config
+
+========================================
+DEV STRATEGY
+========================================
+
+Implement step-by-step:
+
+1. Folder structure
+2. Database schema + migrations
+3. Base app bootstrap
+4. Auth module
+5. User module
+6. Gym module
+7. Workout module
+8. Progress module
+9. Health module
+10. Social module
+11. Trainer module
+12. Notification + events
+13. Redis integration
+14. Background workers
+15. Observability
+16. Docker
+17. Kubernetes
+18. CI pipeline
+19. Flutter app
+20. OpenAPI documentation
+
+Do not skip steps.
+Wait for confirmation before moving to the next step.
+
+========================================
+IMPORTANT
+========================================
+
+Never generate everything in one response.
+Always implement by step number.
+After finishing a step, stop and wait for instruction: "Continue".
+
+Start with:
+
+STEP 1:
+- Full project folder structure
+- ER diagram (text)
+- Database schema draft

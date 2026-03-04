@@ -1,0 +1,35 @@
+# Git
+.git
+.gitignore
+
+# IDE / editor
+.idea
+.vscode
+.cursor
+*.swp
+*.swo
+
+# Env and local
+.env
+.env.*
+!.env.example
+
+# Build and binaries
+/fitflow-api
+*.exe
+*.test
+coverage.out
+
+# Docs and misc (not needed in image)
+docs
+*.md
+!migrations/*.sql
+
+# Docker (avoid recursive copy)
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# OS
+.DS_Store
+Thumbs.db

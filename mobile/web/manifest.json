@@ -1,0 +1,9 @@
+{
+  "name": "FITFLOW",
+  "short_name": "FITFLOW",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0d1117",
+  "theme_color": "#0d47a1",
+  "description": "FITFLOW fitness app"
+}

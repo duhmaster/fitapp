@@ -20,6 +20,14 @@ paths:
         "200":
           description: OK
 
+  /version:
+    get:
+      summary: API version
+      security: []
+      responses:
+        "200":
+          description: Returns version (set at build time)
+
   /api/v1/ping:
     get:
       summary: Ping

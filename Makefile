@@ -6,10 +6,14 @@ MIGRATIONS_PATH = ./migrations
 # Override with: make migrate-up DSN="postgres://..."
 DSN ?= postgres://fitflow:fitflow@localhost:5432/fitflow?sslmode=disable
 
-.PHONY: build test run clean lint migrate-up migrate-down migrate-version docker-up docker-down docker-build openapi-sync
+.PHONY: build build-version test run clean lint migrate-up migrate-down migrate-version docker-up docker-down docker-build openapi-sync
 
 build:
 	go build -o $(BINARY_NAME) ./cmd/api
+
+# Build with version (e.g. make build-version VERSION=1.0.0)
+build-version:
+	go build -ldflags "-X github.com/fitflow/fitflow/internal/pkg/version.Version=$(VERSION)" -o $(BINARY_NAME) ./cmd/api
 
 test:
 	go test ./...

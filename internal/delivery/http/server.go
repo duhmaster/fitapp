@@ -26,6 +26,7 @@ func New(log zerolog.Logger) *Server {
 	// Global middleware (RequestID first so logs can include it)
 	router.Use(Recovery(log))
 	router.Use(middleware.RequestID())
+	router.Use(middleware.SecurityHeaders())
 	router.Use(RequestLogger(log))
 
 	return &Server{

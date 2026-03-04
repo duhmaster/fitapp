@@ -1,0 +1,29 @@
+# Binary
+/fitflow-api
+*.exe
+
+# Env and secrets
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test and coverage
+coverage.out
+*.test
+
+# Build
+/dist/
+/build/
+
+# K8s secrets (do not commit)
+deployments/k8s/secret.yaml

@@ -7,6 +7,7 @@ import (
 	"github.com/fitflow/fitflow/internal/auth/domain"
 	"github.com/fitflow/fitflow/internal/delivery/http/spec"
 	authdelivery "github.com/fitflow/fitflow/internal/auth/delivery"
+	"github.com/fitflow/fitflow/internal/pkg/version"
 	blogdelivery "github.com/fitflow/fitflow/internal/blog/delivery"
 	gymdelivery "github.com/fitflow/fitflow/internal/gym/delivery"
 	progressdelivery "github.com/fitflow/fitflow/internal/progress/delivery"
@@ -45,10 +46,13 @@ func (s *Server) RegisterRoutes(cfg *RoutesConfig) {
 	if cfg.AllowedOrigins != nil {
 		s.router.Use(middleware.CORS(cfg.AllowedOrigins))
 	}
-	// Health endpoints for K8s probes
+	// Health and version (no auth)
 	s.router.GET("/health", cfg.HealthHandler.Health)
 	s.router.GET("/health/ready", cfg.HealthHandler.Ready)
 	s.router.GET("/health/live", cfg.HealthHandler.Live)
+	s.router.GET("/version", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"version": version.Version})
+	})
 
 	// Static files (avatars, etc.)
 	if cfg.UploadsPath != "" {
@@ -60,8 +64,9 @@ func (s *Server) RegisterRoutes(cfg *RoutesConfig) {
 		c.Data(http.StatusOK, "application/yaml; charset=utf-8", spec.OpenAPIYAML)
 	})
 
-	// API v1
+	// API v1 (30s request timeout for handlers that use context)
 	v1 := s.router.Group("/api/v1")
+	v1.Use(middleware.Timeout(30 * time.Second))
 	{
 		v1.GET("/ping", func(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{"message": "pong"})

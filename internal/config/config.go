@@ -48,7 +48,7 @@ func Load() (*Config, error) {
 	cfg := &Config{
 		Port:               getEnvInt("PORT", 8080),
 		Env:                getEnv("ENV", "development"),
-		CORSAllowedOrigins: getEnv("CORS_ALLOWED_ORIGINS", ""),
+		CORSAllowedOrigins: getEnv("CORS_ALLOWED_ORIGINS", corsDefault(getEnv("ENV", "development"))),
 		DBHost:        getEnv("DB_HOST", "localhost"),
 		DBPort:        getEnvInt("DB_PORT", 5432),
 		DBName:        getEnv("DB_NAME", "fitflow"),
@@ -86,6 +86,15 @@ func (c *Config) DSN() string {
 		"postgres://%s:%s@%s:%d/%s?sslmode=%s",
 		c.DBUser, c.DBPassword, c.DBHost, c.DBPort, c.DBName, c.DBSSLMode,
 	)
+}
+
+// corsDefault returns the default CORS allowed origins for the given env.
+// In development, default to "*" so the Flutter web app and other local frontends work without config.
+func corsDefault(env string) string {
+	if env == "development" {
+		return "*"
+	}
+	return ""
 }
 
 func getEnv(key, fallback string) string {

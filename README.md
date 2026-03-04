@@ -8,6 +8,16 @@ Go API for the FITFLOW fitness app: auth, users, gyms, workouts, progress, socia
 - PostgreSQL 16+
 - Redis 7+
 
+## Quick run (full stack + Flutter web)
+
+From the project root, rebuild and run API + Postgres + Redis in Docker, apply migrations, then start the Flutter web app and open it in Chrome:
+
+```bash
+./scripts/run-all-web.sh
+```
+
+Requires: Docker (Compose), Flutter in PATH. Optional: `migrate` CLI (otherwise the script runs migrations via a one-off container).
+
 ## Setup
 
 1. Copy env and set DB/Redis/JWT:
@@ -33,7 +43,7 @@ Go API for the FITFLOW fitness app: auth, users, gyms, workouts, progress, socia
    go run ./cmd/api
    ```
 
-   Health: [http://localhost:8080/health](http://localhost:8080/health)
+   Health: [http://localhost:8080/health](http://localhost:8080/health), version: [http://localhost:8080/version](http://localhost:8080/version)
 
 ## Makefile
 
@@ -74,7 +84,7 @@ For Kubernetes, see [deployments/k8s/README.md](deployments/k8s/README.md).
 - **Trainer** – clients, programs, comments (JWT)
 - **Notifications** – list, get, mark read (JWT)
 
-Protected routes require header: `Authorization: Bearer <access_token>`. Responses include `X-Request-Id` for tracing. Optional CORS: set `CORS_ALLOWED_ORIGINS` (comma-separated origins or `*`).
+Protected routes require header: `Authorization: Bearer <access_token>`. Responses include `X-Request-Id` for tracing. **CORS:** in development, all origins are allowed by default; otherwise set `CORS_ALLOWED_ORIGINS` (see [docs/CORS.md](docs/CORS.md)). API requests have a 30s context timeout.
 
 OpenAPI 3 spec: [GET /openapi.yaml](http://localhost:8080/openapi.yaml) when the API is running; source `internal/delivery/http/spec/openapi.yaml`.
 
