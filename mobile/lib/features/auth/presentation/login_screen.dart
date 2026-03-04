@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:fitflow/core/locale/locale_provider.dart';
 import 'package:fitflow/features/auth/domain/auth_models.dart';
 import 'package:fitflow/features/auth/presentation/auth_state.dart';
 import 'package:fitflow/core/errors/app_exceptions.dart';
@@ -37,7 +38,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         email: _emailController.text.trim(),
         password: _passwordController.text,
       ));
-      if (mounted) context.go('/');
+      if (mounted) context.go('/home');
     } on AppException catch (e) {
       if (mounted) setState(() => _error = e.message);
     } finally {
@@ -47,6 +48,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final tr = ref.watch(trProvider);
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -59,7 +61,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    'FITFLOW',
+                    tr('app_name'),
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                           fontWeight: FontWeight.bold,
@@ -68,7 +70,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Sign in',
+                    tr('sign_in'),
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
@@ -82,27 +84,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ],
                   TextFormField(
                     controller: _emailController,
-                    decoration: const InputDecoration(
-                      labelText: 'Email',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: tr('email'),
+                      border: const OutlineInputBorder(),
                     ),
                     keyboardType: TextInputType.emailAddress,
                     autocorrect: false,
                     validator: (v) {
-                      if (v == null || v.trim().isEmpty) return 'Enter email';
+                      if (v == null || v.trim().isEmpty) return tr('enter_email');
                       return null;
                     },
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _passwordController,
-                    decoration: const InputDecoration(
-                      labelText: 'Password',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: tr('password'),
+                      border: const OutlineInputBorder(),
                     ),
                     obscureText: true,
                     validator: (v) {
-                      if (v == null || v.isEmpty) return 'Enter password';
+                      if (v == null || v.isEmpty) return tr('enter_password');
                       return null;
                     },
                   ),
@@ -121,12 +123,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             width: 20,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Text('Sign in'),
+                        : Text(tr('sign_in')),
                   ),
                   const SizedBox(height: 16),
                   TextButton(
                     onPressed: () => context.push('/register'),
-                    child: const Text('Create account'),
+                    child: Text(tr('create_account')),
                   ),
                 ],
               ),

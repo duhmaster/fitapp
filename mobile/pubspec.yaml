@@ -16,6 +16,7 @@ dependencies:
   go_router: ^14.2.0
   image_picker: ^1.0.7
   http_parser: ^4.0.2
+  fl_chart: ^0.66.0
 
 dev_dependencies:
   flutter_test:

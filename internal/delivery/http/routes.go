@@ -72,6 +72,9 @@ func (s *Server) RegisterRoutes(cfg *RoutesConfig) {
 			c.JSON(http.StatusOK, gin.H{"message": "pong"})
 		})
 
+		v1.GET("/locales", listLocales)
+		v1.GET("/locales/:lang", getLocale)
+
 		if cfg.AuthHandler != nil {
 			auth := v1.Group("/auth")
 			auth.Use(middleware.RateLimit(20, 60*time.Second)) // 20 req/min per IP for auth

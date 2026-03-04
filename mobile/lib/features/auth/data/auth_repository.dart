@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fitflow/core/network/api_client.dart';
 import 'package:fitflow/features/auth/data/token_storage.dart';
@@ -12,8 +13,14 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
 
 class AuthRepository {
   AuthRepository({required this.dio, required this.tokenStorage});
-  final dynamic dio;
+  final Dio dio;
   final TokenStorage tokenStorage;
+
+  /// GET /api/v1/me — current user (id, email, role).
+  Future<CurrentUser> getMe() async {
+    final res = await dio.get<Map<String, dynamic>>('/api/v1/me');
+    return CurrentUser.fromJson(res.data!);
+  }
 
   Future<AuthResponse> login(LoginRequest req) async {
     final res = await dio.post<Map<String, dynamic>>(

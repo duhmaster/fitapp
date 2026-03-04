@@ -35,3 +35,18 @@ class AuthResponse {
     );
   }
 }
+
+/// Current user from GET /api/v1/me.
+class CurrentUser {
+  CurrentUser({required this.id, required this.email, required this.role});
+  final String id;
+  final String email;
+  final String role;
+  factory CurrentUser.fromJson(Map<String, dynamic> json) {
+    return CurrentUser(
+      id: (json['id'] as String?) ?? '',
+      email: (json['email'] as String?) ?? '',
+      role: (json['role'] as String?) ?? '',
+    );
+  }
+}

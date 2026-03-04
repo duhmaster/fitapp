@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:fitflow/core/errors/app_exceptions.dart';
+import 'package:fitflow/core/widgets/error_state_widget.dart';
+import 'package:fitflow/core/widgets/loading_skeleton.dart';
 import 'package:fitflow/features/profile/data/profile_repository.dart';
 import 'package:fitflow/features/profile/domain/profile_models.dart';
 import 'package:fitflow/features/profile/presentation/profile_provider.dart';
+import 'package:fitflow/core/locale/locale_provider.dart';
+import 'package:fitflow/features/profile/presentation/widgets/edit_profile_form.dart';
+import 'package:fitflow/features/profile/presentation/widgets/profile_header.dart';
+import 'package:fitflow/features/profile/presentation/widgets/profile_stats_card.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -14,51 +21,13 @@ class ProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _displayNameController = TextEditingController();
   bool _editMode = false;
   bool _saving = false;
   bool _uploadingAvatar = false;
-  String? _error;
 
-  @override
-  void dispose() {
-    _displayNameController.dispose();
-    super.dispose();
-  }
-
-  void _startEdit(Profile profile) {
-    _displayNameController.text = profile.displayName;
-    setState(() {
-      _editMode = true;
-      _error = null;
-    });
-  }
-
-  void _cancelEdit() {
-    setState(() {
-      _editMode = false;
-      _error = null;
-    });
-  }
-
-  Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) return;
-    setState(() {
-      _saving = true;
-      _error = null;
-    });
-    try {
-      await ref.read(profileRepositoryProvider).updateProfile(
-            displayName: _displayNameController.text.trim(),
-          );
-      ref.invalidate(profileProvider);
-      if (mounted) setState(() => _editMode = false);
-    } on AppException catch (e) {
-      if (mounted) setState(() => _error = e.message);
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
+  Future<void> _refresh() async {
+    ref.invalidate(profilePageDataProvider);
+    ref.invalidate(profileProvider);
   }
 
   Future<void> _pickAndUploadAvatar() async {
@@ -72,190 +41,213 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     if (xfile == null || !mounted) return;
     final contentType = ProfileRepository.contentTypeFromFilename(xfile.name);
     if (contentType == null) {
-      setState(() => _error = 'Use a jpeg, png, or webp image');
+      _showSnackBar('Use a jpeg, png, or webp image', isError: true);
       return;
     }
-    setState(() {
-      _uploadingAvatar = true;
-      _error = null;
-    });
+    setState(() => _uploadingAvatar = true);
     try {
       final bytes = await xfile.readAsBytes();
       await ref.read(profileRepositoryProvider).uploadAvatarBytes(bytes, contentType, xfile.name);
-      ref.invalidate(profileProvider);
+      await _refresh();
     } on AppException catch (e) {
-      if (mounted) setState(() => _error = e.message);
+      if (mounted) _showSnackBar(e.message, isError: true);
     } finally {
       if (mounted) setState(() => _uploadingAvatar = false);
     }
   }
 
+  Future<void> _save({
+    required String displayName,
+    double? heightCm,
+    double? weightKg,
+    double? bodyFatPct,
+  }) async {
+    setState(() => _saving = true);
+    try {
+      final repo = ref.read(profileRepositoryProvider);
+      await repo.updateProfile(displayName: displayName);
+      if (heightCm != null || weightKg != null) {
+        await repo.recordMetric(heightCm: heightCm, weightKg: weightKg);
+      }
+      if (bodyFatPct != null) {
+        await repo.recordBodyFat(bodyFatPct);
+      }
+      await _refresh();
+      if (mounted) {
+        setState(() => _editMode = false);
+        _showSnackBar(ref.read(trProvider)('profile_saved'));
+      }
+    } on AppException catch (e) {
+      if (mounted) _showSnackBar(e.message, isError: true);
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  void _showSnackBar(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Theme.of(context).colorScheme.error : null,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final profileAsync = ref.watch(profileProvider);
+    final tr = ref.watch(trProvider);
+    final dataAsync = ref.watch(profilePageDataProvider);
+    final inShell = GoRouterState.of(context).matchedLocation == '/profile';
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Profile'),
-        actions: [
-          if (_editMode)
-            TextButton(
-              onPressed: _saving ? null : _cancelEdit,
-              child: const Text('Cancel'),
-            ),
-          if (_editMode)
-            TextButton(
-              onPressed: _saving ? null : _save,
-              child: _saving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Save'),
-            )
-          else
-            IconButton(
-              icon: const Icon(Icons.edit),
-              onPressed: () {
-              final p = profileAsync.valueOrNull;
-              if (p != null) _startEdit(p);
-            },
-            ),
-        ],
-      ),
-      body: profileAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(err.toString(), textAlign: TextAlign.center),
-                const SizedBox(height: 16),
-                FilledButton(
-                  onPressed: () => ref.invalidate(profileProvider),
-                  child: const Text('Retry'),
-                ),
+      appBar: inShell
+          ? null
+          : AppBar(
+              title: Text(tr('profile')),
+              actions: [
+                if (_editMode)
+                  TextButton(
+                    onPressed: _saving ? null : () => setState(() => _editMode = false),
+                    child: Text(tr('cancel')),
+                  )
+                else
+                  IconButton(
+                    icon: const Icon(Icons.edit),
+                    onPressed: () => setState(() => _editMode = true),
+                  ),
               ],
             ),
-          ),
-        ),
-        data: (profile) => SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                if (_error != null) ...[
-                  Text(
-                    _error!,
-                    style: TextStyle(color: Theme.of(context).colorScheme.error),
-                  ),
-                  const SizedBox(height: 16),
-                ],
-                Center(
-                  child: Stack(
-                    alignment: Alignment.bottomRight,
+      body: Stack(
+        children: [
+          if (inShell)
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: Material(
+                elevation: 0,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _AvatarWidget(
-                        avatarUrl: profile.avatarUrl,
-                        size: 100,
-                        uploading: _uploadingAvatar,
-                      ),
-                      Material(
-                        color: Theme.of(context).colorScheme.primaryContainer,
-                        shape: const CircleBorder(),
-                        child: InkWell(
-                          onTap: _uploadingAvatar ? null : _pickAndUploadAvatar,
-                          customBorder: const CircleBorder(),
-                          child: const Padding(
-                            padding: EdgeInsets.all(8),
-                            child: Icon(Icons.camera_alt, size: 24),
-                          ),
+                      Text(tr('profile'), style: Theme.of(context).textTheme.titleLarge),
+                      if (_editMode)
+                        TextButton(
+                          onPressed: _saving ? null : () => setState(() => _editMode = false),
+                          child: Text(tr('cancel')),
+                        )
+                      else
+                        IconButton(
+                          icon: const Icon(Icons.edit),
+                          onPressed: () => setState(() => _editMode = true),
                         ),
-                      ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 24),
-                if (_editMode) ...[
-                  TextFormField(
-                    controller: _displayNameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Display name',
-                      border: OutlineInputBorder(),
+              ),
+            ),
+          dataAsync.when(
+            loading: () => Padding(
+              padding: EdgeInsets.only(top: inShell ? 56 : 0),
+              child: const _ProfileSkeleton(),
+            ),
+            error: (err, _) => Padding(
+              padding: EdgeInsets.only(top: inShell ? 56 : 0),
+              child: ErrorStateWidget(
+                message: err.toString(),
+                onRetry: () => ref.invalidate(profilePageDataProvider),
+              ),
+            ),
+            data: (data) => RefreshIndicator(
+              onRefresh: _refresh,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.only(top: inShell ? 56 : 16, left: 16, right: 16, bottom: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    ProfileHeader(
+                      displayName: data.displayName,
+                      email: data.email,
+                      avatarUrl: data.avatarUrl,
+                      onAvatarTap: _pickAndUploadAvatar,
+                      uploadingAvatar: _uploadingAvatar,
                     ),
-                    textCapitalization: TextCapitalization.words,
-                    validator: (v) {
-                      if (v == null || v.trim().isEmpty) return 'Enter a name';
-                      return null;
-                    },
-                  ),
-                ] else ...[
-                  Text(
-                    profile.displayName.isEmpty ? 'No name set' : profile.displayName,
-                    style: Theme.of(context).textTheme.headlineSmall,
-                    textAlign: TextAlign.center,
-                  ),
-                  if (profile.userId.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Text(
-                        'ID: ${profile.userId}',
-                        style: Theme.of(context).textTheme.bodySmall,
-                        textAlign: TextAlign.center,
+                    const SizedBox(height: 24),
+                    ProfileStatsCard(
+                      heightCm: data.heightCm,
+                      weightKg: data.weightKg,
+                      bodyFatPct: data.bodyFatPct,
+                    ),
+                    const SizedBox(height: 24),
+                    if (_editMode)
+                      EditProfileForm(
+                        initialDisplayName: data.displayName,
+                        initialHeightCm: data.heightCm,
+                        initialWeightKg: data.weightKg,
+                        initialBodyFatPct: data.bodyFatPct,
+                        onSave: _save,
+                        saving: _saving,
+                        labelDisplayName: tr('display_name'),
+                        labelHeight: tr('height_cm'),
+                        labelWeight: tr('weight_kg'),
+                        labelBodyFat: tr('body_fat_pct'),
+                        saveButtonLabel: tr('save'),
+                        nameFieldLabel: tr('name'),
+                      )
+                    else
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Text(
+                          tr('tap_edit_to_update'),
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                          textAlign: TextAlign.center,
+                        ),
                       ),
-                    ),
-                ],
-              ],
+                  ],
+                ),
+              ),
             ),
           ),
-        ),
+          if (_saving)
+            Container(
+              color: Colors.black26,
+              child: Center(
+                child: Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const CircularProgressIndicator(),
+                        const SizedBox(height: 16),
+                        Text(tr('saving')),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
 }
 
-class _AvatarWidget extends StatelessWidget {
-  const _AvatarWidget({
-    required this.avatarUrl,
-    required this.size,
-    this.uploading = false,
-  });
-  final String? avatarUrl;
-  final double size;
-  final bool uploading;
+class _ProfileSkeleton extends StatelessWidget {
+  const _ProfileSkeleton();
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: size,
-      height: size,
-      child: Stack(
-        alignment: Alignment.center,
+    return const SingleChildScrollView(
+      padding: EdgeInsets.all(16),
+      child: Column(
         children: [
-          CircleAvatar(
-            radius: size / 2,
-            backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-            backgroundImage: avatarUrl != null && avatarUrl!.isNotEmpty
-                ? NetworkImage(avatarUrl!)
-                : null,
-            child: avatarUrl == null || avatarUrl!.isEmpty
-                ? Icon(Icons.person, size: size * 0.5, color: Theme.of(context).colorScheme.onSurfaceVariant)
-                : null,
-          ),
-          if (uploading)
-            Container(
-              width: size,
-              height: size,
-              decoration: BoxDecoration(
-                color: Colors.black38,
-                shape: BoxShape.circle,
-              ),
-              child: const Center(
-                child: SizedBox(
-                  width: 32,
-                  height: 32,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                ),
-              ),
-            ),
+          ProfileHeaderSkeleton(),
+          SizedBox(height: 24),
+          StatsCardSkeleton(),
         ],
       ),
     );

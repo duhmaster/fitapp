@@ -38,7 +38,7 @@ class ProfileRepository {
       'avatar': MultipartFile.fromBytes(
         bytes,
         filename: filename,
-        options: MultipartFileOptions(contentType: MediaType.parse(contentType)),
+        contentType: MediaType.parse(contentType),
       ),
     });
     final res = await dio.post<Map<String, dynamic>>(
@@ -48,6 +48,49 @@ class ProfileRepository {
     final url = res.data?['avatar_url'] as String?;
     if (url == null) throw Exception('No avatar_url in response');
     return url;
+  }
+
+  /// GET /api/v1/users/me/metrics — latest metric (height_cm, weight_kg).
+  Future<Map<String, double?>> getLatestMetric() async {
+    final res = await dio.get<Map<String, dynamic>>('/api/v1/users/me/metrics');
+    final m = res.data?['metric'] as Map<String, dynamic>?;
+    if (m == null) return {};
+    return {
+      'height_cm': (m['height_cm'] as num?)?.toDouble(),
+      'weight_kg': (m['weight_kg'] as num?)?.toDouble(),
+    };
+  }
+
+  /// GET /api/v1/me/body-fat/history?limit=1 — latest body fat %.
+  Future<double?> getLatestBodyFat() async {
+    final res = await dio.get<Map<String, dynamic>>(
+      '/api/v1/me/body-fat/history',
+      queryParameters: {'limit': 1},
+    );
+    final list = res.data?['body_fat_history'] as List<dynamic>?;
+    if (list == null || list.isEmpty) return null;
+    final first = list.first as Map<String, dynamic>?;
+    final pct = first?['body_fat_pct'];
+    return pct != null ? (pct as num).toDouble() : null;
+  }
+
+  /// POST /api/v1/users/me/metrics — record height/weight.
+  Future<void> recordMetric({double? heightCm, double? weightKg}) async {
+    await dio.post<Map<String, dynamic>>(
+      '/api/v1/users/me/metrics',
+      data: {
+        if (heightCm != null) 'height_cm': heightCm,
+        if (weightKg != null) 'weight_kg': weightKg,
+      },
+    );
+  }
+
+  /// POST /api/v1/me/body-fat — record body fat %.
+  Future<void> recordBodyFat(double bodyFatPct) async {
+    await dio.post<Map<String, dynamic>>(
+      '/api/v1/me/body-fat',
+      data: {'body_fat_pct': bodyFatPct},
+    );
   }
 
   /// Content type from filename (e.g. photo.jpg -> image/jpeg). Returns null if unsupported.

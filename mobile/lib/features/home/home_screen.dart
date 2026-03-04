@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:fitflow/core/locale/locale_provider.dart';
 import 'package:fitflow/features/auth/presentation/auth_state.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -8,10 +9,15 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final tr = ref.watch(trProvider);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('FITFLOW'),
+        title: Text(tr('app_name')),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () => context.push('/options'),
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
@@ -25,40 +31,46 @@ class HomeScreen extends ConsumerWidget {
         padding: const EdgeInsets.all(16),
         children: [
           _NavTile(
-            title: 'Profile',
-            subtitle: 'View and edit your profile',
+            title: tr('profile'),
+            subtitle: tr('home_profile_subtitle'),
             icon: Icons.person,
             onTap: () => context.push('/profile'),
           ),
           _NavTile(
-            title: 'Gym',
-            subtitle: 'Search gyms, check-in',
+            title: tr('gym'),
+            subtitle: tr('home_gym_subtitle'),
             icon: Icons.fitness_center,
             onTap: () => context.push('/gym'),
           ),
           _NavTile(
-            title: 'Workout',
-            subtitle: 'Builder and active workout',
+            title: tr('workouts'),
+            subtitle: tr('home_workout_subtitle'),
             icon: Icons.directions_run,
             onTap: () => context.push('/workout'),
           ),
           _NavTile(
-            title: 'Progress',
-            subtitle: 'Charts and metrics',
+            title: tr('progress'),
+            subtitle: tr('home_progress_subtitle'),
             icon: Icons.show_chart,
             onTap: () => context.push('/progress'),
           ),
           _NavTile(
-            title: 'Feed',
-            subtitle: 'Social feed',
+            title: tr('feed'),
+            subtitle: tr('home_feed_subtitle'),
             icon: Icons.dynamic_feed,
             onTap: () => context.push('/feed'),
           ),
           _NavTile(
-            title: 'Trainer',
-            subtitle: 'Trainer dashboard',
+            title: tr('trainer'),
+            subtitle: tr('home_trainer_subtitle'),
             icon: Icons.sports_gymnastics,
             onTap: () => context.push('/trainer'),
+          ),
+          _NavTile(
+            title: tr('options'),
+            subtitle: tr('language'),
+            icon: Icons.settings,
+            onTap: () => context.push('/options'),
           ),
         ],
       ),

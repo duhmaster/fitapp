@@ -28,3 +28,21 @@ class Profile {
     );
   }
 }
+
+/// Combined data for the profile page: profile + email + latest metrics and body fat.
+class ProfilePageData {
+  ProfilePageData({
+    required this.displayName,
+    this.avatarUrl,
+    required this.email,
+    this.heightCm,
+    this.weightKg,
+    this.bodyFatPct,
+  });
+  final String displayName;
+  final String? avatarUrl;
+  final String email;
+  final double? heightCm;
+  final double? weightKg;
+  final double? bodyFatPct;
+}

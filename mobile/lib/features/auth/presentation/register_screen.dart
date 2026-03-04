@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:fitflow/core/locale/locale_provider.dart';
 import 'package:fitflow/features/auth/domain/auth_models.dart';
 import 'package:fitflow/features/auth/presentation/auth_state.dart';
 import 'package:fitflow/core/errors/app_exceptions.dart';
@@ -40,7 +41,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         email: _emailController.text.trim(),
         password: _passwordController.text,
       ));
-      if (mounted) context.go('/');
+      if (mounted) context.go('/home');
     } on AppException catch (e) {
       if (mounted) setState(() => _error = e.message);
     } finally {
@@ -50,8 +51,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final tr = ref.watch(trProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Create account')),
+      appBar: AppBar(title: Text(tr('create_account'))),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -69,41 +71,41 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 ],
                 TextFormField(
                   controller: _nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Name',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: tr('name'),
+                    border: const OutlineInputBorder(),
                   ),
                   textCapitalization: TextCapitalization.words,
                   validator: (v) {
-                    if (v == null || v.trim().isEmpty) return 'Enter name';
+                    if (v == null || v.trim().isEmpty) return tr('enter_name');
                     return null;
                   },
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _emailController,
-                  decoration: const InputDecoration(
-                    labelText: 'Email',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: tr('email'),
+                    border: const OutlineInputBorder(),
                   ),
                   keyboardType: TextInputType.emailAddress,
                   autocorrect: false,
                   validator: (v) {
-                    if (v == null || v.trim().isEmpty) return 'Enter email';
+                    if (v == null || v.trim().isEmpty) return tr('enter_email');
                     return null;
                   },
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _passwordController,
-                  decoration: const InputDecoration(
-                    labelText: 'Password',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: tr('password'),
+                    border: const OutlineInputBorder(),
                   ),
                   obscureText: true,
                   validator: (v) {
-                    if (v == null || v.isEmpty) return 'Enter password';
-                    if (v.length < 6) return 'At least 6 characters';
+                    if (v == null || v.isEmpty) return tr('enter_password');
+                    if (v.length < 6) return tr('at_least_6_chars');
                     return null;
                   },
                 ),
@@ -122,12 +124,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           width: 20,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text('Register'),
+                      : Text(tr('register')),
                 ),
                 const SizedBox(height: 16),
                 TextButton(
                   onPressed: () => context.pop(),
-                  child: const Text('Back to sign in'),
+                  child: Text(tr('back_to_sign_in')),
                 ),
               ],
             ),
