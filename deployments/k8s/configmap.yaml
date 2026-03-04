@@ -1,0 +1,22 @@
+# Non-sensitive config. Override in cluster or use env-specific ConfigMaps.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fitflow-api-config
+  namespace: fitflow
+  labels:
+    app: fitflow-api
+data:
+  PORT: "8080"
+  ENV: "production"
+  DB_HOST: "postgres"
+  DB_PORT: "5432"
+  DB_NAME: "fitflow"
+  DB_USER: "fitflow"
+  DB_SSLMODE: "require"
+  REDIS_ADDR: "redis:6379"
+  REDIS_DB: "0"
+  STORAGE_PATH: "/app/uploads"
+  GYM_PRESENCE_WINDOW: "90m"
+  GYM_SNAPSHOT_INTERVAL: "5m"
+  GYM_SNAPSHOT_BATCH_SIZE: "1000"

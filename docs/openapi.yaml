@@ -1,0 +1,247 @@
+# Served at GET /openapi.yaml when API is running. Canonical source: internal/delivery/http/spec/openapi.yaml
+openapi: 3.0.3
+info:
+  title: FITFLOW API
+  description: API for the FITFLOW fitness app.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080
+    description: Local
+
+security:
+  - bearerAuth: []
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      security: []
+      responses:
+        "200":
+          description: OK
+
+  /api/v1/ping:
+    get:
+      summary: Ping
+      security: []
+      responses:
+        "200":
+          description: pong
+
+  /api/v1/auth/register:
+    post:
+      summary: Register
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, minLength: 6 }
+      responses:
+        "201":
+          description: Created
+        "400":
+          description: Bad request
+
+  /api/v1/auth/login:
+    post:
+      summary: Login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string }
+                password: { type: string }
+      responses:
+        "200":
+          description: Returns access_token, refresh_token, expires_in
+        "401":
+          description: Invalid credentials
+
+  /api/v1/auth/refresh:
+    post:
+      summary: Refresh token
+      security: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh_token]
+              properties:
+                refresh_token: { type: string }
+      responses:
+        "200":
+          description: New tokens
+        "401":
+          description: Invalid refresh token
+
+  /api/v1/me:
+    get:
+      summary: Current user
+      tags: [Me]
+      responses:
+        "200":
+          description: User info
+        "401":
+          description: Unauthorized
+
+  /api/v1/gyms:
+    get:
+      summary: Search gyms
+      security: []
+      parameters:
+        - name: q
+          in: query
+          schema: { type: string }
+        - name: lat
+          in: query
+          schema: { type: number }
+        - name: lng
+          in: query
+          schema: { type: number }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20 }
+        - name: offset
+          in: query
+          schema: { type: integer, default: 0 }
+      responses:
+        "200":
+          description: List of gyms
+
+  /api/v1/exercises:
+    get:
+      summary: List exercises
+      tags: [Workouts]
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50 }
+        - name: offset
+          in: query
+          schema: { type: integer, default: 0 }
+      responses:
+        "200":
+          description: List of exercises
+
+  /api/v1/me/workouts:
+    get:
+      summary: List my workouts
+      tags: [Workouts]
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20 }
+        - name: offset
+          in: query
+          schema: { type: integer, default: 0 }
+      responses:
+        "200":
+          description: List of workouts
+    post:
+      summary: Create workout
+      tags: [Workouts]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                template_id: { type: string, format: uuid }
+                scheduled_at: { type: string, format: date-time }
+      responses:
+        "201":
+          description: Created workout
+
+  /api/v1/me/feed:
+    get:
+      summary: Social feed
+      tags: [Social]
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50 }
+        - name: offset
+          in: query
+          schema: { type: integer, default: 0 }
+      responses:
+        "200":
+          description: Feed (posts from followed users + own)
+
+  /api/v1/me/notifications:
+    get:
+      summary: List notifications
+      tags: [Notifications]
+      parameters:
+        - name: unread_only
+          in: query
+          schema: { type: boolean, default: false }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50 }
+        - name: offset
+          in: query
+          schema: { type: integer, default: 0 }
+      responses:
+        "200":
+          description: List of notifications
+
+  /api/v1/blog-posts:
+    get:
+      summary: List blog posts
+      security: []
+      tags: [Blog]
+      parameters:
+        - name: tag_id
+          in: query
+          schema: { type: string, format: uuid }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20 }
+        - name: offset
+          in: query
+          schema: { type: integer, default: 0 }
+      responses:
+        "200":
+          description: List of blog posts
+
+  /api/v1/tags:
+    get:
+      summary: List tags
+      security: []
+      tags: [Blog]
+      responses:
+        "200":
+          description: List of tags
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Access token from login or refresh
+
+tags:
+  - name: Me
+    description: Current user and profile
+  - name: Workouts
+    description: Exercises and workout sessions
+  - name: Social
+    description: Feed, posts, likes, comments
+  - name: Notifications
+    description: User notifications
+  - name: Blog
+    description: Blog posts and tags

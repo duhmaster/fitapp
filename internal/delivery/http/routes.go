@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/fitflow/fitflow/internal/auth/domain"
+	"github.com/fitflow/fitflow/internal/delivery/http/spec"
 	authdelivery "github.com/fitflow/fitflow/internal/auth/delivery"
 	blogdelivery "github.com/fitflow/fitflow/internal/blog/delivery"
 	gymdelivery "github.com/fitflow/fitflow/internal/gym/delivery"
@@ -47,6 +48,11 @@ func (s *Server) RegisterRoutes(cfg *RoutesConfig) {
 	if cfg.UploadsPath != "" {
 		s.router.Static("/uploads", cfg.UploadsPath)
 	}
+
+	// OpenAPI spec (no auth)
+	s.router.GET("/openapi.yaml", func(c *gin.Context) {
+		c.Data(http.StatusOK, "application/yaml; charset=utf-8", spec.OpenAPIYAML)
+	})
 
 	// API v1
 	v1 := s.router.Group("/api/v1")
