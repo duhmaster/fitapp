@@ -29,6 +29,12 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
     return 0; // home (/ or /home)
   }
 
+  /// Navigate then close drawer so the correct page opens and drawer doesn't block.
+  void _drawerNavigate(BuildContext context, VoidCallback navigate) {
+    navigate();
+    Navigator.of(context).pop();
+  }
+
   void _onItemTapped(int index) {
     switch (index) {
       case 0:
@@ -61,9 +67,11 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
     final index = _selectedIndex(widget.location);
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.menu),
-          onPressed: () => Scaffold.of(context).openDrawer(),
+        leading: Builder(
+          builder: (ctx) => IconButton(
+            icon: const Icon(Icons.menu),
+            onPressed: () => Scaffold.of(ctx).openDrawer(),
+          ),
         ),
         title: Row(
           mainAxisSize: MainAxisSize.min,
@@ -99,13 +107,13 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
                 ],
               ),
             ),
-            ListTile(leading: const Icon(Icons.person), title: Text(tr('profile')), onTap: () { Navigator.pop(context); context.go('/profile'); }),
-            ListTile(leading: const Icon(Icons.fitness_center), title: Text(tr('gym')), onTap: () { Navigator.pop(context); context.push('/gym'); }),
-            ListTile(leading: const Icon(Icons.directions_run), title: Text(tr('workouts')), onTap: () { Navigator.pop(context); context.go('/home'); }),
-            ListTile(leading: const Icon(Icons.show_chart), title: Text(tr('progress')), onTap: () { Navigator.pop(context); context.go('/progress'); }),
-            ListTile(leading: const Icon(Icons.dynamic_feed), title: Text(tr('feed')), onTap: () { Navigator.pop(context); context.go('/feed'); }),
-            ListTile(leading: const Icon(Icons.sports_gymnastics), title: Text(tr('trainer')), onTap: () { Navigator.pop(context); context.push('/trainer'); }),
-            ListTile(leading: const Icon(Icons.settings), title: Text(tr('options')), onTap: () { Navigator.pop(context); context.push('/options'); }),
+            ListTile(leading: const Icon(Icons.person), title: Text(tr('profile')), onTap: () => _drawerNavigate(context, () => context.go('/profile'))),
+            ListTile(leading: const Icon(Icons.fitness_center), title: Text(tr('gym')), onTap: () => _drawerNavigate(context, () => context.push('/gym'))),
+            ListTile(leading: const Icon(Icons.directions_run), title: Text(tr('workouts')), onTap: () => _drawerNavigate(context, () => context.go('/home'))),
+            ListTile(leading: const Icon(Icons.show_chart), title: Text(tr('progress')), onTap: () => _drawerNavigate(context, () => context.go('/progress'))),
+            ListTile(leading: const Icon(Icons.dynamic_feed), title: Text(tr('feed')), onTap: () => _drawerNavigate(context, () => context.go('/feed'))),
+            ListTile(leading: const Icon(Icons.sports_gymnastics), title: Text(tr('trainer')), onTap: () => _drawerNavigate(context, () => context.push('/trainer'))),
+            ListTile(leading: const Icon(Icons.settings), title: Text(tr('options')), onTap: () => _drawerNavigate(context, () => context.push('/options'))),
           ],
         ),
       ),
@@ -136,12 +144,18 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
     return InkWell(
       onTap: () => _onItemTapped(i),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(vertical: 4),
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: selected ? Theme.of(context).colorScheme.primary : null),
-            Text(label, style: TextStyle(fontSize: 12, color: selected ? Theme.of(context).colorScheme.primary : null)),
+            Icon(icon, size: 20, color: selected ? Theme.of(context).colorScheme.primary : null),
+            Text(
+              label,
+              style: TextStyle(fontSize: 10, color: selected ? Theme.of(context).colorScheme.primary : null),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ],
         ),
       ),
