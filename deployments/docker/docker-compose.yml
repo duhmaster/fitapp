@@ -1,0 +1,72 @@
+# FITFLOW API + Postgres + Redis
+# From project root (directory with go.mod): docker compose -f deployments/docker/docker-compose.yml up -d
+# Migrations: see deployments/docker/README.md
+
+services:
+  api:
+    build:
+      context: ../..
+      dockerfile: deployments/docker/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: 8080
+      ENV: development
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: fitflow
+      DB_USER: fitflow
+      DB_PASSWORD: fitflow
+      DB_SSLMODE: disable
+      REDIS_ADDR: redis:6379
+      REDIS_PASSWORD: ""
+      REDIS_DB: 0
+      JWT_SECRET: change-me-in-production
+      STORAGE_PATH: /app/uploads
+      STORAGE_BASE_URL: http://localhost:8080/uploads
+    volumes:
+      - api_uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: fitflow
+      POSTGRES_PASSWORD: fitflow
+      POSTGRES_DB: fitflow
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fitflow -d fitflow"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  postgres_data:
+  redis_data:
+  api_uploads:

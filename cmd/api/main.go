@@ -12,6 +12,9 @@ import (
 
 	authdelivery "github.com/fitflow/fitflow/internal/auth/delivery"
 	authrepository "github.com/fitflow/fitflow/internal/auth/repository"
+	blogdelivery "github.com/fitflow/fitflow/internal/blog/delivery"
+	blogrepository "github.com/fitflow/fitflow/internal/blog/repository"
+	blogusecase "github.com/fitflow/fitflow/internal/blog/usecase"
 	authusecase "github.com/fitflow/fitflow/internal/auth/usecase"
 	"github.com/fitflow/fitflow/internal/config"
 	httpdelivery "github.com/fitflow/fitflow/internal/delivery/http"
@@ -25,6 +28,15 @@ import (
 	progressdelivery "github.com/fitflow/fitflow/internal/progress/delivery"
 	progressrepository "github.com/fitflow/fitflow/internal/progress/repository"
 	progressusecase "github.com/fitflow/fitflow/internal/progress/usecase"
+	socialdelivery "github.com/fitflow/fitflow/internal/social/delivery"
+	socialrepository "github.com/fitflow/fitflow/internal/social/repository"
+	socialusecase "github.com/fitflow/fitflow/internal/social/usecase"
+	notificationdelivery "github.com/fitflow/fitflow/internal/notification/delivery"
+	notificationrepository "github.com/fitflow/fitflow/internal/notification/repository"
+	notificationusecase "github.com/fitflow/fitflow/internal/notification/usecase"
+	trainerdelivery "github.com/fitflow/fitflow/internal/trainer/delivery"
+	trainerrepository "github.com/fitflow/fitflow/internal/trainer/repository"
+	trainerusecase "github.com/fitflow/fitflow/internal/trainer/usecase"
 	userdelivery "github.com/fitflow/fitflow/internal/user/delivery"
 	userrepository "github.com/fitflow/fitflow/internal/user/repository"
 	userusecase "github.com/fitflow/fitflow/internal/user/usecase"
@@ -115,6 +127,35 @@ func run() error {
 	progressUC := progressusecase.NewProgressUseCase(weightRepo, bodyFatRepo, healthMetricRepo)
 	progressHandler := progressdelivery.NewHandler(progressUC)
 
+	// Social module
+	followRepo := socialrepository.NewFollowRepository(db)
+	friendRequestRepo := socialrepository.NewFriendRequestRepository(db)
+	postRepo := socialrepository.NewPostRepository(db)
+	likeRepo := socialrepository.NewLikeRepository(db)
+	commentRepo := socialrepository.NewCommentRepository(db)
+	socialUC := socialusecase.NewSocialUseCase(followRepo, friendRequestRepo, postRepo, likeRepo, commentRepo)
+	socialHandler := socialdelivery.NewHandler(socialUC)
+
+	// Blog module
+	blogPostRepo := blogrepository.NewBlogPostRepository(db)
+	blogPhotoRepo := blogrepository.NewBlogPostPhotoRepository(db)
+	tagRepo := blogrepository.NewTagRepository(db)
+	blogPostTagRepo := blogrepository.NewBlogPostTagRepository(db)
+	blogUC := blogusecase.NewBlogUseCase(blogPostRepo, blogPhotoRepo, tagRepo, blogPostTagRepo)
+	blogHandler := blogdelivery.NewHandler(blogUC)
+
+	// Trainer module
+	trainerClientRepo := trainerrepository.NewTrainerClientRepository(db)
+	trainingProgramRepo := trainerrepository.NewTrainingProgramRepository(db)
+	trainerCommentRepo := trainerrepository.NewTrainerCommentRepository(db)
+	trainerUC := trainerusecase.NewTrainerUseCase(trainerClientRepo, trainingProgramRepo, trainerCommentRepo)
+	trainerHandler := trainerdelivery.NewHandler(trainerUC)
+
+	// Notification module
+	notificationRepo := notificationrepository.NewNotificationRepository(db)
+	notificationUC := notificationusecase.NewNotificationUseCase(notificationRepo)
+	notificationHandler := notificationdelivery.NewHandler(notificationUC)
+
 	// HTTP server
 	healthHandler := httpdelivery.NewHealthHandler(db, rdb)
 	srv := httpdelivery.New(log)
@@ -125,7 +166,11 @@ func run() error {
 		GymHandler:     gymHandler,
 		WorkoutHandler:  workoutHandler,
 		ProgressHandler: progressHandler,
-		JWTSecret:       []byte(cfg.JWTSecret),
+		SocialHandler:   socialHandler,
+		BlogHandler:     blogHandler,
+		TrainerHandler:      trainerHandler,
+		NotificationHandler: notificationHandler,
+		JWTSecret:           []byte(cfg.JWTSecret),
 		UploadsPath:    cfg.StoragePath,
 	})
 
