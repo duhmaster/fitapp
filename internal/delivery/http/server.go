@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/fitflow/fitflow/internal/delivery/middleware"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
 )
@@ -22,8 +23,9 @@ func New(log zerolog.Logger) *Server {
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.New()
 
-	// Global middleware
+	// Global middleware (RequestID first so logs can include it)
 	router.Use(Recovery(log))
+	router.Use(middleware.RequestID())
 	router.Use(RequestLogger(log))
 
 	return &Server{

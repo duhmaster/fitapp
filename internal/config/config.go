@@ -11,8 +11,9 @@ import (
 // Loaded from environment variables for 12-factor compatibility.
 type Config struct {
 	// Server
-	Port int
-	Env  string
+	Port              int
+	Env               string
+	CORSAllowedOrigins string // comma-separated; "*" = allow all; empty = no CORS
 
 	// Database
 	DBHost     string
@@ -45,8 +46,9 @@ type Config struct {
 // Load reads configuration from environment variables.
 func Load() (*Config, error) {
 	cfg := &Config{
-		Port:          getEnvInt("PORT", 8080),
-		Env:           getEnv("ENV", "development"),
+		Port:               getEnvInt("PORT", 8080),
+		Env:                getEnv("ENV", "development"),
+		CORSAllowedOrigins: getEnv("CORS_ALLOWED_ORIGINS", ""),
 		DBHost:        getEnv("DB_HOST", "localhost"),
 		DBPort:        getEnvInt("DB_PORT", 5432),
 		DBName:        getEnv("DB_NAME", "fitflow"),

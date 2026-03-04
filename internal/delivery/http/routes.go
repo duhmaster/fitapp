@@ -2,6 +2,7 @@ package http
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/fitflow/fitflow/internal/auth/domain"
 	"github.com/fitflow/fitflow/internal/delivery/http/spec"
@@ -20,7 +21,9 @@ import (
 
 // RoutesConfig holds dependencies for route registration.
 type RoutesConfig struct {
-	HealthHandler   *HealthHandler
+	// AllowedOrigins for CORS; nil = no CORS. Use []string{"*"} to allow all.
+	AllowedOrigins []string
+	HealthHandler  *HealthHandler
 	AuthHandler     *authdelivery.Handler
 	UserHandler     *userdelivery.Handler
 	GymHandler      *gymdelivery.Handler
@@ -38,6 +41,9 @@ type RoutesConfig struct {
 func (s *Server) RegisterRoutes(cfg *RoutesConfig) {
 	if cfg == nil || cfg.HealthHandler == nil {
 		return
+	}
+	if cfg.AllowedOrigins != nil {
+		s.router.Use(middleware.CORS(cfg.AllowedOrigins))
 	}
 	// Health endpoints for K8s probes
 	s.router.GET("/health", cfg.HealthHandler.Health)
@@ -63,6 +69,7 @@ func (s *Server) RegisterRoutes(cfg *RoutesConfig) {
 
 		if cfg.AuthHandler != nil {
 			auth := v1.Group("/auth")
+			auth.Use(middleware.RateLimit(20, 60*time.Second)) // 20 req/min per IP for auth
 			{
 				auth.POST("/register", cfg.AuthHandler.Register)
 				auth.POST("/login", cfg.AuthHandler.Login)

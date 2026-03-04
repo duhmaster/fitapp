@@ -45,7 +45,10 @@ make lint           # run golangci-lint
 make migrate-up     # apply migrations (DSN=... to override)
 make docker-up      # start API + Postgres + Redis
 make docker-down    # stop stack
+make openapi-sync   # copy OpenAPI spec from internal to docs
 ```
+
+Auth endpoints (login, register, refresh) are rate-limited to 20 requests per minute per IP.
 
 ## Docker
 
@@ -71,7 +74,7 @@ For Kubernetes, see [deployments/k8s/README.md](deployments/k8s/README.md).
 - **Trainer** – clients, programs, comments (JWT)
 - **Notifications** – list, get, mark read (JWT)
 
-Protected routes require header: `Authorization: Bearer <access_token>`.
+Protected routes require header: `Authorization: Bearer <access_token>`. Responses include `X-Request-Id` for tracing. Optional CORS: set `CORS_ALLOWED_ORIGINS` (comma-separated origins or `*`).
 
 OpenAPI 3 spec: [GET /openapi.yaml](http://localhost:8080/openapi.yaml) when the API is running; source `internal/delivery/http/spec/openapi.yaml`.
 

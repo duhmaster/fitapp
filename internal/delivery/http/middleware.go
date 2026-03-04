@@ -3,6 +3,7 @@ package http
 import (
 	"time"
 
+	"github.com/fitflow/fitflow/internal/delivery/middleware"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
 )
@@ -12,11 +13,16 @@ func Recovery(log zerolog.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		defer func() {
 			if err := recover(); err != nil {
-				log.Error().
+				ev := log.Error().
 					Interface("panic", err).
 					Str("path", c.Request.URL.Path).
-					Str("method", c.Request.Method).
-					Msg("panic recovered")
+					Str("method", c.Request.Method)
+				if id, ok := c.Get(string(middleware.RequestIDContextKey)); ok {
+					if s, _ := id.(string); s != "" {
+						ev = ev.Str("request_id", s)
+					}
+				}
+				ev.Msg("panic recovered")
 				c.AbortWithStatus(500)
 			}
 		}()
@@ -24,7 +30,7 @@ func Recovery(log zerolog.Logger) gin.HandlerFunc {
 	}
 }
 
-// RequestLogger logs each request with method, path, status, and duration.
+// RequestLogger logs each request with method, path, status, duration, and request_id.
 func RequestLogger(log zerolog.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
@@ -36,13 +42,17 @@ func RequestLogger(log zerolog.Logger) gin.HandlerFunc {
 
 		latency := time.Since(start)
 		status := c.Writer.Status()
-
-		log.Info().
+		ev := log.Info().
 			Str("method", method).
 			Str("path", path).
 			Str("client_ip", clientIP).
 			Int("status", status).
-			Dur("latency", latency).
-			Msg("request")
+			Dur("latency", latency)
+		if id, ok := c.Get(string(middleware.RequestIDContextKey)); ok {
+			if s, _ := id.(string); s != "" {
+				ev = ev.Str("request_id", s)
+			}
+		}
+		ev.Msg("request")
 	}
 }

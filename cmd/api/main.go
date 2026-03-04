@@ -17,6 +17,7 @@ import (
 	blogusecase "github.com/fitflow/fitflow/internal/blog/usecase"
 	authusecase "github.com/fitflow/fitflow/internal/auth/usecase"
 	"github.com/fitflow/fitflow/internal/config"
+	"github.com/fitflow/fitflow/internal/delivery/middleware"
 	httpdelivery "github.com/fitflow/fitflow/internal/delivery/http"
 	"github.com/fitflow/fitflow/internal/pkg/logger"
 	"github.com/fitflow/fitflow/internal/pkg/postgres"
@@ -160,6 +161,7 @@ func run() error {
 	healthHandler := httpdelivery.NewHealthHandler(db, rdb)
 	srv := httpdelivery.New(log)
 	srv.RegisterRoutes(&httpdelivery.RoutesConfig{
+		AllowedOrigins:  middleware.ParseCORSOrigins(cfg.CORSAllowedOrigins),
 		HealthHandler:  healthHandler,
 		AuthHandler:    authHandler,
 		UserHandler:    userHandler,
