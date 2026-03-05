@@ -3,15 +3,97 @@ class Exercise {
     required this.id,
     required this.name,
     this.muscleGroup,
+    this.equipment = const [],
+    this.tags = const [],
+    this.description,
+    this.instruction = const [],
+    this.muscleLoads = const {},
+    this.formula,
+    this.difficultyLevel,
+    this.isBase = false,
+    this.isPopular = false,
+    this.isFree = true,
   });
   final String id;
   final String name;
   final String? muscleGroup;
+  final List<String> equipment;
+  final List<String> tags;
+  final String? description;
+  final List<String> instruction;
+  final Map<String, double> muscleLoads;
+  final String? formula;
+  final String? difficultyLevel;
+  final bool isBase;
+  final bool isPopular;
+  final bool isFree;
+
   factory Exercise.fromJson(Map<String, dynamic> json) {
+    List<String> _strList(dynamic v) {
+      if (v is List) return v.map((e) => e.toString()).toList();
+      return [];
+    }
+
+    Map<String, double> _muscleLoads(dynamic v) {
+      if (v is! Map) return {};
+      final m = <String, double>{};
+      v.forEach((k, val) {
+        if (k is String && val is num) m[k] = val.toDouble();
+      });
+      return m;
+    }
+
     return Exercise(
       id: (json['id'] as String?) ?? '',
       name: (json['name'] as String?) ?? '',
       muscleGroup: json['muscle_group'] as String?,
+      equipment: _strList(json['equipment']),
+      tags: _strList(json['tags']),
+      description: json['description'] as String?,
+      instruction: _strList(json['instruction']),
+      muscleLoads: _muscleLoads(json['muscle_loads']),
+      formula: json['formula'] as String?,
+      difficultyLevel: json['difficulty_level'] as String?,
+      isBase: json['is_base'] as bool? ?? false,
+      isPopular: json['is_popular'] as bool? ?? false,
+      isFree: json['is_free'] as bool? ?? true,
+    );
+  }
+}
+
+class Program {
+  Program({required this.id, required this.name, this.description});
+  final String id;
+  final String name;
+  final String? description;
+  factory Program.fromJson(Map<String, dynamic> json) {
+    return Program(
+      id: (json['id'] as String?) ?? '',
+      name: (json['name'] as String?) ?? '',
+      description: json['description'] as String?,
+    );
+  }
+}
+
+class ProgramExercise {
+  ProgramExercise({
+    required this.id,
+    required this.exerciseId,
+    required this.orderIndex,
+    this.exercise,
+  });
+  final String id;
+  final String exerciseId;
+  final int orderIndex;
+  final Exercise? exercise;
+  factory ProgramExercise.fromJson(Map<String, dynamic> json) {
+    return ProgramExercise(
+      id: (json['id'] as String?) ?? '',
+      exerciseId: (json['exercise_id'] as String?) ?? '',
+      orderIndex: (json['order_index'] as int?) ?? 0,
+      exercise: json['exercise'] != null
+          ? Exercise.fromJson(json['exercise'] as Map<String, dynamic>)
+          : null,
     );
   }
 }
@@ -20,6 +102,7 @@ class Workout {
   Workout({
     required this.id,
     this.templateId,
+    this.programId,
     required this.userId,
     this.scheduledAt,
     this.startedAt,
@@ -28,6 +111,7 @@ class Workout {
   });
   final String id;
   final String? templateId;
+  final String? programId;
   final String userId;
   final String? scheduledAt;
   final String? startedAt;
@@ -37,6 +121,7 @@ class Workout {
     return Workout(
       id: (json['id'] as String?) ?? '',
       templateId: json['template_id'] as String?,
+      programId: json['program_id'] as String?,
       userId: (json['user_id'] as String?) ?? '',
       scheduledAt: json['scheduled_at'] as String?,
       startedAt: json['started_at'] as String?,

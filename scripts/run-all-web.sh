@@ -41,12 +41,19 @@ else
 fi
 
 echo "==> Waiting for API health..."
-for i in {1..30}; do
+for i in {1..45}; do
   if curl -sf http://localhost:8080/health &>/dev/null; then
     echo "API is up."
     break
   fi
-  [[ $i -eq 30 ]] && { echo "API did not become healthy."; exit 1; }
+  if [[ $i -eq 45 ]]; then
+    echo "API did not become healthy."
+    echo "==> API container status and logs:"
+    docker compose -f "$COMPOSE_FILE" ps api
+    docker compose -f "$COMPOSE_FILE" logs api --tail=60
+    echo "==> Fix: ensure API image built (or use ./scripts/build-api-runtime.sh if build runs out of disk), then try again."
+    exit 1
+  fi
   sleep 1
 done
 

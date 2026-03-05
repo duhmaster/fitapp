@@ -118,7 +118,9 @@ func run() error {
 	workoutRepo := workoutrepository.NewWorkoutRepository(db)
 	workoutExerciseRepo := workoutrepository.NewWorkoutExerciseRepository(db)
 	exerciseLogRepo := workoutrepository.NewExerciseLogRepository(db)
-	workoutUC := workoutusecase.NewWorkoutUseCase(exerciseRepo, workoutRepo, workoutExerciseRepo, exerciseLogRepo)
+	programRepo := workoutrepository.NewProgramRepository(db)
+	programExerciseRepo := workoutrepository.NewProgramExerciseRepository(db)
+	workoutUC := workoutusecase.NewWorkoutUseCase(exerciseRepo, workoutRepo, workoutExerciseRepo, exerciseLogRepo, programRepo, programExerciseRepo)
 	workoutHandler := workoutdelivery.NewHandler(workoutUC)
 
 	// Progress module

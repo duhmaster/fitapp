@@ -1,0 +1,8 @@
+# Use with: docker compose -f docker-compose.yml -f docker-compose.runtime.yml up -d
+# Build the API image first with Dockerfile.runtime (see README "If Docker build runs out of disk space").
+# This override uses the pre-built image and does not build inside Docker.
+
+services:
+  api:
+    image: fitflow-api
+    build: ~

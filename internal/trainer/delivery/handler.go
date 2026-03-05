@@ -225,7 +225,7 @@ func (h *Handler) CreateProgram(c *gin.Context) {
 }
 
 func (h *Handler) GetProgram(c *gin.Context) {
-	programID, ok := parseUUIDParam(c, "program_id")
+	programID, ok := parseUUIDParam(c, "id")
 	if !ok {
 		return
 	}

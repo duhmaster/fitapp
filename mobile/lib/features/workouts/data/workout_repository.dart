@@ -11,13 +11,58 @@ class WorkoutRepository {
   WorkoutRepository({required this.dio});
   final Dio dio;
 
-  Future<List<Exercise>> listExercises({int limit = 50, int offset = 0}) async {
+  Future<List<Exercise>> listExercises({
+    int limit = 50,
+    int offset = 0,
+    String? muscleGroup,
+    String? difficulty,
+    List<String>? tags,
+  }) async {
+    final params = <String, dynamic>{'limit': limit, 'offset': offset};
+    if (muscleGroup != null && muscleGroup.isNotEmpty) params['muscle_group'] = muscleGroup;
+    if (difficulty != null && difficulty.isNotEmpty) params['difficulty'] = difficulty;
+    if (tags != null && tags.isNotEmpty) params['tags'] = tags;
+
     final res = await dio.get<Map<String, dynamic>>(
       '/api/v1/exercises',
-      queryParameters: {'limit': limit, 'offset': offset},
+      queryParameters: params,
     );
     final list = res.data?['exercises'] as List<dynamic>? ?? [];
     return list.map((e) => Exercise.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<List<Program>> listPrograms({int limit = 50, int offset = 0}) async {
+    final res = await dio.get<Map<String, dynamic>>(
+      '/api/v1/programs',
+      queryParameters: {'limit': limit, 'offset': offset},
+    );
+    final list = res.data?['programs'] as List<dynamic>? ?? [];
+    return list.map((e) => Program.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<Program> createProgram({required String name, String? description}) async {
+    final res = await dio.post<Map<String, dynamic>>(
+      '/api/v1/programs',
+      data: {'name': name, if (description != null) 'description': description},
+    );
+    return Program.fromJson(res.data!);
+  }
+
+  Future<List<ProgramExercise>> getProgramExercises(String programId) async {
+    final res = await dio.get<Map<String, dynamic>>('/api/v1/programs/$programId/exercises');
+    final list = res.data?['exercises'] as List<dynamic>? ?? [];
+    return list.map((e) => ProgramExercise.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<Workout> startWorkoutFromProgram({
+    required String programId,
+    String? scheduledAt,
+  }) async {
+    final res = await dio.post<Map<String, dynamic>>(
+      '/api/v1/workouts/start',
+      data: {'program_id': programId, if (scheduledAt != null) 'scheduled_at': scheduledAt},
+    );
+    return Workout.fromJson(res.data!);
   }
 
   Future<List<Workout>> listMyWorkouts({int limit = 20, int offset = 0}) async {
@@ -29,8 +74,11 @@ class WorkoutRepository {
     return list.map((e) => Workout.fromJson(e as Map<String, dynamic>)).toList();
   }
 
-  Future<Workout> createWorkout() async {
-    final res = await dio.post<Map<String, dynamic>>('/api/v1/me/workouts', data: {});
+  Future<Workout> createWorkout({String? templateId, String? programId}) async {
+    final data = <String, dynamic>{};
+    if (templateId != null) data['template_id'] = templateId;
+    if (programId != null) data['program_id'] = programId;
+    final res = await dio.post<Map<String, dynamic>>('/api/v1/me/workouts', data: data);
     return Workout.fromJson(res.data!);
   }
 

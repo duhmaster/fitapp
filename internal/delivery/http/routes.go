@@ -115,6 +115,10 @@ func (s *Server) RegisterRoutes(cfg *RoutesConfig) {
 
 				if cfg.WorkoutHandler != nil {
 					protected.GET("/exercises", cfg.WorkoutHandler.ListExercises)
+					protected.GET("/programs", cfg.WorkoutHandler.ListPrograms)
+					protected.POST("/programs", cfg.WorkoutHandler.CreateProgram)
+					protected.GET("/programs/:id/exercises", cfg.WorkoutHandler.GetProgramExercises)
+					protected.POST("/workouts/start", cfg.WorkoutHandler.StartWorkoutFromProgram)
 					protected.GET("/me/workouts", cfg.WorkoutHandler.ListMyWorkouts)
 					protected.POST("/me/workouts", cfg.WorkoutHandler.CreateWorkout)
 					protected.GET("/me/workouts/:workout_id", cfg.WorkoutHandler.GetWorkout)
@@ -174,7 +178,7 @@ func (s *Server) RegisterRoutes(cfg *RoutesConfig) {
 					protected.POST("/me/trainer/programs", cfg.TrainerHandler.CreateProgram)
 					protected.GET("/me/trainer/programs", cfg.TrainerHandler.ListMyPrograms)
 					protected.GET("/me/programs", cfg.TrainerHandler.ListClientPrograms)
-					protected.GET("/programs/:program_id", cfg.TrainerHandler.GetProgram)
+					protected.GET("/programs/:id", cfg.TrainerHandler.GetProgram)
 					protected.PATCH("/me/trainer/programs/:program_id", cfg.TrainerHandler.UpdateProgram)
 					protected.DELETE("/me/trainer/programs/:program_id", cfg.TrainerHandler.DeleteProgram)
 					protected.POST("/me/trainer/clients/:client_id/comments", cfg.TrainerHandler.AddComment)

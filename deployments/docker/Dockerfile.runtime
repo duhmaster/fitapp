@@ -1,0 +1,21 @@
+# Use this when building inside Docker runs out of disk space.
+# Build the binary on the host (needs Go installed), then build this image:
+#
+#   cd /path/to/fitapp   # project root
+#   CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o fitflow-api ./cmd/api
+#   docker build -f deployments/docker/Dockerfile.runtime -t fitflow-api .
+#
+# The binary must be named fitflow-api and lie in the project root.
+
+FROM alpine:3.19
+
+RUN apk --no-cache add ca-certificates tzdata wget
+
+WORKDIR /app
+
+COPY fitflow-api .
+COPY migrations ./migrations
+
+EXPOSE 8080
+
+ENTRYPOINT ["./fitflow-api"]

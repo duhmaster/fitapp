@@ -46,7 +46,7 @@ class HomeScreen extends ConsumerWidget {
             title: tr('workouts'),
             subtitle: tr('home_workout_subtitle'),
             icon: Icons.directions_run,
-            onTap: () => context.push('/workout'),
+            onTap: () => context.push('/workouts'),
           ),
           _NavTile(
             title: tr('progress'),

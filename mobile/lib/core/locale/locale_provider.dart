@@ -120,6 +120,23 @@ final Map<String, String> _fallbackStrings = {
   'enter_valid_email': 'Enter a valid email',
   'this_field_required': 'This field is required',
   'at_least_6_chars': 'At least 6 characters',
+  'exercises': 'Exercises',
+  'exercises_base': 'Exercise database',
+  'templates': 'Templates',
+  'current_workout': 'Current workout',
+  'description': 'Description',
+  'instruction': 'Instructions',
+  'formula': 'Formula',
+  'equipment': 'Equipment',
+  'exercise': 'Exercise',
+  'difficulty': 'Difficulty',
+  'no_exercises_found': 'No exercises found.',
+  'no_templates': 'No templates yet.',
+  'create_template': 'Create template',
+  'start_workout': 'Start workout',
+  'continue_workout': 'Continue workout',
+  'no_active_workout': 'No active workout. Start one from a template.',
+  'start_from_template': 'Start from template',
 };
 
 /// Helper to get a localized string by key.

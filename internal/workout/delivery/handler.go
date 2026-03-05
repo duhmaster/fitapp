@@ -23,20 +23,46 @@ func NewHandler(uc *usecase.WorkoutUseCase) *Handler {
 
 // ExerciseResponse is the JSON response for an exercise.
 type ExerciseResponse struct {
+	ID              string             `json:"id"`
+	Name            string             `json:"name"`
+	MuscleGroup     *string            `json:"muscle_group,omitempty"`
+	Equipment       []string           `json:"equipment,omitempty"`
+	Tags            []string           `json:"tags,omitempty"`
+	Description     *string            `json:"description,omitempty"`
+	Instruction     []string           `json:"instruction,omitempty"`
+	MuscleLoads     map[string]float64 `json:"muscle_loads,omitempty"`
+	Formula         *string            `json:"formula,omitempty"`
+	DifficultyLevel *string            `json:"difficulty_level,omitempty"`
+	IsBase          bool               `json:"is_base"`
+	IsPopular       bool               `json:"is_popular"`
+	IsFree          bool               `json:"is_free"`
+}
+
+// ProgramResponse is the JSON response for a program.
+type ProgramResponse struct {
 	ID          string  `json:"id"`
 	Name        string  `json:"name"`
-	MuscleGroup *string `json:"muscle_group,omitempty"`
+	Description *string `json:"description,omitempty"`
+}
+
+// ProgramExerciseResponse is the JSON response for a program exercise (with full exercise).
+type ProgramExerciseResponse struct {
+	ID         string            `json:"id"`
+	ExerciseID string            `json:"exercise_id"`
+	OrderIndex int               `json:"order_index"`
+	Exercise   *ExerciseResponse  `json:"exercise,omitempty"`
 }
 
 // WorkoutResponse is the JSON response for a workout.
 type WorkoutResponse struct {
-	ID          string    `json:"id"`
-	TemplateID  *string   `json:"template_id,omitempty"`
-	UserID      string    `json:"user_id"`
-	ScheduledAt *string   `json:"scheduled_at,omitempty"`
-	StartedAt   *string   `json:"started_at,omitempty"`
-	FinishedAt  *string   `json:"finished_at,omitempty"`
-	CreatedAt   string    `json:"created_at"`
+	ID          string  `json:"id"`
+	TemplateID  *string `json:"template_id,omitempty"`
+	ProgramID   *string `json:"program_id,omitempty"`
+	UserID      string  `json:"user_id"`
+	ScheduledAt *string `json:"scheduled_at,omitempty"`
+	StartedAt   *string `json:"started_at,omitempty"`
+	FinishedAt  *string `json:"finished_at,omitempty"`
+	CreatedAt   string  `json:"created_at"`
 }
 
 // WorkoutExerciseResponse is the JSON response for a workout exercise.
@@ -62,6 +88,17 @@ type ExerciseLogResponse struct {
 
 type CreateWorkoutRequest struct {
 	TemplateID  *string `json:"template_id"`
+	ProgramID   *string `json:"program_id"`
+	ScheduledAt *string `json:"scheduled_at"`
+}
+
+type CreateProgramRequest struct {
+	Name        string  `json:"name" binding:"required"`
+	Description *string `json:"description"`
+}
+
+type StartWorkoutRequest struct {
+	ProgramID   string  `json:"program_id" binding:"required"`
 	ScheduledAt *string `json:"scheduled_at"`
 }
 
@@ -85,7 +122,18 @@ func (h *Handler) ListExercises(c *gin.Context) {
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
 	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
 
-	list, err := h.uc.ListExercises(c.Request.Context(), limit, offset)
+	filters := &workoutdomain.ExerciseFilters{}
+	if v := c.Query("muscle_group"); v != "" {
+		filters.MuscleGroup = &v
+	}
+	if v := c.Query("difficulty"); v != "" {
+		filters.Difficulty = &v
+	}
+	if tags := c.QueryArray("tags"); len(tags) > 0 {
+		filters.Tags = tags
+	}
+
+	list, err := h.uc.ListExercises(c.Request.Context(), limit, offset, filters)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -110,7 +158,7 @@ func (h *Handler) CreateWorkout(c *gin.Context) {
 		return
 	}
 
-	var templateID *uuid.UUID
+	var templateID, programID *uuid.UUID
 	if req.TemplateID != nil && *req.TemplateID != "" {
 		id, err := uuid.Parse(*req.TemplateID)
 		if err != nil {
@@ -118,6 +166,14 @@ func (h *Handler) CreateWorkout(c *gin.Context) {
 			return
 		}
 		templateID = &id
+	}
+	if req.ProgramID != nil && *req.ProgramID != "" {
+		id, err := uuid.Parse(*req.ProgramID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid program_id"})
+			return
+		}
+		programID = &id
 	}
 
 	var scheduledAt *time.Time
@@ -130,7 +186,7 @@ func (h *Handler) CreateWorkout(c *gin.Context) {
 		scheduledAt = &t
 	}
 
-	w, err := h.uc.CreateWorkout(c.Request.Context(), user, templateID, scheduledAt)
+	w, err := h.uc.CreateWorkout(c.Request.Context(), user, templateID, programID, scheduledAt)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -325,6 +381,120 @@ func (h *Handler) LogSet(c *gin.Context) {
 	c.JSON(http.StatusCreated, toExerciseLogResponse(el))
 }
 
+func (h *Handler) ListPrograms(c *gin.Context) {
+	user := getUser(c)
+	if user == nil {
+		return
+	}
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
+	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+
+	list, err := h.uc.ListPrograms(c.Request.Context(), user, limit, offset)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	out := make([]ProgramResponse, 0, len(list))
+	for _, p := range list {
+		out = append(out, toProgramResponse(p))
+	}
+	c.JSON(http.StatusOK, gin.H{"programs": out})
+}
+
+func (h *Handler) CreateProgram(c *gin.Context) {
+	user := getUser(c)
+	if user == nil {
+		return
+	}
+
+	var req CreateProgramRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	desc := ""
+	if req.Description != nil {
+		desc = *req.Description
+	}
+
+	p, err := h.uc.CreateProgram(c.Request.Context(), user, req.Name, desc)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusCreated, toProgramResponse(p))
+}
+
+func (h *Handler) GetProgramExercises(c *gin.Context) {
+	programID, ok := parseUUIDParam(c, "id")
+	if !ok {
+		return
+	}
+
+	list, err := h.uc.GetProgramExercises(c.Request.Context(), programID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	out := make([]ProgramExerciseResponse, 0, len(list))
+	for _, pe := range list {
+		resp := ProgramExerciseResponse{
+			ID:         pe.ID.String(),
+			ExerciseID: pe.ExerciseID.String(),
+			OrderIndex: pe.OrderIndex,
+		}
+		if pe.Exercise != nil {
+			ex := toExerciseResponse(pe.Exercise)
+			resp.Exercise = &ex
+		}
+		out = append(out, resp)
+	}
+	c.JSON(http.StatusOK, gin.H{"exercises": out})
+}
+
+func (h *Handler) StartWorkoutFromProgram(c *gin.Context) {
+	user := getUser(c)
+	if user == nil {
+		return
+	}
+
+	var req StartWorkoutRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	programID, err := uuid.Parse(req.ProgramID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid program_id"})
+		return
+	}
+
+	var scheduledAt *time.Time
+	if req.ScheduledAt != nil && *req.ScheduledAt != "" {
+		t, err := time.Parse(time.RFC3339, *req.ScheduledAt)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid scheduled_at"})
+			return
+		}
+		scheduledAt = &t
+	}
+
+	w, err := h.uc.StartWorkoutFromProgram(c.Request.Context(), user, programID, scheduledAt)
+	if err != nil {
+		if err == workoutdomain.ErrProgramNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusCreated, toWorkoutResponse(w))
+}
+
 func getUser(c *gin.Context) *authdomain.User {
 	val, exists := c.Get(string(middleware.UserContextKey))
 	if !exists {
@@ -358,17 +528,39 @@ func formatTimePtr(t *time.Time) string {
 
 func toExerciseResponse(e *workoutdomain.Exercise) ExerciseResponse {
 	return ExerciseResponse{
-		ID:          e.ID.String(),
-		Name:        e.Name,
-		MuscleGroup: e.MuscleGroup,
+		ID:              e.ID.String(),
+		Name:            e.Name,
+		MuscleGroup:     e.MuscleGroup,
+		Equipment:       e.Equipment,
+		Tags:            e.Tags,
+		Description:     e.Description,
+		Instruction:     e.Instruction,
+		MuscleLoads:     e.MuscleLoads,
+		Formula:         e.Formula,
+		DifficultyLevel: e.DifficultyLevel,
+		IsBase:          e.IsBase,
+		IsPopular:       e.IsPopular,
+		IsFree:          e.IsFree,
+	}
+}
+
+func toProgramResponse(p *workoutdomain.Program) ProgramResponse {
+	return ProgramResponse{
+		ID:          p.ID.String(),
+		Name:        p.Name,
+		Description: p.Description,
 	}
 }
 
 func toWorkoutResponse(w *workoutdomain.Workout) WorkoutResponse {
-	var tid, scheduledAt, startedAt, finishedAt *string
+	var tid, pid, scheduledAt, startedAt, finishedAt *string
 	if w.TemplateID != nil {
 		s := w.TemplateID.String()
 		tid = &s
+	}
+	if w.ProgramID != nil {
+		s := w.ProgramID.String()
+		pid = &s
 	}
 	if w.ScheduledAt != nil {
 		s := formatTimePtr(w.ScheduledAt)
@@ -385,6 +577,7 @@ func toWorkoutResponse(w *workoutdomain.Workout) WorkoutResponse {
 	return WorkoutResponse{
 		ID:          w.ID.String(),
 		TemplateID:  tid,
+		ProgramID:   pid,
 		UserID:      w.UserID.String(),
 		ScheduledAt: scheduledAt,
 		StartedAt:   startedAt,

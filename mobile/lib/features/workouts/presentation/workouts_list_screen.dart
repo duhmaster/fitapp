@@ -63,7 +63,6 @@ class _WorkoutsListScreenState extends ConsumerState<WorkoutsListScreen> {
   Widget build(BuildContext context) {
     final tr = ref.watch(trProvider);
     final async = ref.watch(workoutsListProvider);
-    // Content-only: shell provides Scaffold (AppBar, FAB, bottom nav).
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [

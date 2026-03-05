@@ -7,10 +7,36 @@ import (
 )
 
 type Exercise struct {
+	ID              uuid.UUID
+	Name            string
+	MuscleGroup     *string
+	Equipment       []string
+	Tags            []string
+	Description     *string
+	Instruction     []string
+	MuscleLoads     map[string]float64
+	Formula         *string
+	DifficultyLevel *string
+	IsBase          bool
+	IsPopular       bool
+	IsFree          bool
+	CreatedAt       time.Time
+}
+
+type Program struct {
 	ID          uuid.UUID
 	Name        string
-	MuscleGroup *string
+	Description *string
+	CreatedBy   *uuid.UUID
 	CreatedAt   time.Time
+}
+
+type ProgramExercise struct {
+	ID         uuid.UUID
+	ProgramID  uuid.UUID
+	ExerciseID uuid.UUID
+	OrderIndex int
+	Exercise   *Exercise
 }
 
 type WorkoutTemplate struct {
@@ -23,6 +49,7 @@ type WorkoutTemplate struct {
 type Workout struct {
 	ID          uuid.UUID
 	TemplateID  *uuid.UUID
+	ProgramID   *uuid.UUID
 	UserID      uuid.UUID
 	ScheduledAt *time.Time
 	StartedAt   *time.Time
