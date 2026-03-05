@@ -9,6 +9,7 @@ import 'package:fitflow/features/profile/data/profile_repository.dart';
 import 'package:fitflow/features/profile/domain/profile_models.dart';
 import 'package:fitflow/features/profile/presentation/profile_provider.dart';
 import 'package:fitflow/core/locale/locale_provider.dart';
+import 'package:fitflow/features/profile/presentation/widgets/body_measurements_section.dart';
 import 'package:fitflow/features/profile/presentation/widgets/edit_profile_form.dart';
 import 'package:fitflow/features/profile/presentation/widgets/profile_header.dart';
 import 'package:fitflow/features/profile/presentation/widgets/profile_stats_card.dart';
@@ -28,6 +29,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Future<void> _refresh() async {
     ref.invalidate(profilePageDataProvider);
     ref.invalidate(profileProvider);
+    ref.invalidate(bodyMeasurementsProvider);
   }
 
   Future<void> _pickAndUploadAvatar() async {
@@ -206,6 +208,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           textAlign: TextAlign.center,
                         ),
                       ),
+                    const SizedBox(height: 24),
+                    const BodyMeasurementsSection(),
                   ],
                 ),
               ),

@@ -108,6 +108,10 @@ func (s *Server) RegisterRoutes(cfg *RoutesConfig) {
 					protected.GET("/users/me/metrics", cfg.UserHandler.GetMetrics)
 					protected.GET("/users/me/metrics/history", cfg.UserHandler.GetMetricHistory)
 					protected.POST("/users/me/metrics", cfg.UserHandler.RecordMetric)
+					protected.GET("/users/me/body-measurements", cfg.UserHandler.ListBodyMeasurements)
+					protected.POST("/users/me/body-measurements", cfg.UserHandler.CreateBodyMeasurement)
+					protected.PUT("/users/me/body-measurements/:id", cfg.UserHandler.UpdateBodyMeasurement)
+					protected.DELETE("/users/me/body-measurements/:id", cfg.UserHandler.DeleteBodyMeasurement)
 				}
 
 				if cfg.GymHandler != nil {
@@ -123,10 +127,23 @@ func (s *Server) RegisterRoutes(cfg *RoutesConfig) {
 					protected.GET("/me/workouts", cfg.WorkoutHandler.ListMyWorkouts)
 					protected.POST("/me/workouts", cfg.WorkoutHandler.CreateWorkout)
 					protected.GET("/me/workouts/:workout_id", cfg.WorkoutHandler.GetWorkout)
+					protected.DELETE("/me/workouts/:workout_id", cfg.WorkoutHandler.DeleteWorkout)
 					protected.PATCH("/me/workouts/:workout_id/start", cfg.WorkoutHandler.StartWorkout)
 					protected.PATCH("/me/workouts/:workout_id/finish", cfg.WorkoutHandler.FinishWorkout)
 					protected.POST("/me/workouts/:workout_id/exercises", cfg.WorkoutHandler.AddExerciseToWorkout)
 					protected.POST("/me/workouts/:workout_id/logs", cfg.WorkoutHandler.LogSet)
+					// Workout templates (literal "exercises" routes before :template_id to avoid matching)
+					protected.GET("/me/workout-templates", cfg.WorkoutHandler.ListTemplates)
+					protected.POST("/me/workout-templates", cfg.WorkoutHandler.CreateTemplate)
+					protected.DELETE("/me/workout-templates/exercises/:template_exercise_id", cfg.WorkoutHandler.RemoveExerciseFromTemplate)
+					protected.POST("/me/workout-templates/exercises/:template_exercise_id/sets", cfg.WorkoutHandler.AddSetToTemplateExercise)
+					protected.DELETE("/me/workout-templates/exercises/:template_exercise_id/sets/:set_id", cfg.WorkoutHandler.DeleteTemplateSet)
+					protected.GET("/me/workout-templates/:template_id", cfg.WorkoutHandler.GetTemplate)
+					protected.PUT("/me/workout-templates/:template_id", cfg.WorkoutHandler.UpdateTemplate)
+					protected.DELETE("/me/workout-templates/:template_id", cfg.WorkoutHandler.DeleteTemplate)
+					protected.POST("/me/workout-templates/:template_id/exercises", cfg.WorkoutHandler.AddExerciseToTemplate)
+					protected.PUT("/me/workout-templates/:template_id/reorder", cfg.WorkoutHandler.ReorderTemplateExercises)
+					protected.POST("/me/workout-templates/:template_id/start", cfg.WorkoutHandler.StartWorkoutFromTemplate)
 				}
 
 				if cfg.ProgressHandler != nil {

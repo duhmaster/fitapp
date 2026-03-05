@@ -10,12 +10,15 @@ import (
 )
 
 type WorkoutUseCase struct {
-	exercises         workoutdomain.ExerciseRepository
-	workouts          workoutdomain.WorkoutRepository
-	woExercises       workoutdomain.WorkoutExerciseRepository
-	logs              workoutdomain.ExerciseLogRepository
-	programs          workoutdomain.ProgramRepository
-	programExercises  workoutdomain.ProgramExerciseRepository
+	exercises           workoutdomain.ExerciseRepository
+	workouts            workoutdomain.WorkoutRepository
+	woExercises         workoutdomain.WorkoutExerciseRepository
+	logs                workoutdomain.ExerciseLogRepository
+	programs            workoutdomain.ProgramRepository
+	programExercises    workoutdomain.ProgramExerciseRepository
+	templates           workoutdomain.WorkoutTemplateRepository
+	templateExercises   workoutdomain.WorkoutTemplateExerciseRepository
+	templateSets        workoutdomain.TemplateExerciseSetRepository
 }
 
 func NewWorkoutUseCase(
@@ -25,14 +28,20 @@ func NewWorkoutUseCase(
 	logs workoutdomain.ExerciseLogRepository,
 	programs workoutdomain.ProgramRepository,
 	programExercises workoutdomain.ProgramExerciseRepository,
+	templates workoutdomain.WorkoutTemplateRepository,
+	templateExercises workoutdomain.WorkoutTemplateExerciseRepository,
+	templateSets workoutdomain.TemplateExerciseSetRepository,
 ) *WorkoutUseCase {
 	return &WorkoutUseCase{
-		exercises:        exercises,
-		workouts:         workouts,
-		woExercises:      woExercises,
-		logs:             logs,
-		programs:         programs,
-		programExercises: programExercises,
+		exercises:         exercises,
+		workouts:          workouts,
+		woExercises:       woExercises,
+		logs:              logs,
+		programs:          programs,
+		programExercises:  programExercises,
+		templates:         templates,
+		templateExercises: templateExercises,
+		templateSets:      templateSets,
 	}
 }
 
@@ -119,6 +128,17 @@ func (uc *WorkoutUseCase) FinishWorkout(ctx context.Context, user *authdomain.Us
 	return uc.workouts.Finish(ctx, workoutID, at)
 }
 
+func (uc *WorkoutUseCase) DeleteWorkout(ctx context.Context, user *authdomain.User, workoutID uuid.UUID) error {
+	w, err := uc.workouts.GetByID(ctx, workoutID)
+	if err != nil {
+		return err
+	}
+	if w.UserID != user.ID {
+		return workoutdomain.ErrWorkoutForbidden
+	}
+	return uc.workouts.Delete(ctx, workoutID)
+}
+
 func (uc *WorkoutUseCase) AddExerciseToWorkout(ctx context.Context, user *authdomain.User, workoutID, exerciseID uuid.UUID, sets, reps *int, weightKg *float64, orderIndex int) (*workoutdomain.WorkoutExercise, error) {
 	w, err := uc.workouts.GetByID(ctx, workoutID)
 	if err != nil {
@@ -164,4 +184,142 @@ func (uc *WorkoutUseCase) GetWorkoutLogs(ctx context.Context, user *authdomain.U
 		return nil, workoutdomain.ErrWorkoutForbidden
 	}
 	return uc.logs.ListByWorkoutID(ctx, workoutID)
+}
+
+// --- Workout templates ---
+
+func (uc *WorkoutUseCase) ListTemplates(ctx context.Context, user *authdomain.User, limit, offset int) ([]*workoutdomain.WorkoutTemplate, error) {
+	return uc.templates.ListByUserID(ctx, user.ID, limit, offset)
+}
+
+func (uc *WorkoutUseCase) CountTemplateExercises(ctx context.Context, user *authdomain.User, templateID uuid.UUID) (int, error) {
+	if _, err := uc.GetTemplate(ctx, user, templateID); err != nil {
+		return 0, err
+	}
+	return uc.templates.CountExercises(ctx, templateID)
+}
+
+func (uc *WorkoutUseCase) GetTemplate(ctx context.Context, user *authdomain.User, templateID uuid.UUID) (*workoutdomain.WorkoutTemplate, error) {
+	t, err := uc.templates.GetByID(ctx, templateID)
+	if err != nil {
+		return nil, err
+	}
+	if t.CreatedBy != user.ID {
+		return nil, workoutdomain.ErrTemplateForbidden
+	}
+	return t, nil
+}
+
+func (uc *WorkoutUseCase) GetTemplateWithExercises(ctx context.Context, user *authdomain.User, templateID uuid.UUID) (*workoutdomain.WorkoutTemplate, []*workoutdomain.WorkoutTemplateExercise, error) {
+	t, err := uc.GetTemplate(ctx, user, templateID)
+	if err != nil {
+		return nil, nil, err
+	}
+	tes, err := uc.templateExercises.ListByTemplateID(ctx, templateID)
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, te := range tes {
+		ex, _ := uc.exercises.GetByID(ctx, te.ExerciseID)
+		te.Exercise = ex
+		sets, _ := uc.templateSets.ListByTemplateExerciseID(ctx, te.ID)
+		te.Sets = sets
+	}
+	return t, tes, nil
+}
+
+func (uc *WorkoutUseCase) CreateTemplate(ctx context.Context, user *authdomain.User, name string, useRestTimer bool, restSeconds int) (*workoutdomain.WorkoutTemplate, error) {
+	return uc.templates.Create(ctx, name, user.ID, useRestTimer, restSeconds)
+}
+
+func (uc *WorkoutUseCase) UpdateTemplate(ctx context.Context, user *authdomain.User, templateID uuid.UUID, name string, useRestTimer bool, restSeconds int) (*workoutdomain.WorkoutTemplate, error) {
+	if _, err := uc.GetTemplate(ctx, user, templateID); err != nil {
+		return nil, err
+	}
+	return uc.templates.Update(ctx, templateID, name, useRestTimer, restSeconds)
+}
+
+func (uc *WorkoutUseCase) DeleteTemplate(ctx context.Context, user *authdomain.User, templateID uuid.UUID) error {
+	if _, err := uc.GetTemplate(ctx, user, templateID); err != nil {
+		return err
+	}
+	return uc.templates.SoftDelete(ctx, templateID)
+}
+
+func (uc *WorkoutUseCase) AddExerciseToTemplate(ctx context.Context, user *authdomain.User, templateID, exerciseID uuid.UUID, order int) (*workoutdomain.WorkoutTemplateExercise, error) {
+	if _, err := uc.GetTemplate(ctx, user, templateID); err != nil {
+		return nil, err
+	}
+	if _, err := uc.exercises.GetByID(ctx, exerciseID); err != nil {
+		return nil, err
+	}
+	return uc.templateExercises.Create(ctx, templateID, exerciseID, order)
+}
+
+func (uc *WorkoutUseCase) RemoveExerciseFromTemplate(ctx context.Context, user *authdomain.User, templateExerciseID uuid.UUID) error {
+	te, err := uc.templateExercises.GetByID(ctx, templateExerciseID)
+	if err != nil {
+		return err
+	}
+	if _, err := uc.GetTemplate(ctx, user, te.TemplateID); err != nil {
+		return err
+	}
+	_ = uc.templateSets.DeleteByTemplateExerciseID(ctx, templateExerciseID)
+	return uc.templateExercises.Delete(ctx, templateExerciseID)
+}
+
+func (uc *WorkoutUseCase) ReorderTemplateExercises(ctx context.Context, user *authdomain.User, templateID uuid.UUID, orderedIDs []uuid.UUID) error {
+	if _, err := uc.GetTemplate(ctx, user, templateID); err != nil {
+		return err
+	}
+	return uc.templateExercises.Reorder(ctx, templateID, orderedIDs)
+}
+
+func (uc *WorkoutUseCase) AddSetToTemplateExercise(ctx context.Context, user *authdomain.User, templateExerciseID uuid.UUID, setOrder int, weightKg *float64, reps *int) (*workoutdomain.TemplateExerciseSet, error) {
+	te, err := uc.templateExercises.GetByID(ctx, templateExerciseID)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := uc.GetTemplate(ctx, user, te.TemplateID); err != nil {
+		return nil, err
+	}
+	return uc.templateSets.Create(ctx, templateExerciseID, setOrder, weightKg, reps)
+}
+
+func (uc *WorkoutUseCase) DeleteTemplateSet(ctx context.Context, user *authdomain.User, templateExerciseID, setID uuid.UUID) error {
+	te, err := uc.templateExercises.GetByID(ctx, templateExerciseID)
+	if err != nil {
+		return err
+	}
+	if _, err := uc.GetTemplate(ctx, user, te.TemplateID); err != nil {
+		return err
+	}
+	return uc.templateSets.DeleteByIDAndTemplateExerciseID(ctx, setID, templateExerciseID)
+}
+
+func (uc *WorkoutUseCase) StartWorkoutFromTemplate(ctx context.Context, user *authdomain.User, templateID uuid.UUID, scheduledAt *time.Time) (*workoutdomain.Workout, error) {
+	t, err := uc.GetTemplate(ctx, user, templateID)
+	if err != nil {
+		return nil, err
+	}
+	w, err := uc.workouts.Create(ctx, user.ID, &t.ID, nil, scheduledAt)
+	if err != nil {
+		return nil, err
+	}
+	tes, err := uc.templateExercises.ListByTemplateID(ctx, templateID)
+	if err != nil {
+		return nil, err
+	}
+	for i, te := range tes {
+		we, err := uc.woExercises.Create(ctx, w.ID, te.ExerciseID, nil, nil, nil, i)
+		if err != nil {
+			return nil, err
+		}
+		sets, _ := uc.templateSets.ListByTemplateExerciseID(ctx, te.ID)
+		for j, s := range sets {
+			_, _ = uc.logs.Create(ctx, w.ID, te.ExerciseID, j+1, s.Reps, s.WeightKg, nil)
+		}
+		_ = we
+	}
+	return uc.workouts.Start(ctx, w.ID, time.Now().UTC())
 }

@@ -10,25 +10,29 @@ import (
 	authdomain "github.com/fitflow/fitflow/internal/auth/domain"
 	"github.com/fitflow/fitflow/internal/pkg/storage"
 	userdomain "github.com/fitflow/fitflow/internal/user/domain"
+	"github.com/google/uuid"
 )
 
 // UserUseCase handles user profile and metrics operations.
 type UserUseCase struct {
-	profileRepo userdomain.ProfileRepository
-	metricRepo  userdomain.MetricRepository
-	store       storage.Store
+	profileRepo         userdomain.ProfileRepository
+	metricRepo          userdomain.MetricRepository
+	bodyMeasurementRepo userdomain.BodyMeasurementRepository
+	store               storage.Store
 }
 
 // NewUserUseCase creates a new UserUseCase.
 func NewUserUseCase(
 	profileRepo userdomain.ProfileRepository,
 	metricRepo userdomain.MetricRepository,
+	bodyMeasurementRepo userdomain.BodyMeasurementRepository,
 	store storage.Store,
 ) *UserUseCase {
 	return &UserUseCase{
-		profileRepo: profileRepo,
-		metricRepo:  metricRepo,
-		store:       store,
+		profileRepo:         profileRepo,
+		metricRepo:         metricRepo,
+		bodyMeasurementRepo: bodyMeasurementRepo,
+		store:              store,
 	}
 }
 
@@ -121,5 +125,39 @@ func (uc *UserUseCase) GetLatestMetric(ctx context.Context, user *authdomain.Use
 // GetMetricHistory returns metric history for the user.
 func (uc *UserUseCase) GetMetricHistory(ctx context.Context, user *authdomain.User, limit int) ([]*userdomain.Metric, error) {
 	return uc.metricRepo.ListByUserID(ctx, user.ID, limit)
+}
+
+// CreateBodyMeasurement adds a body measurement record.
+func (uc *UserUseCase) CreateBodyMeasurement(ctx context.Context, user *authdomain.User, recordedAt time.Time, weightKg float64, bodyFatPct, heightCm *float64) (*userdomain.BodyMeasurement, error) {
+	return uc.bodyMeasurementRepo.Create(ctx, user.ID, recordedAt, weightKg, bodyFatPct, heightCm)
+}
+
+// ListBodyMeasurements returns body measurements for the user.
+func (uc *UserUseCase) ListBodyMeasurements(ctx context.Context, user *authdomain.User, limit int) ([]*userdomain.BodyMeasurement, error) {
+	return uc.bodyMeasurementRepo.ListByUserID(ctx, user.ID, limit)
+}
+
+// UpdateBodyMeasurement updates a body measurement (must belong to user).
+func (uc *UserUseCase) UpdateBodyMeasurement(ctx context.Context, user *authdomain.User, id uuid.UUID, recordedAt time.Time, weightKg float64, bodyFatPct, heightCm *float64) (*userdomain.BodyMeasurement, error) {
+	m, err := uc.bodyMeasurementRepo.GetByID(ctx, id)
+	if err != nil || m == nil {
+		return nil, err
+	}
+	if m.UserID != user.ID {
+		return nil, nil // forbidden
+	}
+	return uc.bodyMeasurementRepo.Update(ctx, id, recordedAt, weightKg, bodyFatPct, heightCm)
+}
+
+// DeleteBodyMeasurement deletes a body measurement (must belong to user).
+func (uc *UserUseCase) DeleteBodyMeasurement(ctx context.Context, user *authdomain.User, id uuid.UUID) error {
+	m, err := uc.bodyMeasurementRepo.GetByID(ctx, id)
+	if err != nil || m == nil {
+		return err
+	}
+	if m.UserID != user.ID {
+		return nil // no-op
+	}
+	return uc.bodyMeasurementRepo.Delete(ctx, id)
 }
 

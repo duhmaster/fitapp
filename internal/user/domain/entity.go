@@ -24,3 +24,13 @@ type Metric struct {
 	WeightKg   *float64
 	RecordedAt time.Time
 }
+
+// BodyMeasurement is a single body measurement record (weight, body fat %, height for FFMI/BMI).
+type BodyMeasurement struct {
+	ID          uuid.UUID
+	UserID      uuid.UUID
+	RecordedAt  time.Time
+	WeightKg    float64
+	BodyFatPct  *float64
+	HeightCm    *float64
+}

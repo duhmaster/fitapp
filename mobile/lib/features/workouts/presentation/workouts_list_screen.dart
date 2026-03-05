@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:fitflow/core/widgets/empty_state_widget.dart';
 import 'package:fitflow/core/widgets/error_state_widget.dart';
 import 'package:fitflow/core/widgets/loading_skeleton.dart';
@@ -8,6 +9,7 @@ import 'package:fitflow/core/locale/locale_provider.dart';
 import 'package:fitflow/features/workouts/data/workout_repository.dart';
 import 'package:fitflow/features/workouts/domain/workout_models.dart';
 import 'package:fitflow/features/workouts/presentation/workouts_provider.dart';
+import 'package:fitflow/features/templates/templates_screen.dart';
 
 class WorkoutsListScreen extends ConsumerStatefulWidget {
   const WorkoutsListScreen({super.key});
@@ -31,6 +33,35 @@ class _WorkoutsListScreenState extends ConsumerState<WorkoutsListScreen> {
     return out;
   }
 
+  Future<void> _confirmDeleteWorkout(BuildContext context, String workoutId) async {
+    final tr = ref.read(trProvider);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(tr('delete_workout')),
+        content: Text(tr('delete_workout_confirm')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(tr('cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(tr('delete')),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    try {
+      await ref.read(workoutRepositoryProvider).deleteWorkout(workoutId);
+      ref.invalidate(workoutsListProvider);
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('workout_deleted'))));
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+    }
+  }
+
   Future<void> _showWorkoutStat(String workoutId) async {
     try {
       final detail = await ref.read(workoutRepositoryProvider).getWorkout(workoutId);
@@ -44,7 +75,7 @@ class _WorkoutsListScreenState extends ConsumerState<WorkoutsListScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('${ref.read(trProvider)('exercises_count')}: ${detail.exercises.length}'),
-              Text('Sets logged: ${detail.logs.length}'),
+              Text('${ref.read(trProvider)('sets_logged')}: ${detail.logs.length}'),
               if (detail.workout.startedAt != null) Text('${ref.read(trProvider)('started')}: ${detail.workout.startedAt}'),
               if (detail.workout.finishedAt != null) Text('${ref.read(trProvider)('finished')}: ${detail.workout.finishedAt}'),
             ],
@@ -59,10 +90,27 @@ class _WorkoutsListScreenState extends ConsumerState<WorkoutsListScreen> {
     }
   }
 
+  String _formatWorkoutDate(Workout w, String localeCode) {
+    final str = w.startedAt ?? w.createdAt;
+    if (str == null || str.isEmpty) return '';
+    final dt = DateTime.tryParse(str);
+    if (dt == null) return str;
+    final locale = localeCode.replaceAll('-', '_');
+    try {
+      return DateFormat.yMMMd(locale.isNotEmpty ? locale : 'en').format(dt);
+    } catch (_) {
+      return DateFormat.yMMMd('en').format(dt);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final tr = ref.watch(trProvider);
     final async = ref.watch(workoutsListProvider);
+    final templatesAsync = ref.watch(templatesListProvider);
+    final localeCode = ref.watch(selectedLocaleCodeProvider);
+    final templateNames = <String, String>{};
+    templatesAsync.valueOrNull?.forEach((t) => templateNames[t.id] = t.name);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -110,9 +158,14 @@ class _WorkoutsListScreenState extends ConsumerState<WorkoutsListScreen> {
                   itemCount: filtered.length,
                   itemBuilder: (_, i) {
                     final w = filtered[i];
+                    final templateName = w.templateId != null ? templateNames[w.templateId] : null;
+                    final dateStr = _formatWorkoutDate(w, localeCode);
+                    final title = dateStr.isNotEmpty
+                        ? '${templateName ?? tr('workout')} – $dateStr'
+                        : (templateName ?? tr('workout'));
                     return Card(
                       child: ListTile(
-                        title: Text(w.startedAt != null ? '${tr('workout')} ${w.id.substring(0, 8)}' : tr('workout')),
+                        title: Text(title),
                         subtitle: Text(
                           w.isActive ? tr('in_progress') : w.isCompleted ? tr('completed_status') : tr('not_started'),
                           style: TextStyle(
@@ -131,6 +184,11 @@ class _WorkoutsListScreenState extends ConsumerState<WorkoutsListScreen> {
                               icon: const Icon(Icons.edit),
                               tooltip: tr('edit'),
                               onPressed: () => context.push('/workout/${w.id}'),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline),
+                              tooltip: tr('delete_workout'),
+                              onPressed: () => _confirmDeleteWorkout(context, w.id),
                             ),
                           ],
                         ),

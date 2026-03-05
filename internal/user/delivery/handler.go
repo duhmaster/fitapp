@@ -3,6 +3,7 @@ package delivery
 import (
 	"net/http"
 	"strconv"
+	"time"
 
 	authdomain "github.com/fitflow/fitflow/internal/auth/domain"
 	"github.com/fitflow/fitflow/internal/delivery/middleware"
@@ -47,6 +48,31 @@ type MetricResponse struct {
 type RecordMetricRequest struct {
 	HeightCm   *float64 `json:"height_cm"`
 	WeightKg   *float64 `json:"weight_kg"`
+}
+
+// BodyMeasurementResponse is the JSON response for a body measurement.
+type BodyMeasurementResponse struct {
+	ID         string   `json:"id"`
+	RecordedAt string   `json:"recorded_at"`
+	WeightKg   float64  `json:"weight_kg"`
+	BodyFatPct *float64 `json:"body_fat_pct,omitempty"`
+	HeightCm   *float64 `json:"height_cm,omitempty"`
+}
+
+// CreateBodyMeasurementRequest is the JSON body for creating a body measurement.
+type CreateBodyMeasurementRequest struct {
+	RecordedAt string   `json:"recorded_at"` // RFC3339
+	WeightKg   float64  `json:"weight_kg" binding:"required"`
+	BodyFatPct *float64 `json:"body_fat_pct"`
+	HeightCm   *float64 `json:"height_cm"`
+}
+
+// UpdateBodyMeasurementRequest is the JSON body for updating a body measurement.
+type UpdateBodyMeasurementRequest struct {
+	RecordedAt string   `json:"recorded_at"`
+	WeightKg   float64  `json:"weight_kg" binding:"required"`
+	BodyFatPct *float64 `json:"body_fat_pct"`
+	HeightCm   *float64 `json:"height_cm"`
 }
 
 // GetProfile returns the current user's profile.
@@ -207,6 +233,110 @@ func (h *Handler) RecordMetric(c *gin.Context) {
 	c.JSON(http.StatusCreated, toMetricResponse(metric))
 }
 
+// ListBodyMeasurements returns the user's body measurements history.
+func (h *Handler) ListBodyMeasurements(c *gin.Context) {
+	user := getUser(c)
+	if user == nil {
+		return
+	}
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "100"))
+	list, err := h.uc.ListBodyMeasurements(c.Request.Context(), user, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	res := make([]BodyMeasurementResponse, len(list))
+	for i, m := range list {
+		res[i] = toBodyMeasurementResponse(m)
+	}
+	c.JSON(http.StatusOK, gin.H{"measurements": res})
+}
+
+// CreateBodyMeasurement adds a body measurement.
+func (h *Handler) CreateBodyMeasurement(c *gin.Context) {
+	user := getUser(c)
+	if user == nil {
+		return
+	}
+	var req CreateBodyMeasurementRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	recordedAt := time.Now()
+	if req.RecordedAt != "" {
+		t, err := time.Parse(time.RFC3339, req.RecordedAt)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid recorded_at"})
+			return
+		}
+		recordedAt = t
+	}
+	m, err := h.uc.CreateBodyMeasurement(c.Request.Context(), user, recordedAt, req.WeightKg, req.BodyFatPct, req.HeightCm)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusCreated, toBodyMeasurementResponse(m))
+}
+
+// UpdateBodyMeasurement updates a body measurement.
+func (h *Handler) UpdateBodyMeasurement(c *gin.Context) {
+	user := getUser(c)
+	if user == nil {
+		return
+	}
+	idStr := c.Param("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+	var req UpdateBodyMeasurementRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	recordedAt := time.Now()
+	if req.RecordedAt != "" {
+		t, err := time.Parse(time.RFC3339, req.RecordedAt)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid recorded_at"})
+			return
+		}
+		recordedAt = t
+	}
+	m, err := h.uc.UpdateBodyMeasurement(c.Request.Context(), user, id, recordedAt, req.WeightKg, req.BodyFatPct, req.HeightCm)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if m == nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
+		return
+	}
+	c.JSON(http.StatusOK, toBodyMeasurementResponse(m))
+}
+
+// DeleteBodyMeasurement deletes a body measurement.
+func (h *Handler) DeleteBodyMeasurement(c *gin.Context) {
+	user := getUser(c)
+	if user == nil {
+		return
+	}
+	idStr := c.Param("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+	if err := h.uc.DeleteBodyMeasurement(c.Request.Context(), user, id); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
 func getUser(c *gin.Context) *authdomain.User {
 	val, exists := c.Get(string(middleware.UserContextKey))
 	if !exists {
@@ -246,5 +376,15 @@ func toMetricResponse(m *userdomain.Metric) *MetricResponse {
 		HeightCm:   m.HeightCm,
 		WeightKg:   m.WeightKg,
 		RecordedAt: m.RecordedAt.Format("2006-01-02T15:04:05Z07:00"),
+	}
+}
+
+func toBodyMeasurementResponse(m *userdomain.BodyMeasurement) BodyMeasurementResponse {
+	return BodyMeasurementResponse{
+		ID:         m.ID.String(),
+		RecordedAt: m.RecordedAt.Format(time.RFC3339),
+		WeightKg:   m.WeightKg,
+		BodyFatPct: m.BodyFatPct,
+		HeightCm:   m.HeightCm,
 	}
 }

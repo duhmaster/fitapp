@@ -8,56 +8,38 @@ import 'package:fitflow/core/locale/locale_provider.dart';
 import 'package:fitflow/features/workouts/data/workout_repository.dart';
 import 'package:fitflow/features/workouts/domain/workout_models.dart';
 
-final programsListProvider = FutureProvider<List<Program>>((ref) {
-  return ref.watch(workoutRepositoryProvider).listPrograms(limit: 50);
-});
-
-final programExercisesProvider = FutureProvider.family<List<ProgramExercise>, String>((ref, programId) {
-  return ref.watch(workoutRepositoryProvider).getProgramExercises(programId);
+final templatesListProvider = FutureProvider<List<WorkoutTemplate>>((ref) {
+  return ref.watch(workoutRepositoryProvider).listTemplates(limit: 50);
 });
 
 void _showCreateTemplateDialog(BuildContext context, WidgetRef ref) {
   final nameController = TextEditingController();
-  final descController = TextEditingController();
   final tr = ref.read(trProvider);
 
   showDialog<void>(
     context: context,
     builder: (ctx) => AlertDialog(
       title: Text(tr('create_template')),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextField(
-            controller: nameController,
-            decoration: InputDecoration(labelText: tr('name')),
-            autofocus: true,
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: descController,
-            decoration: InputDecoration(labelText: tr('description')),
-            maxLines: 3,
-          ),
-        ],
+      content: TextField(
+        controller: nameController,
+        decoration: InputDecoration(labelText: tr('name')),
+        autofocus: true,
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(ctx),
-          child: Text(MaterialLocalizations.of(ctx).cancelButtonLabel),
+          child: Text(tr('cancel')),
         ),
         FilledButton(
           onPressed: () async {
             final name = nameController.text.trim();
             if (name.isEmpty) return;
             try {
-              await ref.read(workoutRepositoryProvider).createProgram(
-                    name: name,
-                    description: descController.text.trim().isEmpty ? null : descController.text.trim(),
-                  );
+              final t = await ref.read(workoutRepositoryProvider).createTemplate(name: name);
               if (context.mounted) {
                 Navigator.pop(ctx);
-                ref.invalidate(programsListProvider);
+                ref.invalidate(templatesListProvider);
+                context.push('/templates/${t.id}/edit');
               }
             } catch (e) {
               if (context.mounted) {
@@ -72,159 +54,130 @@ void _showCreateTemplateDialog(BuildContext context, WidgetRef ref) {
   );
 }
 
+void _confirmDeleteTemplate(BuildContext context, WidgetRef ref, WorkoutTemplate t, VoidCallback onDeleted) {
+  final tr = ref.read(trProvider);
+  showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text(tr('delete_template')),
+      content: Text(tr('delete_template_confirm')),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: Text(tr('cancel')),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: Theme.of(ctx).colorScheme.error),
+          onPressed: () => Navigator.pop(ctx, true),
+          child: Text(tr('delete')),
+        ),
+      ],
+    ),
+  ).then((ok) async {
+    if (ok != true || !context.mounted) return;
+    try {
+      await ref.read(workoutRepositoryProvider).deleteTemplate(t.id);
+      if (context.mounted) {
+        ref.invalidate(templatesListProvider);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('template_deleted'))));
+        onDeleted();
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
+    }
+  });
+}
+
 class TemplatesScreen extends ConsumerWidget {
   const TemplatesScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tr = ref.watch(trProvider);
-    final async = ref.watch(programsListProvider);
+    final async = ref.watch(templatesListProvider);
 
-    return async.when(
-      loading: () => const _TemplatesSkeleton(),
-      error: (e, _) => ErrorStateWidget(
-        message: e.toString(),
-        onRetry: () => ref.invalidate(programsListProvider),
-      ),
-      data: (programs) {
-        if (programs.isEmpty) {
-          return EmptyStateWidget(
-            message: tr('no_templates'),
-            icon: Icons.list_alt,
-            actionLabel: tr('create_template'),
-            onAction: () => _showCreateTemplateDialog(context, ref),
-          );
-        }
-        return RefreshIndicator(
-          onRefresh: () async => ref.invalidate(programsListProvider),
-          child: ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: programs.length,
-            itemBuilder: (_, i) {
-              final p = programs[i];
-              return Card(
-                child: ListTile(
-                  title: Text(p.name),
-                  subtitle: p.description != null ? Text(p.description!, maxLines: 2, overflow: TextOverflow.ellipsis) : null,
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => _openProgramDetail(context, ref, p),
-                ),
-              );
-            },
-          ),
-        );
-      },
-    );
-  }
-
-  void _openProgramDetail(BuildContext context, WidgetRef ref, Program p) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      builder: (ctx) => DraggableScrollableSheet(
-        initialChildSize: 0.7,
-        maxChildSize: 0.95,
-        minChildSize: 0.5,
-        expand: false,
-        builder: (_, controller) => _ProgramDetailSheet(
-          program: p,
-          scrollController: controller,
-          onStartWorkout: () async {
-            Navigator.pop(ctx);
-            try {
-              final w = await ref.read(workoutRepositoryProvider).startWorkoutFromProgram(programId: p.id);
-              if (context.mounted) context.push('/workout/${w.id}');
-            } catch (e) {
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
-              }
-            }
-          },
+    return Scaffold(
+      appBar: AppBar(title: Text(tr('templates'))),
+      body: async.when(
+        loading: () => const _TemplatesSkeleton(),
+        error: (e, _) => ErrorStateWidget(
+          message: e.toString(),
+          onRetry: () => ref.invalidate(templatesListProvider),
         ),
+        data: (list) {
+          return RefreshIndicator(
+            onRefresh: () async => ref.invalidate(templatesListProvider),
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      icon: const Icon(Icons.add),
+                      label: Text(tr('create_template')),
+                      onPressed: () => _showCreateTemplateDialog(context, ref),
+                    ),
+                  ),
+                ),
+                if (list.isEmpty)
+                  EmptyStateWidget(
+                    message: tr('no_templates'),
+                    icon: Icons.list_alt,
+                    actionLabel: tr('create_template'),
+                    onAction: () => _showCreateTemplateDialog(context, ref),
+                  )
+                else
+                  ...List.generate(list.length, (i) {
+                    final t = list[i];
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Card(
+                        child: ListTile(
+                          title: Text(t.name),
+                          subtitle: Text(tr('exercises_count') + ': ${t.exercisesCount}'),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.edit_outlined),
+                                onPressed: () => context.push('/templates/${t.id}/edit'),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline),
+                                onPressed: () => _confirmDeleteTemplate(context, ref, t, () {}),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.play_arrow),
+                                onPressed: () => _startFromTemplate(context, ref, t),
+                              ),
+                            ],
+                          ),
+                          onTap: () => context.push('/templates/${t.id}/edit'),
+                        ),
+                      ),
+                    );
+                  }),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
-}
 
-class _ProgramDetailSheet extends ConsumerWidget {
-  const _ProgramDetailSheet({
-    required this.program,
-    required this.scrollController,
-    required this.onStartWorkout,
-  });
-
-  final Program program;
-  final ScrollController scrollController;
-  final VoidCallback onStartWorkout;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final tr = ref.watch(trProvider);
-    final async = ref.watch(programExercisesProvider(program.id));
-
-    return SingleChildScrollView(
-      controller: scrollController,
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(program.name, style: Theme.of(context).textTheme.headlineSmall),
-          if (program.description != null && program.description!.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Text(program.description!),
-          ],
-          const SizedBox(height: 16),
-          FilledButton.icon(
-            onPressed: onStartWorkout,
-            icon: const Icon(Icons.play_arrow),
-            label: Text(tr('start_workout')),
-          ),
-          const SizedBox(height: 16),
-          Text(tr('exercises_count'), style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
-          async.when(
-            loading: () => const Padding(
-              padding: EdgeInsets.all(16),
-              child: Center(child: CircularProgressIndicator()),
-            ),
-            error: (e, _) => Text('Error: $e'),
-            data: (list) => Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: list.asMap().entries.map((e) {
-                final pe = e.value;
-                final ex = pe.exercise;
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      CircleAvatar(
-                        radius: 14,
-                        child: Text('${e.key + 1}'),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(ex?.name ?? pe.exerciseId, style: Theme.of(context).textTheme.bodyMedium),
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-          const SizedBox(height: 24),
-        ],
-      ),
-    );
+  Future<void> _startFromTemplate(BuildContext context, WidgetRef ref, WorkoutTemplate t) async {
+    try {
+      final w = await ref.read(workoutRepositoryProvider).startWorkoutFromTemplate(t.id);
+      if (context.mounted) context.push('/workout/${w.id}');
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
+    }
   }
 }
 
@@ -233,13 +186,19 @@ class _TemplatesSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView.builder(
+    return ListView(
       padding: const EdgeInsets.all(16),
-      itemCount: 6,
-      itemBuilder: (_, __) => const Padding(
-        padding: EdgeInsets.only(bottom: 8),
-        child: LoadingSkeleton(height: 72, borderRadius: 12),
-      ),
+      children: [
+        const Padding(
+          padding: EdgeInsets.only(bottom: 16),
+          child: LoadingSkeleton(height: 48, borderRadius: 8),
+        ),
+        ...List.generate(6, (_) => const Padding(
+          padding: EdgeInsets.only(bottom: 8),
+          child: LoadingSkeleton(height: 72, borderRadius: 12),
+        )),
+      ],
     );
   }
 }
+

@@ -40,10 +40,30 @@ type ProgramExercise struct {
 }
 
 type WorkoutTemplate struct {
-	ID        uuid.UUID
-	Name      string
-	CreatedBy uuid.UUID
-	CreatedAt time.Time
+	ID            uuid.UUID
+	Name          string
+	CreatedBy     uuid.UUID
+	CreatedAt     time.Time
+	DeletedAt     *time.Time
+	UseRestTimer  bool
+	RestSeconds   int
+}
+
+type WorkoutTemplateExercise struct {
+	ID            uuid.UUID
+	TemplateID    uuid.UUID
+	ExerciseID    uuid.UUID
+	ExerciseOrder int
+	Exercise      *Exercise
+	Sets         []*TemplateExerciseSet
+}
+
+type TemplateExerciseSet struct {
+	ID                 uuid.UUID
+	TemplateExerciseID uuid.UUID
+	SetOrder           int
+	WeightKg           *float64
+	Reps               *int
 }
 
 type Workout struct {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fitflow/core/errors/app_exceptions.dart';
+import 'package:fitflow/core/locale/locale_provider.dart';
 import 'package:fitflow/core/widgets/error_state_widget.dart';
 import 'package:fitflow/features/workouts/data/workout_repository.dart';
 import 'package:fitflow/features/workouts/domain/workout_models.dart';
@@ -15,7 +16,16 @@ class WorkoutDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(workoutDetailProvider(workoutId));
     return Scaffold(
-      appBar: AppBar(title: const Text('Workout')),
+      appBar: AppBar(
+        title: Text(ref.watch(trProvider)('workout')),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete_outline),
+            tooltip: ref.read(trProvider)('delete_workout'),
+            onPressed: () => _showDeleteConfirm(context, ref, workoutId),
+          ),
+        ],
+      ),
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => ErrorStateWidget(
@@ -103,6 +113,29 @@ class _BodyState extends ConsumerState<_Body> {
         ),
       ),
     );
+  }
+}
+
+Future<void> _showDeleteConfirm(BuildContext context, WidgetRef ref, String workoutId) async {
+  final tr = ref.read(trProvider);
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text(tr('delete_workout')),
+      content: Text(tr('delete_workout_confirm')),
+      actions: [
+        TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(tr('cancel'))),
+        FilledButton(onPressed: () => Navigator.of(ctx).pop(true), child: Text(tr('delete'))),
+      ],
+    ),
+  );
+  if (ok != true) return;
+  try {
+    await ref.read(workoutRepositoryProvider).deleteWorkout(workoutId);
+    ref.invalidate(workoutsListProvider);
+    if (context.mounted) context.go('/home');
+  } catch (e) {
+    if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
   }
 }
 

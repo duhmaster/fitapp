@@ -17,6 +17,8 @@ import 'package:fitflow/features/workouts/presentation/workouts_list_screen.dart
 import 'package:fitflow/features/home/home_screen.dart';
 import 'package:fitflow/features/exercises/exercises_screen.dart';
 import 'package:fitflow/features/templates/templates_screen.dart';
+import 'package:fitflow/features/templates/template_edit_screen.dart';
+import 'package:fitflow/features/templates/exercise_picker_screen.dart';
 import 'package:fitflow/features/current_workout/current_workout_screen.dart';
 
 
@@ -51,7 +53,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(path: 'home', builder: (_, __) => const WorkoutsListScreen()),
               GoRoute(path: 'exercises', builder: (_, __) => const ExercisesScreen()),
-              GoRoute(path: 'templates', builder: (_, __) => const TemplatesScreen()),
+              GoRoute(
+                path: 'templates',
+                builder: (_, __) => const TemplatesScreen(),
+                routes: [
+                  GoRoute(
+                    path: ':id/edit',
+                    builder: (_, state) => TemplateEditScreen(templateId: state.pathParameters['id']!),
+                  ),
+                  GoRoute(
+                    path: ':id/pick-exercise',
+                    builder: (_, state) => ExercisePickerScreen(templateId: state.pathParameters['id']!),
+                  ),
+                ],
+              ),
               GoRoute(path: 'current-workout', builder: (_, __) => const CurrentWorkoutScreen()),
               GoRoute(path: 'profile', builder: (_, __) => const ProfileScreen()),
               GoRoute(path: 'progress', builder: (_, __) => const ProgressScreen()),

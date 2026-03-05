@@ -102,7 +102,8 @@ func run() error {
 	// User module
 	profileRepo := userrepository.NewProfileRepository(db)
 	metricRepo := userrepository.NewMetricRepository(db)
-	userUC := userusecase.NewUserUseCase(profileRepo, metricRepo, store)
+	bodyMeasurementRepo := userrepository.NewBodyMeasurementRepository(db)
+	userUC := userusecase.NewUserUseCase(profileRepo, metricRepo, bodyMeasurementRepo, store)
 	userHandler := userdelivery.NewHandler(userUC)
 
 	// Gym module
@@ -120,7 +121,10 @@ func run() error {
 	exerciseLogRepo := workoutrepository.NewExerciseLogRepository(db)
 	programRepo := workoutrepository.NewProgramRepository(db)
 	programExerciseRepo := workoutrepository.NewProgramExerciseRepository(db)
-	workoutUC := workoutusecase.NewWorkoutUseCase(exerciseRepo, workoutRepo, workoutExerciseRepo, exerciseLogRepo, programRepo, programExerciseRepo)
+	templateRepo := workoutrepository.NewWorkoutTemplateRepository(db)
+	templateExerciseRepo := workoutrepository.NewWorkoutTemplateExerciseRepository(db)
+	templateSetRepo := workoutrepository.NewTemplateExerciseSetRepository(db)
+	workoutUC := workoutusecase.NewWorkoutUseCase(exerciseRepo, workoutRepo, workoutExerciseRepo, exerciseLogRepo, programRepo, programExerciseRepo, templateRepo, templateExerciseRepo, templateSetRepo)
 	workoutHandler := workoutdelivery.NewHandler(workoutUC)
 
 	// Progress module

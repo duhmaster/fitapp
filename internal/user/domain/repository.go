@@ -19,3 +19,12 @@ type MetricRepository interface {
 	GetLatestByUserID(ctx context.Context, userID uuid.UUID) (*Metric, error)
 	ListByUserID(ctx context.Context, userID uuid.UUID, limit int) ([]*Metric, error)
 }
+
+// BodyMeasurementRepository defines body measurements history operations.
+type BodyMeasurementRepository interface {
+	Create(ctx context.Context, userID uuid.UUID, recordedAt time.Time, weightKg float64, bodyFatPct, heightCm *float64) (*BodyMeasurement, error)
+	GetByID(ctx context.Context, id uuid.UUID) (*BodyMeasurement, error)
+	ListByUserID(ctx context.Context, userID uuid.UUID, limit int) ([]*BodyMeasurement, error)
+	Update(ctx context.Context, id uuid.UUID, recordedAt time.Time, weightKg float64, bodyFatPct, heightCm *float64) (*BodyMeasurement, error)
+	Delete(ctx context.Context, id uuid.UUID) error
+}

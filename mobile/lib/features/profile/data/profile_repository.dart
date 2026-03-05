@@ -93,6 +93,64 @@ class ProfileRepository {
     );
   }
 
+  static const _bodyMeasurementsPath = '/api/v1/users/me/body-measurements';
+
+  /// GET /api/v1/users/me/body-measurements
+  Future<List<BodyMeasurement>> listBodyMeasurements({int limit = 100}) async {
+    final res = await dio.get<Map<String, dynamic>>(
+      _bodyMeasurementsPath,
+      queryParameters: {'limit': limit},
+    );
+    final list = res.data?['measurements'] as List<dynamic>? ?? [];
+    return list
+        .map((e) => BodyMeasurement.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// POST /api/v1/users/me/body-measurements
+  Future<BodyMeasurement> createBodyMeasurement({
+    required DateTime recordedAt,
+    required double weightKg,
+    double? bodyFatPct,
+    double? heightCm,
+  }) async {
+    final res = await dio.post<Map<String, dynamic>>(
+      _bodyMeasurementsPath,
+      data: {
+        'recorded_at': recordedAt.toUtc().toIso8601String(),
+        'weight_kg': weightKg,
+        if (bodyFatPct != null) 'body_fat_pct': bodyFatPct,
+        if (heightCm != null) 'height_cm': heightCm,
+      },
+    );
+    return BodyMeasurement.fromJson(res.data!);
+  }
+
+  /// PUT /api/v1/users/me/body-measurements/:id
+  Future<BodyMeasurement> updateBodyMeasurement({
+    required String id,
+    required DateTime recordedAt,
+    required double weightKg,
+    double? bodyFatPct,
+    double? heightCm,
+  }) async {
+    final res = await dio.put<Map<String, dynamic>>(
+      '$_bodyMeasurementsPath/$id',
+      data: {
+        'recorded_at': recordedAt.toUtc().toIso8601String(),
+        'weight_kg': weightKg,
+        if (bodyFatPct != null) 'body_fat_pct': bodyFatPct,
+        if (heightCm != null) 'height_cm': heightCm,
+      },
+    );
+    return BodyMeasurement.fromJson(res.data!);
+  }
+
+  /// DELETE /api/v1/users/me/body-measurements/:id
+  Future<void> deleteBodyMeasurement(String id) async {
+    await dio.delete('$_bodyMeasurementsPath/$id');
+  }
+
   /// Content type from filename (e.g. photo.jpg -> image/jpeg). Returns null if unsupported.
   static String? contentTypeFromFilename(String filename) {
     final name = filename.toLowerCase();

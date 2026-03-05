@@ -29,3 +29,8 @@ final profilePageDataProvider = FutureProvider<ProfilePageData>((ref) async {
     bodyFatPct: bodyFat,
   );
 });
+
+/// Body measurements history for profile page.
+final bodyMeasurementsProvider = FutureProvider<List<BodyMeasurement>>((ref) {
+  return ref.watch(profileRepositoryProvider).listBodyMeasurements();
+});

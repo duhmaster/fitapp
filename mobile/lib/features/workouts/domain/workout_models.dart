@@ -189,3 +189,89 @@ class ExerciseLog {
     );
   }
 }
+
+// Workout templates (user-created templates, not programs)
+class WorkoutTemplate {
+  WorkoutTemplate({
+    required this.id,
+    required this.name,
+    this.exercisesCount = 0,
+    this.createdAt,
+    this.useRestTimer = false,
+    this.restSeconds = 60,
+  });
+  final String id;
+  final String name;
+  final int exercisesCount;
+  final String? createdAt;
+  final bool useRestTimer;
+  final int restSeconds;
+  factory WorkoutTemplate.fromJson(Map<String, dynamic> json) {
+    return WorkoutTemplate(
+      id: (json['id'] as String?) ?? '',
+      name: (json['name'] as String?) ?? '',
+      exercisesCount: (json['exercises_count'] as int?) ?? 0,
+      createdAt: json['created_at'] as String?,
+      useRestTimer: (json['use_rest_timer'] as bool?) ?? false,
+      restSeconds: (json['rest_seconds'] as int?) ?? 60,
+    );
+  }
+}
+
+class TemplateExerciseSet {
+  TemplateExerciseSet({
+    required this.id,
+    required this.setOrder,
+    this.weightKg,
+    this.reps,
+  });
+  final String id;
+  final int setOrder;
+  final double? weightKg;
+  final int? reps;
+  factory TemplateExerciseSet.fromJson(Map<String, dynamic> json) {
+    return TemplateExerciseSet(
+      id: (json['id'] as String?) ?? '',
+      setOrder: (json['set_order'] as int?) ?? 0,
+      weightKg: (json['weight_kg'] as num?)?.toDouble(),
+      reps: json['reps'] as int?,
+    );
+  }
+}
+
+class TemplateExercise {
+  TemplateExercise({
+    required this.id,
+    required this.exerciseId,
+    required this.exerciseOrder,
+    this.exercise,
+    this.sets = const [],
+  });
+  final String id;
+  final String exerciseId;
+  final int exerciseOrder;
+  final Exercise? exercise;
+  final List<TemplateExerciseSet> sets;
+  factory TemplateExercise.fromJson(Map<String, dynamic> json) {
+    List<TemplateExerciseSet> _sets(dynamic v) {
+      if (v is List) return v.map((e) => TemplateExerciseSet.fromJson(e as Map<String, dynamic>)).toList();
+      return [];
+    }
+    return TemplateExercise(
+      id: (json['id'] as String?) ?? '',
+      exerciseId: (json['exercise_id'] as String?) ?? '',
+      exerciseOrder: (json['exercise_order'] as int?) ?? 0,
+      exercise: json['exercise'] != null ? Exercise.fromJson(json['exercise'] as Map<String, dynamic>) : null,
+      sets: _sets(json['sets']),
+    );
+  }
+}
+
+class TemplateDetail {
+  TemplateDetail({
+    required this.template,
+    required this.exercises,
+  });
+  final WorkoutTemplate template;
+  final List<TemplateExercise> exercises;
+}

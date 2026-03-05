@@ -25,6 +25,7 @@ type WorkoutRepository interface {
 	ListByUserID(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*Workout, error)
 	Start(ctx context.Context, id uuid.UUID, at time.Time) (*Workout, error)
 	Finish(ctx context.Context, id uuid.UUID, at time.Time) (*Workout, error)
+	Delete(ctx context.Context, id uuid.UUID) error
 }
 
 type WorkoutExerciseRepository interface {
@@ -47,4 +48,30 @@ type ProgramExerciseRepository interface {
 	ListByProgramID(ctx context.Context, programID uuid.UUID) ([]*ProgramExercise, error)
 	Create(ctx context.Context, programID, exerciseID uuid.UUID, orderIndex int) (*ProgramExercise, error)
 	CreateBatch(ctx context.Context, programID uuid.UUID, exerciseIDs []uuid.UUID, orderIndexes []int) error
+}
+
+type WorkoutTemplateRepository interface {
+	Create(ctx context.Context, name string, createdBy uuid.UUID, useRestTimer bool, restSeconds int) (*WorkoutTemplate, error)
+	GetByID(ctx context.Context, id uuid.UUID) (*WorkoutTemplate, error)
+	ListByUserID(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*WorkoutTemplate, error)
+	Update(ctx context.Context, id uuid.UUID, name string, useRestTimer bool, restSeconds int) (*WorkoutTemplate, error)
+	SoftDelete(ctx context.Context, id uuid.UUID) error
+	CountExercises(ctx context.Context, templateID uuid.UUID) (int, error)
+}
+
+type WorkoutTemplateExerciseRepository interface {
+	Create(ctx context.Context, templateID, exerciseID uuid.UUID, exerciseOrder int) (*WorkoutTemplateExercise, error)
+	GetByID(ctx context.Context, id uuid.UUID) (*WorkoutTemplateExercise, error)
+	ListByTemplateID(ctx context.Context, templateID uuid.UUID) ([]*WorkoutTemplateExercise, error)
+	UpdateOrder(ctx context.Context, id uuid.UUID, exerciseOrder int) error
+	Reorder(ctx context.Context, templateID uuid.UUID, orderedIDs []uuid.UUID) error
+	Delete(ctx context.Context, id uuid.UUID) error
+}
+
+type TemplateExerciseSetRepository interface {
+	Create(ctx context.Context, templateExerciseID uuid.UUID, setOrder int, weightKg *float64, reps *int) (*TemplateExerciseSet, error)
+	ListByTemplateExerciseID(ctx context.Context, templateExerciseID uuid.UUID) ([]*TemplateExerciseSet, error)
+	Delete(ctx context.Context, id uuid.UUID) error
+	DeleteByIDAndTemplateExerciseID(ctx context.Context, setID, templateExerciseID uuid.UUID) error
+	DeleteByTemplateExerciseID(ctx context.Context, templateExerciseID uuid.UUID) error
 }

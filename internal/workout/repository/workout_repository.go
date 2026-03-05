@@ -128,3 +128,22 @@ func (r *WorkoutRepository) Finish(ctx context.Context, id uuid.UUID, at time.Ti
 	}
 	return &w, nil
 }
+
+func (r *WorkoutRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	_, err := r.pool.Exec(ctx, `DELETE FROM exercise_logs WHERE workout_id = $1`, id)
+	if err != nil {
+		return err
+	}
+	_, err = r.pool.Exec(ctx, `DELETE FROM workout_exercises WHERE workout_id = $1`, id)
+	if err != nil {
+		return err
+	}
+	res, err := r.pool.Exec(ctx, `DELETE FROM workouts WHERE id = $1`, id)
+	if err != nil {
+		return err
+	}
+	if res.RowsAffected() == 0 {
+		return workoutdomain.ErrWorkoutNotFound
+	}
+	return nil
+}

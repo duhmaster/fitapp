@@ -118,6 +118,58 @@ type LogSetRequest struct {
 	RestSeconds *int     `json:"rest_seconds"`
 }
 
+// Workout template DTOs
+type TemplateResponse struct {
+	ID              string `json:"id"`
+	Name            string `json:"name"`
+	ExercisesCount  int    `json:"exercises_count,omitempty"`
+	CreatedAt       string `json:"created_at,omitempty"`
+	UseRestTimer    bool   `json:"use_rest_timer"`
+	RestSeconds     int    `json:"rest_seconds"`
+}
+
+type TemplateExerciseSetResponse struct {
+	ID       string   `json:"id"`
+	SetOrder int      `json:"set_order"`
+	WeightKg *float64 `json:"weight_kg,omitempty"`
+	Reps     *int     `json:"reps,omitempty"`
+}
+
+type TemplateExerciseResponse struct {
+	ID            string                        `json:"id"`
+	ExerciseID    string                        `json:"exercise_id"`
+	ExerciseOrder int                           `json:"exercise_order"`
+	Exercise      *ExerciseResponse             `json:"exercise,omitempty"`
+	Sets          []TemplateExerciseSetResponse `json:"sets,omitempty"`
+}
+
+type CreateTemplateRequest struct {
+	Name          string `json:"name" binding:"required"`
+	UseRestTimer  *bool  `json:"use_rest_timer"`
+	RestSeconds   *int   `json:"rest_seconds"`
+}
+
+type UpdateTemplateRequest struct {
+	Name          string `json:"name" binding:"required"`
+	UseRestTimer  *bool  `json:"use_rest_timer"`
+	RestSeconds   *int   `json:"rest_seconds"`
+}
+
+type AddExerciseToTemplateRequest struct {
+	ExerciseID string `json:"exercise_id" binding:"required"`
+	Order      *int   `json:"order"`
+}
+
+type ReorderTemplateRequest struct {
+	ExerciseIDs []string `json:"exercise_ids" binding:"required"`
+}
+
+type AddSetToTemplateExerciseRequest struct {
+	SetOrder int      `json:"set_order"`
+	WeightKg *float64 `json:"weight_kg"`
+	Reps     *int     `json:"reps"`
+}
+
 func (h *Handler) ListExercises(c *gin.Context) {
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
 	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
@@ -300,6 +352,29 @@ func (h *Handler) FinishWorkout(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, toWorkoutResponse(w))
+}
+
+func (h *Handler) DeleteWorkout(c *gin.Context) {
+	user := getUser(c)
+	if user == nil {
+		return
+	}
+
+	workoutID, ok := parseUUIDParam(c, "workout_id")
+	if !ok {
+		return
+	}
+
+	err := h.uc.DeleteWorkout(c.Request.Context(), user, workoutID)
+	if err != nil {
+		if err == workoutdomain.ErrWorkoutNotFound || err == workoutdomain.ErrWorkoutForbidden {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.Status(http.StatusNoContent)
 }
 
 func (h *Handler) AddExerciseToWorkout(c *gin.Context) {
@@ -495,6 +570,323 @@ func (h *Handler) StartWorkoutFromProgram(c *gin.Context) {
 	c.JSON(http.StatusCreated, toWorkoutResponse(w))
 }
 
+// --- Workout templates ---
+
+func (h *Handler) ListTemplates(c *gin.Context) {
+	user := getUser(c)
+	if user == nil {
+		return
+	}
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+
+	list, err := h.uc.ListTemplates(c.Request.Context(), user, limit, offset)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	out := make([]TemplateResponse, 0, len(list))
+	for _, t := range list {
+		count, _ := h.uc.CountTemplateExercises(c.Request.Context(), user, t.ID)
+		out = append(out, TemplateResponse{
+			ID:             t.ID.String(),
+			Name:           t.Name,
+			ExercisesCount: count,
+			CreatedAt:      t.CreatedAt.Format(time.RFC3339),
+		})
+	}
+	c.JSON(http.StatusOK, gin.H{"templates": out})
+}
+
+func (h *Handler) GetTemplate(c *gin.Context) {
+	user := getUser(c)
+	if user == nil {
+		return
+	}
+	templateID, ok := parseUUIDParam(c, "template_id")
+	if !ok {
+		return
+	}
+
+	t, exercises, err := h.uc.GetTemplateWithExercises(c.Request.Context(), user, templateID)
+	if err != nil {
+		if err == workoutdomain.ErrTemplateNotFound || err == workoutdomain.ErrTemplateForbidden {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	exResp := make([]TemplateExerciseResponse, 0, len(exercises))
+	for _, te := range exercises {
+		exResp = append(exResp, toTemplateExerciseResponse(te))
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"template":   toTemplateResponse(t),
+		"exercises":  exResp,
+	})
+}
+
+func (h *Handler) CreateTemplate(c *gin.Context) {
+	user := getUser(c)
+	if user == nil {
+		return
+	}
+	var req CreateTemplateRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	useRestTimer := false
+	if req.UseRestTimer != nil {
+		useRestTimer = *req.UseRestTimer
+	}
+	restSeconds := 60
+	if req.RestSeconds != nil {
+		restSeconds = *req.RestSeconds
+	}
+	if restSeconds < 1 {
+		restSeconds = 1
+	}
+	if restSeconds > 600 {
+		restSeconds = 600
+	}
+	t, err := h.uc.CreateTemplate(c.Request.Context(), user, req.Name, useRestTimer, restSeconds)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusCreated, toTemplateResponseSimple(t))
+}
+
+func (h *Handler) UpdateTemplate(c *gin.Context) {
+	user := getUser(c)
+	if user == nil {
+		return
+	}
+	templateID, ok := parseUUIDParam(c, "template_id")
+	if !ok {
+		return
+	}
+	var req UpdateTemplateRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	useRestTimer := false
+	if req.UseRestTimer != nil {
+		useRestTimer = *req.UseRestTimer
+	}
+	restSeconds := 60
+	if req.RestSeconds != nil {
+		restSeconds = *req.RestSeconds
+	}
+	if restSeconds < 1 {
+		restSeconds = 1
+	}
+	if restSeconds > 600 {
+		restSeconds = 600
+	}
+	t, err := h.uc.UpdateTemplate(c.Request.Context(), user, templateID, req.Name, useRestTimer, restSeconds)
+	if err != nil {
+		if err == workoutdomain.ErrTemplateNotFound || err == workoutdomain.ErrTemplateForbidden {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, toTemplateResponseSimple(t))
+}
+
+func (h *Handler) DeleteTemplate(c *gin.Context) {
+	user := getUser(c)
+	if user == nil {
+		return
+	}
+	templateID, ok := parseUUIDParam(c, "template_id")
+	if !ok {
+		return
+	}
+	err := h.uc.DeleteTemplate(c.Request.Context(), user, templateID)
+	if err != nil {
+		if err == workoutdomain.ErrTemplateNotFound || err == workoutdomain.ErrTemplateForbidden {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
+func (h *Handler) AddExerciseToTemplate(c *gin.Context) {
+	user := getUser(c)
+	if user == nil {
+		return
+	}
+	templateID, ok := parseUUIDParam(c, "template_id")
+	if !ok {
+		return
+	}
+	var req AddExerciseToTemplateRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	exerciseID, err := uuid.Parse(req.ExerciseID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid exercise_id"})
+		return
+	}
+	order := 0
+	if req.Order != nil {
+		order = *req.Order
+	}
+	te, err := h.uc.AddExerciseToTemplate(c.Request.Context(), user, templateID, exerciseID, order)
+	if err != nil {
+		if err == workoutdomain.ErrTemplateNotFound || err == workoutdomain.ErrTemplateForbidden {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		if err == workoutdomain.ErrExerciseNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusCreated, toTemplateExerciseResponse(te))
+}
+
+func (h *Handler) RemoveExerciseFromTemplate(c *gin.Context) {
+	user := getUser(c)
+	if user == nil {
+		return
+	}
+	templateExerciseID, ok := parseUUIDParam(c, "template_exercise_id")
+	if !ok {
+		return
+	}
+	err := h.uc.RemoveExerciseFromTemplate(c.Request.Context(), user, templateExerciseID)
+	if err != nil {
+		if err == workoutdomain.ErrTemplateExerciseNotFound || err == workoutdomain.ErrTemplateNotFound || err == workoutdomain.ErrTemplateForbidden {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
+func (h *Handler) ReorderTemplateExercises(c *gin.Context) {
+	user := getUser(c)
+	if user == nil {
+		return
+	}
+	templateID, ok := parseUUIDParam(c, "template_id")
+	if !ok {
+		return
+	}
+	var req ReorderTemplateRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	ids := make([]uuid.UUID, 0, len(req.ExerciseIDs))
+	for _, s := range req.ExerciseIDs {
+		id, err := uuid.Parse(s)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid exercise_id in exercise_ids"})
+			return
+		}
+		ids = append(ids, id)
+	}
+	err := h.uc.ReorderTemplateExercises(c.Request.Context(), user, templateID, ids)
+	if err != nil {
+		if err == workoutdomain.ErrTemplateNotFound || err == workoutdomain.ErrTemplateForbidden {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
+func (h *Handler) AddSetToTemplateExercise(c *gin.Context) {
+	user := getUser(c)
+	if user == nil {
+		return
+	}
+	templateExerciseID, ok := parseUUIDParam(c, "template_exercise_id")
+	if !ok {
+		return
+	}
+	var req AddSetToTemplateExerciseRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	s, err := h.uc.AddSetToTemplateExercise(c.Request.Context(), user, templateExerciseID, req.SetOrder, req.WeightKg, req.Reps)
+	if err != nil {
+		if err == workoutdomain.ErrTemplateExerciseNotFound || err == workoutdomain.ErrTemplateNotFound || err == workoutdomain.ErrTemplateForbidden {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusCreated, toTemplateSetResponse(s))
+}
+
+func (h *Handler) DeleteTemplateSet(c *gin.Context) {
+	user := getUser(c)
+	if user == nil {
+		return
+	}
+	templateExerciseID, ok := parseUUIDParam(c, "template_exercise_id")
+	if !ok {
+		return
+	}
+	setID, ok := parseUUIDParam(c, "set_id")
+	if !ok {
+		return
+	}
+	err := h.uc.DeleteTemplateSet(c.Request.Context(), user, templateExerciseID, setID)
+	if err != nil {
+		if err == workoutdomain.ErrTemplateNotFound || err == workoutdomain.ErrTemplateForbidden || err == workoutdomain.ErrTemplateExerciseNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
+func (h *Handler) StartWorkoutFromTemplate(c *gin.Context) {
+	user := getUser(c)
+	if user == nil {
+		return
+	}
+	templateID, ok := parseUUIDParam(c, "template_id")
+	if !ok {
+		return
+	}
+	w, err := h.uc.StartWorkoutFromTemplate(c.Request.Context(), user, templateID, nil)
+	if err != nil {
+		if err == workoutdomain.ErrTemplateNotFound || err == workoutdomain.ErrTemplateForbidden {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusCreated, gin.H{"workout_id": w.ID.String()})
+}
+
 func getUser(c *gin.Context) *authdomain.User {
 	val, exists := c.Get(string(middleware.UserContextKey))
 	if !exists {
@@ -606,5 +998,58 @@ func toExerciseLogResponse(el *workoutdomain.ExerciseLog) ExerciseLogResponse {
 		WeightKg:    el.WeightKg,
 		RestSeconds: el.RestSeconds,
 		LoggedAt:    el.LoggedAt.Format(time.RFC3339),
+	}
+}
+
+func toTemplateResponse(t *workoutdomain.WorkoutTemplate) TemplateResponse {
+	return TemplateResponse{
+		ID:           t.ID.String(),
+		Name:         t.Name,
+		CreatedAt:    t.CreatedAt.Format(time.RFC3339),
+		UseRestTimer: t.UseRestTimer,
+		RestSeconds:  t.RestSeconds,
+	}
+}
+
+func toTemplateResponseSimple(t *workoutdomain.WorkoutTemplate) TemplateResponse {
+	return TemplateResponse{
+		ID:           t.ID.String(),
+		Name:         t.Name,
+		CreatedAt:    t.CreatedAt.Format(time.RFC3339),
+		UseRestTimer: t.UseRestTimer,
+		RestSeconds:  t.RestSeconds,
+	}
+}
+
+func toTemplateExerciseResponse(te *workoutdomain.WorkoutTemplateExercise) TemplateExerciseResponse {
+	resp := TemplateExerciseResponse{
+		ID:            te.ID.String(),
+		ExerciseID:    te.ExerciseID.String(),
+		ExerciseOrder: te.ExerciseOrder,
+	}
+	if te.Exercise != nil {
+		ex := toExerciseResponse(te.Exercise)
+		resp.Exercise = &ex
+	}
+	if len(te.Sets) > 0 {
+		resp.Sets = make([]TemplateExerciseSetResponse, 0, len(te.Sets))
+		for _, s := range te.Sets {
+			resp.Sets = append(resp.Sets, TemplateExerciseSetResponse{
+				ID:       s.ID.String(),
+				SetOrder: s.SetOrder,
+				WeightKg: s.WeightKg,
+				Reps:     s.Reps,
+			})
+		}
+	}
+	return resp
+}
+
+func toTemplateSetResponse(s *workoutdomain.TemplateExerciseSet) TemplateExerciseSetResponse {
+	return TemplateExerciseSetResponse{
+		ID:       s.ID.String(),
+		SetOrder: s.SetOrder,
+		WeightKg: s.WeightKg,
+		Reps:     s.Reps,
 	}
 }
