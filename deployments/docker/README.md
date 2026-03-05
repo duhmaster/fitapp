@@ -25,6 +25,30 @@ docker run --rm --network host -v "$(pwd)/migrations:/migrations" migrate/migrat
 - Postgres: localhost:5432 (user `fitflow`, password `fitflow`, db `fitflow`)
 - Redis: localhost:6379
 
+### pgAdmin (optional)
+
+To run Postgres + Redis + API + **pgAdmin**:
+
+```bash
+docker compose -f deployments/docker/docker-compose.yml --profile tools up -d
+```
+
+- pgAdmin: http://localhost:5050
+- Login: **Email** `admin@fitflow.local`, **Password** `admin`
+
+**Add server in pgAdmin:**
+1. Right-click "Servers" → Register → Server
+2. **General** tab: Name = `fitflow` (any label)
+3. **Connection** tab:
+   - Host: `postgres` (when using from host machine use `localhost`)
+   - Port: `5432`
+   - Maintenance database: `fitflow`
+   - Username: `fitflow`
+   - Password: `fitflow`
+4. Save
+
+If pgAdmin runs in Docker and Postgres is in the same compose, use host `postgres`. If you open pgAdmin in browser and add server from your machine, use host `localhost`.
+
 ### If Docker build runs out of disk space
 
 Build the binary on the host (needs Go installed), then build a runtime-only image:

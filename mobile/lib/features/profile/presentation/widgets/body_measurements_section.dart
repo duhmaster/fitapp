@@ -13,6 +13,7 @@ class BodyMeasurementsSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final tr = ref.watch(trProvider);
     final measurementsAsync = ref.watch(bodyMeasurementsProvider);
+    final profileHeight = ref.watch(profilePageDataProvider).valueOrNull?.heightCm;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -26,7 +27,7 @@ class BodyMeasurementsSection extends ConsumerWidget {
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               FilledButton.icon(
-                onPressed: () => _showAddMeasurementDialog(context, ref, tr),
+                onPressed: () => _showAddMeasurementDialog(context, ref, tr, profileHeight),
                 icon: const Icon(Icons.add, size: 20),
                 label: Text(tr('add_measurement')),
               ),
@@ -36,17 +37,16 @@ class BodyMeasurementsSection extends ConsumerWidget {
         measurementsAsync.when(
           loading: () => const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator())),
           error: (e, _) => Text('${tr('retry')}: $e', style: TextStyle(color: Theme.of(context).colorScheme.error)),
-          data: (list) => _BodyMeasurementsTable(list: list, tr: tr),
+          data: (list) => _BodyMeasurementsTable(list: list, tr: tr, profileHeightCm: profileHeight),
         ),
       ],
     );
   }
 
-  static Future<void> _showAddMeasurementDialog(BuildContext context, WidgetRef ref, String Function(String) tr) async {
+  static Future<void> _showAddMeasurementDialog(BuildContext context, WidgetRef ref, String Function(String) tr, double? profileHeightCm) async {
     DateTime recordedAt = DateTime.now();
     final weightController = TextEditingController();
     final bodyFatController = TextEditingController();
-    final heightController = TextEditingController();
     final repo = ref.read(profileRepositoryProvider);
 
     final saved = await showDialog<bool>(
@@ -56,22 +56,20 @@ class BodyMeasurementsSection extends ConsumerWidget {
         recordedAt: recordedAt,
         initialWeight: null,
         initialBodyFat: null,
-        initialHeight: null,
         tr: tr,
         onDateChanged: (d) => recordedAt = d,
         weightController: weightController,
         bodyFatController: bodyFatController,
-        heightController: heightController,
+        showHeightField: false,
         onSave: () async {
           final weight = double.tryParse(weightController.text.trim());
           if (weight == null || weight <= 0) return false;
           final bodyFat = double.tryParse(bodyFatController.text.trim());
-          final height = double.tryParse(heightController.text.trim());
           await repo.createBodyMeasurement(
             recordedAt: recordedAt,
             weightKg: weight,
             bodyFatPct: (bodyFat != null && bodyFat > 0) ? bodyFat : null,
-            heightCm: (height != null && height > 0) ? height : null,
+            heightCm: (profileHeightCm != null && profileHeightCm > 0) ? profileHeightCm : null,
           );
           return true;
         },
@@ -88,9 +86,11 @@ class _BodyMeasurementsTable extends ConsumerWidget {
   const _BodyMeasurementsTable({
     required this.list,
     required this.tr,
+    this.profileHeightCm,
   });
   final List<BodyMeasurement> list;
   final String Function(String) tr;
+  final double? profileHeightCm;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -100,21 +100,25 @@ class _BodyMeasurementsTable extends ConsumerWidget {
         child: Text(tr('no_measurements_yet'), style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
       );
     }
+    final screenWidth = MediaQuery.of(context).size.width;
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      child: DataTable(
-        columnSpacing: 12,
-        columns: [
-          DataColumn(label: Text(tr('date'))),
-          DataColumn(label: Text(tr('weight_kg'))),
-          DataColumn(label: Text(tr('body_fat_pct'))),
-          DataColumn(label: Text(tr('lean_mass_pct'))),
-          DataColumn(label: Text(tr('ffmi_interpretation'))),
-          DataColumn(label: Text(tr('bmi_interpretation'))),
-          const DataColumn(label: Text('')),
-        ],
-        rows: list.map((m) {
-          final interp = interpretBodyMeasurement(m.weightKg, m.bodyFatPct, m.heightCm, tr);
+      child: ConstrainedBox(
+        constraints: BoxConstraints(minWidth: screenWidth),
+        child: DataTable(
+          columnSpacing: 12,
+          columns: [
+            DataColumn(label: Text(tr('date'))),
+            DataColumn(label: Text(tr('weight_kg'))),
+            DataColumn(label: Text(tr('body_fat_pct'))),
+            DataColumn(label: Text(tr('lean_mass_pct'))),
+            DataColumn(label: Text(tr('ffmi_interpretation'))),
+            DataColumn(label: Text(tr('bmi_interpretation'))),
+            const DataColumn(label: Text('')),
+          ],
+          rows: list.map((m) {
+          final heightForInterp = m.heightCm ?? profileHeightCm;
+          final interp = interpretBodyMeasurement(m.weightKg, m.bodyFatPct, heightForInterp, tr);
           return DataRow(
             cells: [
               DataCell(Text(_formatDate(m.recordedAt))),
@@ -128,7 +132,7 @@ class _BodyMeasurementsTable extends ConsumerWidget {
                 children: [
                   IconButton(
                     icon: const Icon(Icons.edit_outlined, size: 20),
-                    onPressed: () => _showEditMeasurementDialog(context, ref, m, tr),
+                    onPressed: () => _showEditMeasurementDialog(context, ref, m, tr, profileHeightCm),
                   ),
                   IconButton(
                     icon: Icon(Icons.delete_outline, size: 20, color: Theme.of(context).colorScheme.error),
@@ -139,6 +143,7 @@ class _BodyMeasurementsTable extends ConsumerWidget {
             ],
           );
         }).toList(),
+        ),
       ),
     );
   }
@@ -147,11 +152,10 @@ class _BodyMeasurementsTable extends ConsumerWidget {
     return '${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year}';
   }
 
-  static Future<void> _showEditMeasurementDialog(BuildContext context, WidgetRef ref, BodyMeasurement m, String Function(String) tr) async {
+  static Future<void> _showEditMeasurementDialog(BuildContext context, WidgetRef ref, BodyMeasurement m, String Function(String) tr, double? profileHeightCm) async {
     DateTime recordedAt = m.recordedAt;
     final weightController = TextEditingController(text: m.weightKg.toString());
     final bodyFatController = TextEditingController(text: m.bodyFatPct?.toString() ?? '');
-    final heightController = TextEditingController(text: m.heightCm?.toString() ?? '');
     final repo = ref.read(profileRepositoryProvider);
 
     final saved = await showDialog<bool>(
@@ -161,23 +165,21 @@ class _BodyMeasurementsTable extends ConsumerWidget {
         recordedAt: recordedAt,
         initialWeight: m.weightKg,
         initialBodyFat: m.bodyFatPct,
-        initialHeight: m.heightCm,
         tr: tr,
         onDateChanged: (d) => recordedAt = d,
         weightController: weightController,
         bodyFatController: bodyFatController,
-        heightController: heightController,
+        showHeightField: false,
         onSave: () async {
           final weight = double.tryParse(weightController.text.trim());
           if (weight == null || weight <= 0) return false;
           final bodyFat = double.tryParse(bodyFatController.text.trim());
-          final height = double.tryParse(heightController.text.trim());
           await repo.updateBodyMeasurement(
             id: m.id,
             recordedAt: recordedAt,
             weightKg: weight,
             bodyFatPct: (bodyFat != null && bodyFat > 0) ? bodyFat : null,
-            heightCm: (height != null && height > 0) ? height : null,
+            heightCm: (profileHeightCm != null && profileHeightCm > 0) ? profileHeightCm : null,
           );
           return true;
         },
@@ -220,24 +222,22 @@ class _MeasurementDialog extends StatefulWidget {
     required this.recordedAt,
     required this.initialWeight,
     required this.initialBodyFat,
-    required this.initialHeight,
     required this.tr,
     required this.onDateChanged,
     required this.weightController,
     required this.bodyFatController,
-    required this.heightController,
+    required this.showHeightField,
     required this.onSave,
   });
   final String title;
   final DateTime recordedAt;
   final double? initialWeight;
   final double? initialBodyFat;
-  final double? initialHeight;
   final String Function(String) tr;
   final ValueChanged<DateTime> onDateChanged;
   final TextEditingController weightController;
   final TextEditingController bodyFatController;
-  final TextEditingController heightController;
+  final bool showHeightField;
   final Future<bool> Function() onSave;
 
   @override
@@ -287,12 +287,13 @@ class _MeasurementDialogState extends State<_MeasurementDialog> {
               decoration: InputDecoration(labelText: tr('body_fat_pct')),
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
             ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: widget.heightController,
-              decoration: InputDecoration(labelText: tr('height_cm')),
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            ),
+            if (widget.showHeightField) ...[
+              const SizedBox(height: 8),
+              TextField(
+                decoration: InputDecoration(labelText: tr('height_cm')),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              ),
+            ],
           ],
         ),
       ),

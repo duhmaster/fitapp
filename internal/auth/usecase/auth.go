@@ -221,6 +221,40 @@ func generateSecureToken() (string, error) {
 	return hex.EncodeToString(b), nil
 }
 
+// MeDetails holds current user preferences and subscription for GET /me.
+type MeDetails struct {
+	Theme                 string
+	Locale                string
+	PaidSubscriber        bool
+	SubscriptionExpiresAt *string // RFC3339
+}
+
+// GetMeDetails returns theme, locale and subscription for the current user.
+func (uc *AuthUseCase) GetMeDetails(ctx context.Context, userID uuid.UUID) (*MeDetails, error) {
+	rec, err := uc.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	t, l := rec.Theme, rec.Locale
+	if t == "" {
+		t = "system"
+	}
+	if l == "" {
+		l = "en"
+	}
+	var subExp *string
+	if rec.SubscriptionExpiresAt != nil {
+		s := rec.SubscriptionExpiresAt.Format(time.RFC3339)
+		subExp = &s
+	}
+	return &MeDetails{
+		Theme:                 t,
+		Locale:                l,
+		PaidSubscriber:        rec.PaidSubscriber,
+		SubscriptionExpiresAt: subExp,
+	}, nil
+}
+
 // GetPreferences returns theme and locale for the user.
 func (uc *AuthUseCase) GetPreferences(ctx context.Context, userID uuid.UUID) (theme, locale string, err error) {
 	rec, err := uc.userRepo.GetByID(ctx, userID)

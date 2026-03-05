@@ -20,6 +20,7 @@ import 'package:fitflow/features/templates/templates_screen.dart';
 import 'package:fitflow/features/templates/template_edit_screen.dart';
 import 'package:fitflow/features/templates/exercise_picker_screen.dart';
 import 'package:fitflow/features/current_workout/current_workout_screen.dart';
+import 'package:fitflow/features/timers/timers_screen.dart';
 
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -68,6 +69,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 ],
               ),
               GoRoute(path: 'current-workout', builder: (_, __) => const CurrentWorkoutScreen()),
+              GoRoute(path: 'timers', builder: (_, __) => const TimersScreen()),
               GoRoute(path: 'profile', builder: (_, __) => const ProfileScreen()),
               GoRoute(path: 'progress', builder: (_, __) => const ProgressScreen()),
               GoRoute(path: 'feed', builder: (_, __) => const FeedScreen()),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:fitflow/core/locale/locale_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class ProfileHeader extends StatelessWidget {
+class ProfileHeader extends ConsumerWidget {
   const ProfileHeader({
     super.key,
     required this.displayName,
@@ -8,6 +10,8 @@ class ProfileHeader extends StatelessWidget {
     this.avatarUrl,
     this.onAvatarTap,
     this.uploadingAvatar = false,
+    this.paidSubscriber = false,
+    this.subscriptionExpiresAt,
   });
 
   final String displayName;
@@ -15,9 +19,23 @@ class ProfileHeader extends StatelessWidget {
   final String? avatarUrl;
   final VoidCallback? onAvatarTap;
   final bool uploadingAvatar;
+  final bool paidSubscriber;
+  final String? subscriptionExpiresAt;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tr = ref.watch(trProvider);
+    String subscriptionStatus;
+    if (paidSubscriber && subscriptionExpiresAt != null && subscriptionExpiresAt!.isNotEmpty) {
+      try {
+        final d = DateTime.parse(subscriptionExpiresAt!);
+        subscriptionStatus = '${tr('subscription_until')} ${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year}';
+      } catch (_) {
+        subscriptionStatus = tr('subscription_until');
+      }
+    } else {
+      subscriptionStatus = tr('subscription_free');
+    }
     return Column(
       children: [
         Stack(
@@ -45,7 +63,7 @@ class ProfileHeader extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         Text(
-          displayName.isEmpty ? 'No name set' : displayName,
+          displayName.isEmpty ? tr('no_name_set_profile') : displayName,
           style: Theme.of(context).textTheme.headlineSmall,
           textAlign: TextAlign.center,
         ),
@@ -56,6 +74,18 @@ class ProfileHeader extends StatelessWidget {
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
           textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            subscriptionStatus,
+            style: Theme.of(context).textTheme.labelMedium,
+          ),
         ),
       ],
     );

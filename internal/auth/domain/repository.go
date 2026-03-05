@@ -9,14 +9,16 @@ import (
 
 // UserRecord is the database representation of a user (with password hash).
 type UserRecord struct {
-	ID           uuid.UUID
-	Email        string
-	PasswordHash string
-	Role         Role
-	Theme        string // app theme: system, light, main, dark
-	Locale       string // locale code: en, ru, etc.
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	ID                    uuid.UUID
+	Email                 string
+	PasswordHash          string
+	Role                  Role
+	Theme                 string     // app theme: system, light, main, dark
+	Locale                string     // locale code: en, ru, etc.
+	PaidSubscriber        bool       // paid subscription active
+	SubscriptionExpiresAt *time.Time // when paid subscription ends
+	CreatedAt             time.Time
+	UpdatedAt             time.Time
 }
 
 // UserRepository defines user persistence operations.

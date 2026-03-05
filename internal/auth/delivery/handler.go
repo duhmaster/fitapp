@@ -36,11 +36,13 @@ type RegisterResponse struct {
 
 // UserResponse is the user in auth responses.
 type UserResponse struct {
-	ID     string `json:"id"`
-	Email  string `json:"email"`
-	Role   string `json:"role"`
-	Theme  string `json:"theme,omitempty"`
-	Locale string `json:"locale,omitempty"`
+	ID                    string  `json:"id"`
+	Email                 string  `json:"email"`
+	Role                  string  `json:"role"`
+	Theme                 string  `json:"theme,omitempty"`
+	Locale                string  `json:"locale,omitempty"`
+	PaidSubscriber        bool    `json:"paid_subscriber"`
+	SubscriptionExpiresAt *string `json:"subscription_expires_at,omitempty"`
 }
 
 // LoginRequest is the JSON body for login.
@@ -203,10 +205,12 @@ func (h *Handler) Me(c *gin.Context) {
 		return
 	}
 	resp := toUserResponse(user)
-	theme, locale, err := h.uc.GetPreferences(c.Request.Context(), user.ID)
+	details, err := h.uc.GetMeDetails(c.Request.Context(), user.ID)
 	if err == nil {
-		resp.Theme = theme
-		resp.Locale = locale
+		resp.Theme = details.Theme
+		resp.Locale = details.Locale
+		resp.PaidSubscriber = details.PaidSubscriber
+		resp.SubscriptionExpiresAt = details.SubscriptionExpiresAt
 	}
 	c.JSON(http.StatusOK, resp)
 }

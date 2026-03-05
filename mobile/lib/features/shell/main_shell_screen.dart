@@ -113,6 +113,7 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
             ListTile(leading: const Icon(Icons.fitness_center), title: Text(tr('exercises_base')), onTap: () => _drawerNavigate(context, () => _go(context, '/exercises'))),
             ListTile(leading: const Icon(Icons.list_alt), title: Text(tr('templates')), onTap: () => _drawerNavigate(context, () => _push(context, '/templates'))),
             ListTile(leading: const Icon(Icons.play_circle), title: Text(tr('current_workout')), onTap: () => _drawerNavigate(context, () => _push(context, '/current-workout'))),
+            ListTile(leading: const Icon(Icons.timer), title: Text(tr('timers')), onTap: () => _drawerNavigate(context, () => _push(context, '/timers'))),
             ListTile(leading: const Icon(Icons.show_chart), title: Text(tr('progress')), onTap: () => _drawerNavigate(context, () => _go(context, '/progress'))),
             ListTile(leading: const Icon(Icons.dynamic_feed), title: Text(tr('feed')), onTap: () => _drawerNavigate(context, () => _go(context, '/feed'))),
             ListTile(leading: const Icon(Icons.sports_gymnastics), title: Text(tr('trainer')), onTap: () => _drawerNavigate(context, () => _push(context, '/trainer'))),

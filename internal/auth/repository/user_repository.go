@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/fitflow/fitflow/internal/auth/domain"
 	dbpkg "github.com/fitflow/fitflow/internal/pkg/db"
@@ -26,12 +27,13 @@ func (r *UserRepository) Create(ctx context.Context, email, passwordHash string,
 	query := `
 		INSERT INTO users (email, password_hash, role)
 		VALUES ($1, $2, $3)
-		RETURNING id, email, password_hash, role, theme, locale, created_at, updated_at
+		RETURNING id, email, password_hash, role, theme, locale, paid_subscriber, subscription_expires_at, created_at, updated_at
 	`
 	var u domain.UserRecord
 	var roleStr string
+	var subExp *time.Time
 	err := r.pool.QueryRow(ctx, query, email, passwordHash, string(role)).Scan(
-		&u.ID, &u.Email, &u.PasswordHash, &roleStr, &u.Theme, &u.Locale, &u.CreatedAt, &u.UpdatedAt,
+		&u.ID, &u.Email, &u.PasswordHash, &roleStr, &u.Theme, &u.Locale, &u.PaidSubscriber, &subExp, &u.CreatedAt, &u.UpdatedAt,
 	)
 	if err != nil {
 		if dbpkg.IsUniqueViolation(err) {
@@ -40,13 +42,14 @@ func (r *UserRepository) Create(ctx context.Context, email, passwordHash string,
 		return nil, err
 	}
 	u.Role = domain.Role(roleStr)
+	u.SubscriptionExpiresAt = subExp
 	return &u, nil
 }
 
 // GetByEmail returns a user by email (excludes soft-deleted).
 func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*domain.UserRecord, error) {
 	query := `
-		SELECT id, email, password_hash, role, theme, locale, created_at, updated_at
+		SELECT id, email, password_hash, role, theme, locale, paid_subscriber, subscription_expires_at, created_at, updated_at
 		FROM users
 		WHERE email = $1 AND deleted_at IS NULL
 	`
@@ -56,7 +59,7 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*domain.
 // GetByID returns a user by ID (excludes soft-deleted).
 func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.UserRecord, error) {
 	query := `
-		SELECT id, email, password_hash, role, theme, locale, created_at, updated_at
+		SELECT id, email, password_hash, role, theme, locale, paid_subscriber, subscription_expires_at, created_at, updated_at
 		FROM users
 		WHERE id = $1 AND deleted_at IS NULL
 	`
@@ -73,7 +76,8 @@ func (r *UserRepository) UpdatePreferences(ctx context.Context, userID uuid.UUID
 func (r *UserRepository) scanUser(row pgx.Row) (*domain.UserRecord, error) {
 	var u domain.UserRecord
 	var roleStr string
-	err := row.Scan(&u.ID, &u.Email, &u.PasswordHash, &roleStr, &u.Theme, &u.Locale, &u.CreatedAt, &u.UpdatedAt)
+	var subExp *time.Time
+	err := row.Scan(&u.ID, &u.Email, &u.PasswordHash, &roleStr, &u.Theme, &u.Locale, &u.PaidSubscriber, &subExp, &u.CreatedAt, &u.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, domain.ErrUserNotFound
@@ -81,6 +85,7 @@ func (r *UserRepository) scanUser(row pgx.Row) (*domain.UserRecord, error) {
 		return nil, err
 	}
 	u.Role = domain.Role(roleStr)
+	u.SubscriptionExpiresAt = subExp
 	return &u, nil
 }
 

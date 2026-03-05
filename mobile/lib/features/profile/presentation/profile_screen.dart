@@ -120,34 +120,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
       body: Stack(
         children: [
-          if (inShell)
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: Material(
-                elevation: 0,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(tr('profile'), style: Theme.of(context).textTheme.titleLarge),
-                      if (_editMode)
-                        TextButton(
-                          onPressed: _saving ? null : () => setState(() => _editMode = false),
-                          child: Text(tr('cancel')),
-                        )
-                      else
-                        IconButton(
-                          icon: const Icon(Icons.edit),
-                          onPressed: () => setState(() => _editMode = true),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
           dataAsync.when(
             loading: () => Padding(
               padding: EdgeInsets.only(top: inShell ? 56 : 0),
@@ -174,6 +146,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       avatarUrl: data.avatarUrl,
                       onAvatarTap: _pickAndUploadAvatar,
                       uploadingAvatar: _uploadingAvatar,
+                      paidSubscriber: data.paidSubscriber,
+                      subscriptionExpiresAt: data.subscriptionExpiresAt,
                     ),
                     const SizedBox(height: 24),
                     ProfileStatsCard(
@@ -215,6 +189,34 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ),
             ),
           ),
+          if (inShell)
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: Material(
+                elevation: 2,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(tr('profile'), style: Theme.of(context).textTheme.titleLarge),
+                      if (_editMode)
+                        TextButton(
+                          onPressed: _saving ? null : () => setState(() => _editMode = false),
+                          child: Text(tr('cancel')),
+                        )
+                      else
+                        IconButton(
+                          icon: const Icon(Icons.edit),
+                          onPressed: () => setState(() => _editMode = true),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           if (_saving)
             Container(
               color: Colors.black26,

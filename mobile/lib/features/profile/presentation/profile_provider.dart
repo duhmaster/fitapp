@@ -27,6 +27,8 @@ final profilePageDataProvider = FutureProvider<ProfilePageData>((ref) async {
     heightCm: metric['height_cm'],
     weightKg: metric['weight_kg'],
     bodyFatPct: bodyFat,
+    paidSubscriber: me.paidSubscriber,
+    subscriptionExpiresAt: me.subscriptionExpiresAt,
   );
 });
 

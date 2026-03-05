@@ -29,7 +29,7 @@ class Profile {
   }
 }
 
-/// Combined data for the profile page: profile + email + latest metrics and body fat.
+/// Combined data for the profile page: profile + email + metrics + subscription.
 class ProfilePageData {
   ProfilePageData({
     required this.displayName,
@@ -38,6 +38,8 @@ class ProfilePageData {
     this.heightCm,
     this.weightKg,
     this.bodyFatPct,
+    this.paidSubscriber = false,
+    this.subscriptionExpiresAt,
   });
   final String displayName;
   final String? avatarUrl;
@@ -45,6 +47,8 @@ class ProfilePageData {
   final double? heightCm;
   final double? weightKg;
   final double? bodyFatPct;
+  final bool paidSubscriber;
+  final String? subscriptionExpiresAt;
 }
 
 /// Single body measurement record (date, weight, body fat %, height for FFMI/BMI).

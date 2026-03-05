@@ -36,7 +36,7 @@ class AuthResponse {
   }
 }
 
-/// Current user from GET /api/v1/me (includes theme and locale preferences).
+/// Current user from GET /api/v1/me (includes theme, locale, subscription).
 class CurrentUser {
   CurrentUser({
     required this.id,
@@ -44,12 +44,16 @@ class CurrentUser {
     required this.role,
     this.theme,
     this.locale,
+    this.paidSubscriber = false,
+    this.subscriptionExpiresAt,
   });
   final String id;
   final String email;
   final String role;
   final String? theme;
   final String? locale;
+  final bool paidSubscriber;
+  final String? subscriptionExpiresAt;
   factory CurrentUser.fromJson(Map<String, dynamic> json) {
     return CurrentUser(
       id: (json['id'] as String?) ?? '',
@@ -57,6 +61,8 @@ class CurrentUser {
       role: (json['role'] as String?) ?? '',
       theme: json['theme'] as String?,
       locale: json['locale'] as String?,
+      paidSubscriber: json['paid_subscriber'] as bool? ?? false,
+      subscriptionExpiresAt: json['subscription_expires_at'] as String?,
     );
   }
 }
