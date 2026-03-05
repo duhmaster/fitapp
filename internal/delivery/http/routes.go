@@ -99,6 +99,7 @@ func (s *Server) RegisterRoutes(cfg *RoutesConfig) {
 			protected.Use(middleware.JWTAuth(cfg.JWTSecret))
 			{
 				protected.GET("/me", cfg.AuthHandler.Me)
+				protected.PATCH("/me/preferences", cfg.AuthHandler.PatchMePreferences)
 
 				if cfg.UserHandler != nil {
 					protected.GET("/users/me/profile", cfg.UserHandler.GetProfile)

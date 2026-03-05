@@ -26,12 +26,12 @@ func (r *UserRepository) Create(ctx context.Context, email, passwordHash string,
 	query := `
 		INSERT INTO users (email, password_hash, role)
 		VALUES ($1, $2, $3)
-		RETURNING id, email, password_hash, role, created_at, updated_at
+		RETURNING id, email, password_hash, role, theme, locale, created_at, updated_at
 	`
 	var u domain.UserRecord
 	var roleStr string
 	err := r.pool.QueryRow(ctx, query, email, passwordHash, string(role)).Scan(
-		&u.ID, &u.Email, &u.PasswordHash, &roleStr, &u.CreatedAt, &u.UpdatedAt,
+		&u.ID, &u.Email, &u.PasswordHash, &roleStr, &u.Theme, &u.Locale, &u.CreatedAt, &u.UpdatedAt,
 	)
 	if err != nil {
 		if dbpkg.IsUniqueViolation(err) {
@@ -46,7 +46,7 @@ func (r *UserRepository) Create(ctx context.Context, email, passwordHash string,
 // GetByEmail returns a user by email (excludes soft-deleted).
 func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*domain.UserRecord, error) {
 	query := `
-		SELECT id, email, password_hash, role, created_at, updated_at
+		SELECT id, email, password_hash, role, theme, locale, created_at, updated_at
 		FROM users
 		WHERE email = $1 AND deleted_at IS NULL
 	`
@@ -56,17 +56,24 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*domain.
 // GetByID returns a user by ID (excludes soft-deleted).
 func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.UserRecord, error) {
 	query := `
-		SELECT id, email, password_hash, role, created_at, updated_at
+		SELECT id, email, password_hash, role, theme, locale, created_at, updated_at
 		FROM users
 		WHERE id = $1 AND deleted_at IS NULL
 	`
 	return r.scanUser(r.pool.QueryRow(ctx, query, id))
 }
 
+// UpdatePreferences updates theme and locale for a user.
+func (r *UserRepository) UpdatePreferences(ctx context.Context, userID uuid.UUID, theme, locale string) error {
+	query := `UPDATE users SET theme = $1, locale = $2, updated_at = NOW() WHERE id = $3 AND deleted_at IS NULL`
+	_, err := r.pool.Exec(ctx, query, theme, locale, userID)
+	return err
+}
+
 func (r *UserRepository) scanUser(row pgx.Row) (*domain.UserRecord, error) {
 	var u domain.UserRecord
 	var roleStr string
-	err := row.Scan(&u.ID, &u.Email, &u.PasswordHash, &roleStr, &u.CreatedAt, &u.UpdatedAt)
+	err := row.Scan(&u.ID, &u.Email, &u.PasswordHash, &roleStr, &u.Theme, &u.Locale, &u.CreatedAt, &u.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, domain.ErrUserNotFound

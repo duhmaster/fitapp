@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/fitflow/fitflow/internal/auth/domain"
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -218,4 +219,38 @@ func generateSecureToken() (string, error) {
 		return "", err
 	}
 	return hex.EncodeToString(b), nil
+}
+
+// GetPreferences returns theme and locale for the user.
+func (uc *AuthUseCase) GetPreferences(ctx context.Context, userID uuid.UUID) (theme, locale string, err error) {
+	rec, err := uc.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return "", "", err
+	}
+	t, l := rec.Theme, rec.Locale
+	if t == "" {
+		t = "system"
+	}
+	if l == "" {
+		l = "en"
+	}
+	return t, l, nil
+}
+
+// UpdatePreferencesInput for updating user preferences.
+type UpdatePreferencesInput struct {
+	Theme  string
+	Locale string
+}
+
+// UpdatePreferences updates theme and locale for the user.
+func (uc *AuthUseCase) UpdatePreferences(ctx context.Context, userID uuid.UUID, in UpdatePreferencesInput) error {
+	theme, locale := in.Theme, in.Locale
+	if theme == "" {
+		theme = "system"
+	}
+	if locale == "" {
+		locale = "en"
+	}
+	return uc.userRepo.UpdatePreferences(ctx, userID, theme, locale)
 }

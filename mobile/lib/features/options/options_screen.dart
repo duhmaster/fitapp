@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fitflow/core/locale/locale_provider.dart';
 import 'package:fitflow/core/locale/locale_repository.dart';
+import 'package:fitflow/core/theme/theme_provider.dart';
+import 'package:fitflow/features/auth/data/auth_repository.dart';
 
 class OptionsScreen extends ConsumerStatefulWidget {
   const OptionsScreen({super.key});
@@ -12,6 +14,19 @@ class OptionsScreen extends ConsumerStatefulWidget {
 
 class _OptionsScreenState extends ConsumerState<OptionsScreen> {
   String? _savingCode;
+  String? _savingThemeKey;
+
+  Future<void> _selectTheme(String key) async {
+    if (_savingThemeKey != null) return;
+    setState(() => _savingThemeKey = key);
+    ref.read(selectedThemeKeyProvider.notifier).update((_) => key);
+    try {
+      final auth = ref.read(authRepositoryProvider);
+      final locale = ref.read(selectedLocaleCodeProvider);
+      await auth.patchPreferences(theme: key, locale: locale);
+    } catch (_) {}
+    if (mounted) setState(() => _savingThemeKey = null);
+  }
 
   Future<void> _selectLocale(String code) async {
     setState(() => _savingCode = code);
@@ -22,6 +37,11 @@ class _OptionsScreenState extends ConsumerState<OptionsScreen> {
     }
     await repo.setSelectedLocale(code);
     ref.read(selectedLocaleCodeProvider.notifier).update((_) => code);
+    try {
+      final auth = ref.read(authRepositoryProvider);
+      final theme = ref.read(selectedThemeKeyProvider);
+      await auth.patchPreferences(theme: theme, locale: code);
+    } catch (_) {}
     if (mounted) setState(() => _savingCode = null);
   }
 
@@ -30,25 +50,34 @@ class _OptionsScreenState extends ConsumerState<OptionsScreen> {
     final tr = ref.watch(trProvider);
     final listAsync = ref.watch(localeListProvider);
     final selectedCode = ref.watch(selectedLocaleCodeProvider);
+    final selectedTheme = ref.watch(selectedThemeKeyProvider);
 
     return Scaffold(
       appBar: AppBar(title: Text(tr('options'))),
       body: listAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, __) => _buildList(context, tr, ['en', 'ru'], selectedCode),
-        data: (list) => _buildList(context, tr, list.isEmpty ? ['en', 'ru'] : list, selectedCode),
+        error: (_, __) => _buildBody(context, tr, ['en', 'ru'], selectedCode, selectedTheme),
+        data: (list) => _buildBody(context, tr, list.isEmpty ? ['en', 'ru'] : list, selectedCode, selectedTheme),
       ),
     );
   }
 
-  Widget _buildList(BuildContext context, String Function(String) tr, List<String> list, String selectedCode) {
+  Widget _buildBody(BuildContext context, String Function(String) tr, List<String> localeList, String selectedCode, String selectedTheme) {
     return ListView(
       children: [
         Padding(
           padding: const EdgeInsets.all(16),
+          child: Text(tr('theme'), style: Theme.of(context).textTheme.titleMedium),
+        ),
+        _themeTile(tr, 'system', tr('theme_current'), selectedTheme),
+        _themeTile(tr, 'main', tr('theme_main'), selectedTheme),
+        _themeTile(tr, 'dark', tr('theme_dark'), selectedTheme),
+        const Divider(height: 24),
+        Padding(
+          padding: const EdgeInsets.all(16),
           child: Text(tr('language'), style: Theme.of(context).textTheme.titleMedium),
         ),
-        ...list.map((code) {
+        ...localeList.map((code) {
           final isSelected = code == selectedCode;
           final isSaving = _savingCode == code;
           return ListTile(
@@ -60,6 +89,18 @@ class _OptionsScreenState extends ConsumerState<OptionsScreen> {
           );
         }),
       ],
+    );
+  }
+
+  Widget _themeTile(String Function(String) tr, String key, String label, String selectedTheme) {
+    final isSelected = selectedTheme == key;
+    final isSaving = _savingThemeKey == key;
+    return ListTile(
+      title: Text(label),
+      trailing: isSelected
+          ? const Icon(Icons.check, color: Colors.green)
+          : (isSaving ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2)) : null),
+      onTap: _savingThemeKey != null ? null : () => _selectTheme(key),
     );
   }
 

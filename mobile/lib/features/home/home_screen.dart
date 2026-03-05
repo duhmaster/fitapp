@@ -22,6 +22,7 @@ class HomeScreen extends ConsumerWidget {
             icon: const Icon(Icons.logout),
             onPressed: () async {
               await ref.read(logoutProvider)();
+              ref.read(authRedirectNotifierProvider).setLoggedIn(false);
               if (context.mounted) context.go('/login');
             },
           ),

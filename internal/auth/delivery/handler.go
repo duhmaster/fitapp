@@ -36,9 +36,11 @@ type RegisterResponse struct {
 
 // UserResponse is the user in auth responses.
 type UserResponse struct {
-	ID    string `json:"id"`
-	Email string `json:"email"`
-	Role  string `json:"role"`
+	ID     string `json:"id"`
+	Email  string `json:"email"`
+	Role   string `json:"role"`
+	Theme  string `json:"theme,omitempty"`
+	Locale string `json:"locale,omitempty"`
 }
 
 // LoginRequest is the JSON body for login.
@@ -188,7 +190,7 @@ func toUserResponse(u *domain.User) UserResponse {
 	}
 }
 
-// Me returns the current authenticated user. Requires JWTAuth middleware.
+// Me returns the current authenticated user and preferences. Requires JWTAuth middleware.
 func (h *Handler) Me(c *gin.Context) {
 	val, exists := c.Get(string(middleware.UserContextKey))
 	if !exists {
@@ -200,5 +202,52 @@ func (h *Handler) Me(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
 		return
 	}
-	c.JSON(http.StatusOK, toUserResponse(user))
+	resp := toUserResponse(user)
+	theme, locale, err := h.uc.GetPreferences(c.Request.Context(), user.ID)
+	if err == nil {
+		resp.Theme = theme
+		resp.Locale = locale
+	}
+	c.JSON(http.StatusOK, resp)
+}
+
+// PatchMePreferencesRequest is the JSON body for updating preferences.
+type PatchMePreferencesRequest struct {
+	Theme  string `json:"theme"`
+	Locale string `json:"locale"`
+}
+
+// PatchMePreferences updates the current user's theme and locale.
+func (h *Handler) PatchMePreferences(c *gin.Context) {
+	val, exists := c.Get(string(middleware.UserContextKey))
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	user, ok := val.(*domain.User)
+	if !ok {
+		c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
+		return
+	}
+	var req PatchMePreferencesRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	curTheme, curLocale, _ := h.uc.GetPreferences(c.Request.Context(), user.ID)
+	theme, locale := req.Theme, req.Locale
+	if theme == "" {
+		theme = curTheme
+	}
+	if locale == "" {
+		locale = curLocale
+	}
+	if err := h.uc.UpdatePreferences(c.Request.Context(), user.ID, usecase.UpdatePreferencesInput{
+		Theme:  theme,
+		Locale: locale,
+	}); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update preferences"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"theme": theme, "locale": locale})
 }

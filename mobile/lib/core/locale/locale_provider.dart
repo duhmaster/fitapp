@@ -4,8 +4,9 @@ import 'package:fitflow/core/locale/locale_repository.dart';
 /// Currently selected locale code (saved). Use this to trigger reload of strings.
 final selectedLocaleCodeProvider = StateProvider<String>((ref) => 'en');
 
-/// Load selected locale at app start and optionally refresh from server.
+/// Load selected locale at app start. Deferred so first frame can paint.
 final selectedLocaleCodeInitProvider = FutureProvider<String>((ref) async {
+  await Future.delayed(Duration.zero); // yield so first frame paints
   final repo = ref.watch(localeRepositoryProvider);
   final code = await repo.getSelectedLocale();
   ref.read(selectedLocaleCodeProvider.notifier).update((_) => code);
@@ -107,6 +108,10 @@ final Map<String, String> _fallbackStrings = {
   'home_feed_subtitle': 'Social feed',
   'home_trainer_subtitle': 'Trainer dashboard',
   'options': 'Options',
+  'theme': 'Theme',
+  'theme_current': 'Current (system)',
+  'theme_main': 'Main theme',
+  'theme_dark': 'Dark theme',
   'language': 'Language',
   'retry': 'Retry',
   'gym': 'Gym',

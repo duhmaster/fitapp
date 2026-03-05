@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:fitflow/features/auth/data/auth_repository.dart';
+import 'package:fitflow/features/auth/presentation/auth_state.dart';
 import 'package:fitflow/features/auth/presentation/login_screen.dart';
 import 'package:fitflow/features/auth/presentation/register_screen.dart';
 import 'package:fitflow/features/feed/feed_screen.dart';
@@ -21,13 +21,18 @@ import 'package:fitflow/features/current_workout/current_workout_screen.dart';
 
 
 final appRouterProvider = Provider<GoRouter>((ref) {
+  final authNotifier = ref.read(authRedirectNotifierProvider);
   return GoRouter(
     initialLocation: '/login',
-    redirect: (context, state) async {
-      final isLoggedIn = await ref.read(authRepositoryProvider).isLoggedIn();
+    refreshListenable: authNotifier,
+    redirect: (context, state) {
+      if (!authNotifier.isKnown) {
+        authNotifier.check();
+        return null;
+      }
       final isAuthRoute = state.matchedLocation == '/login' || state.matchedLocation == '/register';
-      if (!isLoggedIn && !isAuthRoute) return '/login';
-      //if (isLoggedIn && isAuthRoute) return '/home';
+      if (!authNotifier.isLoggedIn && !isAuthRoute) return '/login';
+      if (authNotifier.isLoggedIn && isAuthRoute) return '/home';
       if (state.matchedLocation == '/') return '/home';
       return null;
     },

@@ -2,22 +2,39 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fitflow/core/locale/locale_provider.dart';
 import 'package:fitflow/core/router/app_router.dart';
-import 'package:fitflow/core/theme/app_theme.dart';
+import 'package:fitflow/core/theme/theme_provider.dart';
 
-class FitflowApp extends ConsumerWidget {
+class FitflowApp extends ConsumerStatefulWidget {
   const FitflowApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    ref.watch(selectedLocaleCodeInitProvider);
+  ConsumerState<FitflowApp> createState() => _FitflowAppState();
+}
+
+class _FitflowAppState extends ConsumerState<FitflowApp> {
+  @override
+  void initState() {
+    super.initState();
+    // Run locale/preferences init after first frame so "Loading FITFLOW" is replaced immediately.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(selectedLocaleCodeInitProvider);
+      ref.read(mePreferencesInitProvider);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final router = ref.watch(appRouterProvider);
     final strings = ref.watch(localeStringsProvider).valueOrNull;
     final appName = strings?['app_name'] ?? 'FITFLOW';
+    final themeLight = ref.watch(appLightThemeProvider);
+    final themeDark = ref.watch(appDarkThemeProvider);
+    final themeMode = ref.watch(appThemeModeProvider);
     return MaterialApp.router(
       title: appName,
-      theme: AppTheme.light,
-      darkTheme: AppTheme.dark,
-      themeMode: ThemeMode.system,
+      theme: themeLight,
+      darkTheme: themeDark,
+      themeMode: themeMode,
       routerConfig: router,
       debugShowCheckedModeBanner: false,
     );

@@ -36,17 +36,27 @@ class AuthResponse {
   }
 }
 
-/// Current user from GET /api/v1/me.
+/// Current user from GET /api/v1/me (includes theme and locale preferences).
 class CurrentUser {
-  CurrentUser({required this.id, required this.email, required this.role});
+  CurrentUser({
+    required this.id,
+    required this.email,
+    required this.role,
+    this.theme,
+    this.locale,
+  });
   final String id;
   final String email;
   final String role;
+  final String? theme;
+  final String? locale;
   factory CurrentUser.fromJson(Map<String, dynamic> json) {
     return CurrentUser(
       id: (json['id'] as String?) ?? '',
       email: (json['email'] as String?) ?? '',
       role: (json['role'] as String?) ?? '',
+      theme: json['theme'] as String?,
+      locale: json['locale'] as String?,
     );
   }
 }

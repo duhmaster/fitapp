@@ -13,6 +13,8 @@ type UserRecord struct {
 	Email        string
 	PasswordHash string
 	Role         Role
+	Theme        string // app theme: system, light, main, dark
+	Locale       string // locale code: en, ru, etc.
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }
@@ -22,6 +24,7 @@ type UserRepository interface {
 	Create(ctx context.Context, email, passwordHash string, role Role) (*UserRecord, error)
 	GetByEmail(ctx context.Context, email string) (*UserRecord, error)
 	GetByID(ctx context.Context, id uuid.UUID) (*UserRecord, error)
+	UpdatePreferences(ctx context.Context, userID uuid.UUID, theme, locale string) error
 }
 
 // RefreshTokenRepository defines refresh token operations.

@@ -1,10 +1,14 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fitflow/core/locale/locale_provider.dart';
+import 'package:fitflow/core/locale/locale_repository.dart';
+import 'package:fitflow/core/theme/theme_provider.dart';
+import 'package:fitflow/core/errors/app_exceptions.dart';
+import 'package:fitflow/features/auth/data/auth_repository.dart';
 import 'package:fitflow/features/auth/domain/auth_models.dart';
 import 'package:fitflow/features/auth/presentation/auth_state.dart';
-import 'package:fitflow/core/errors/app_exceptions.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -41,9 +45,29 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         email: _emailController.text.trim(),
         password: _passwordController.text,
       ));
+      if (!mounted) return;
+      ref.read(authRedirectNotifierProvider).setLoggedIn(true);
+      final me = await ref.read(authRepositoryProvider).getMe();
+      await applyMePreferences(
+        me,
+        setTheme: (key) => ref.read(selectedThemeKeyProvider.notifier).update((_) => key),
+        setLocale: (code) => ref.read(selectedLocaleCodeProvider.notifier).update((_) => code),
+        localeRepo: ref.read(localeRepositoryProvider),
+      );
       if (mounted) context.go('/home');
-    } on AppException catch (e) {
-      if (mounted) setState(() => _error = e.message);
+    } on DioException catch (e) {
+      String msg;
+      if (e.error is AppException) {
+        msg = (e.error! as AppException).message;
+      } else if (e.response?.data is Map) {
+        final d = e.response!.data as Map;
+        msg = (d['error'] ?? d['message'] ?? e.message)?.toString() ?? 'Registration failed';
+      } else {
+        msg = e.message ?? 'Registration failed';
+      }
+      if (mounted) setState(() => _error = msg);
+    } catch (e) {
+      if (mounted) setState(() => _error = e is AppException ? e.message : e.toString());
     } finally {
       if (mounted) setState(() => _loading = false);
     }

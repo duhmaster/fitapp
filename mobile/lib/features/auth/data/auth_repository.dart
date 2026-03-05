@@ -16,10 +16,21 @@ class AuthRepository {
   final Dio dio;
   final TokenStorage tokenStorage;
 
-  /// GET /api/v1/me — current user (id, email, role).
+  /// GET /api/v1/me — current user (id, email, role, theme, locale).
   Future<CurrentUser> getMe() async {
     final res = await dio.get<Map<String, dynamic>>('/api/v1/me');
     return CurrentUser.fromJson(res.data!);
+  }
+
+  /// PATCH /api/v1/me/preferences — update theme and locale. Empty strings keep current.
+  Future<void> patchPreferences({String? theme, String? locale}) async {
+    await dio.patch<Map<String, dynamic>>(
+      '/api/v1/me/preferences',
+      data: <String, dynamic>{
+        if (theme != null && theme.isNotEmpty) 'theme': theme,
+        if (locale != null && locale.isNotEmpty) 'locale': locale,
+      },
+    );
   }
 
   Future<AuthResponse> login(LoginRequest req) async {
