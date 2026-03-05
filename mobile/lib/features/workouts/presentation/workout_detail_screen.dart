@@ -54,6 +54,8 @@ class _BodyState extends ConsumerState<_Body> {
     setState(() => _starting = true);
     try {
       await ref.read(workoutRepositoryProvider).startWorkout(widget.workoutId);
+      ref.invalidate(workoutsListProvider);
+      ref.invalidate(workoutDetailProvider(widget.workoutId));
       if (mounted) context.push('/workout/${widget.workoutId}/active');
     } on AppException catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));

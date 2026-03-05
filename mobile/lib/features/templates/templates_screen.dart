@@ -7,6 +7,7 @@ import 'package:fitflow/core/widgets/loading_skeleton.dart';
 import 'package:fitflow/core/locale/locale_provider.dart';
 import 'package:fitflow/features/workouts/data/workout_repository.dart';
 import 'package:fitflow/features/workouts/domain/workout_models.dart';
+import 'package:fitflow/features/workouts/presentation/workouts_provider.dart';
 
 final templatesListProvider = FutureProvider<List<WorkoutTemplate>>((ref) {
   return ref.watch(workoutRepositoryProvider).listTemplates(limit: 50);
@@ -172,6 +173,7 @@ class TemplatesScreen extends ConsumerWidget {
   Future<void> _startFromTemplate(BuildContext context, WidgetRef ref, WorkoutTemplate t) async {
     try {
       final w = await ref.read(workoutRepositoryProvider).startWorkoutFromTemplate(t.id);
+      ref.invalidate(workoutsListProvider);
       if (context.mounted) context.push('/workout/${w.id}');
     } catch (e) {
       if (context.mounted) {

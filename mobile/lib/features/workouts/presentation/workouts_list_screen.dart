@@ -208,6 +208,7 @@ class _WorkoutsListScreenState extends ConsumerState<WorkoutsListScreen> {
   Future<void> _createWorkout() async {
     try {
       final w = await ref.read(workoutRepositoryProvider).createWorkout();
+      ref.invalidate(workoutsListProvider);
       if (mounted) context.push('/workout/${w.id}');
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
