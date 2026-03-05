@@ -43,7 +43,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     if (xfile == null || !mounted) return;
     final contentType = ProfileRepository.contentTypeFromFilename(xfile.name);
     if (contentType == null) {
-      _showSnackBar('Use a jpeg, png, or webp image', isError: true);
+      _showSnackBar(ref.read(trProvider)('image_format_hint'), isError: true);
       return;
     }
     setState(() => _uploadingAvatar = true);

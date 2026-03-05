@@ -76,6 +76,8 @@ class ProfileHeader extends ConsumerWidget {
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 8),
+        Text(tr('subscription_status'), style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+        const SizedBox(height: 2),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(

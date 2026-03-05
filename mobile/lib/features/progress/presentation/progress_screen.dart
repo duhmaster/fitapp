@@ -41,7 +41,10 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
   Widget _buildFromMeasurements(BuildContext context, String Function(String) tr, List<BodyMeasurement> list, double? profileHeight) {
     final now = DateTime.now();
     final start = now.subtract(Duration(days: _dateRangeDays));
-    final filtered = list.where((m) => m.recordedAt.isAfter(start) || m.recordedAt.isAtSameMomentAs(start)).toList();
+    final filtered = list.where((m) {
+      final local = m.recordedAt.toLocal();
+      return local.isAfter(start) || local.isAtSameMomentAs(start);
+    }).toList();
     filtered.sort((a, b) => a.recordedAt.compareTo(b.recordedAt));
 
     final withInterp = filtered.map((m) {

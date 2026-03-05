@@ -50,7 +50,7 @@ class _TemplateEditScreenState extends ConsumerState<TemplateEditScreen> {
       ),
       error: (e, _) => Scaffold(
         appBar: AppBar(title: Text(tr('edit_template'))),
-        body: Center(child: Text('Error: $e')),
+        body: Center(child: Text('${tr('error_label')}: $e')),
       ),
       data: (detail) {
         if (_nameController.text.isEmpty && detail.template.name.isNotEmpty) {
@@ -104,10 +104,10 @@ class _TemplateEditScreenState extends ConsumerState<TemplateEditScreen> {
                 TextField(
                   controller: _restSecondsController,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     isDense: true,
-                    border: OutlineInputBorder(),
-                    suffixText: 's',
+                    border: const OutlineInputBorder(),
+                    suffixText: tr('suffix_sec'),
                   ),
                   onChanged: (_) => setState(() {}),
                 ),
@@ -362,10 +362,10 @@ class _AddSetDialogState extends State<_AddSetDialog> {
             TextField(
               controller: _weightController,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 isDense: true,
-                border: OutlineInputBorder(),
-                suffixText: 'kg',
+                border: const OutlineInputBorder(),
+                suffixText: tr('kg_suffix'),
               ),
               onChanged: (v) {
                 final n = int.tryParse(v);

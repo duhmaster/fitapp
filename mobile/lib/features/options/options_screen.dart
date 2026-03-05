@@ -81,7 +81,7 @@ class _OptionsScreenState extends ConsumerState<OptionsScreen> {
           final isSelected = code == selectedCode;
           final isSaving = _savingCode == code;
           return ListTile(
-            title: Text(_localeDisplayName(code)),
+            title: Text(_localeDisplayName(tr, code)),
             trailing: isSelected
                 ? const Icon(Icons.check, color: Colors.green)
                 : (isSaving ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2)) : null),
@@ -104,12 +104,12 @@ class _OptionsScreenState extends ConsumerState<OptionsScreen> {
     );
   }
 
-  String _localeDisplayName(String code) {
+  String _localeDisplayName(String Function(String) tr, String code) {
     switch (code) {
       case 'en':
-        return 'English';
+        return tr('lang_en');
       case 'ru':
-        return 'Русский';
+        return tr('lang_ru');
       default:
         return code;
     }

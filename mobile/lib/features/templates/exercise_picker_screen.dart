@@ -36,6 +36,7 @@ class _ExercisePickerScreenState extends ConsumerState<ExercisePickerScreen> {
         title: Text(tr('add_exercise')),
         leading: IconButton(
           icon: const Icon(Icons.close),
+          tooltip: tr('close'),
           onPressed: () => context.pop(),
         ),
       ),
@@ -55,7 +56,7 @@ class _ExercisePickerScreenState extends ConsumerState<ExercisePickerScreen> {
           Expanded(
             child: async.when(
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text('Error: $e')),
+              error: (e, _) => Center(child: Text('${tr('error_label')}: $e')),
               data: (allExercises) {
                 final query = _search.trim().toLowerCase();
                 final filtered = query.isEmpty

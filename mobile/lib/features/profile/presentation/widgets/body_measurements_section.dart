@@ -114,7 +114,7 @@ class _BodyMeasurementsTable extends ConsumerWidget {
             DataColumn(label: Text(tr('lean_mass_pct'))),
             DataColumn(label: Text(tr('ffmi_interpretation'))),
             DataColumn(label: Text(tr('bmi_interpretation'))),
-            const DataColumn(label: Text('')),
+            DataColumn(label: Text(tr('actions'))),
           ],
           rows: list.map((m) {
           final heightForInterp = m.heightCm ?? profileHeightCm;
@@ -125,8 +125,8 @@ class _BodyMeasurementsTable extends ConsumerWidget {
               DataCell(Text(m.weightKg.toStringAsFixed(1))),
               DataCell(Text(m.bodyFatPct?.toStringAsFixed(1) ?? '—')),
               DataCell(Text(interp.leanMassPct.toStringAsFixed(1))),
-              DataCell(ConstrainedBox(constraints: const BoxConstraints(maxWidth: 140), child: Text(interp.ffmiText, style: const TextStyle(fontSize: 12)))),
-              DataCell(ConstrainedBox(constraints: const BoxConstraints(maxWidth: 140), child: Text(interp.bmiText, style: const TextStyle(fontSize: 12)))),
+              DataCell(ConstrainedBox(constraints: const BoxConstraints(minWidth: 180, maxWidth: 280), child: Text(interp.ffmiText, style: const TextStyle(fontSize: 12)))),
+              DataCell(ConstrainedBox(constraints: const BoxConstraints(minWidth: 180, maxWidth: 280), child: Text(interp.bmiText, style: const TextStyle(fontSize: 12)))),
               DataCell(Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [

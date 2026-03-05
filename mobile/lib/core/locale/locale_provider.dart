@@ -27,14 +27,17 @@ final localeStringsProvider = FutureProvider<Map<String, String>>((ref) async {
   }
   if (strings == null || strings.isEmpty) {
     final en = await repo.getCachedLocale('en');
-    if (en != null && en.isNotEmpty) return en;
-    final fetchEn = await repo.fetchLocale('en');
-    if (fetchEn != null && fetchEn.isNotEmpty) {
-      await repo.cacheLocale('en', fetchEn);
-      return fetchEn;
+    if (en != null && en.isNotEmpty) strings = en;
+    if (strings == null || strings.isEmpty) {
+      final fetchEn = await repo.fetchLocale('en');
+      if (fetchEn != null && fetchEn.isNotEmpty) {
+        await repo.cacheLocale('en', fetchEn);
+        strings = fetchEn;
+      }
     }
   }
-  return strings ?? (code == 'ru' ? _fallbackStringsRu : _fallbackStrings);
+  final fallback = code == 'ru' ? _fallbackStringsRu : _fallbackStrings;
+  return Map<String, String>.from(fallback)..addAll(strings ?? {});
 });
 
 /// Russian fallback when server/cache unavailable.
@@ -187,10 +190,20 @@ final Map<String, String> _fallbackStringsRu = {
   'timers_placeholder': 'Раздел таймеров. Скоро здесь появятся таймеры тренировок и отдыха.',
   'subscription_free': 'Бесплатное использование',
   'subscription_until': 'Подписка до',
+  'subscription_status': 'Подписка',
   'no_name_set_profile': 'Имя не задано',
   'date_range_7d': '7 дн',
   'date_range_30d': '30 дн',
   'date_range_90d': '90 дн',
+  'error_label': 'Ошибка',
+  'suffix_sec': 'с',
+  'kg_suffix': 'кг',
+  'lang_en': 'English',
+  'lang_ru': 'Русский',
+  'image_format_hint': 'Используйте изображение в формате JPEG, PNG или WebP',
+  'actions': 'Действия',
+  'close': 'Закрыть',
+  'start_workout_short': 'Старт',
 };
 
 /// List of available locale codes (from server, or default [en, ru]).
@@ -348,10 +361,20 @@ final Map<String, String> _fallbackStrings = {
   'timers_placeholder': 'Timers section. Workout and rest timers coming soon.',
   'subscription_free': 'Free usage',
   'subscription_until': 'Subscription until',
+  'subscription_status': 'Subscription',
   'no_name_set_profile': 'No name set',
   'date_range_7d': '7d',
   'date_range_30d': '30d',
   'date_range_90d': '90d',
+  'error_label': 'Error',
+  'suffix_sec': 's',
+  'kg_suffix': 'kg',
+  'lang_en': 'English',
+  'lang_ru': 'Russian',
+  'image_format_hint': 'Use a JPEG, PNG or WebP image',
+  'actions': 'Actions',
+  'close': 'Close',
+  'start_workout_short': 'Start',
 };
 
 /// Helper to get a localized string by key.
