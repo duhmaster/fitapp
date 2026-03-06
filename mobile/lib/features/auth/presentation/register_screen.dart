@@ -79,83 +79,88 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     return Scaffold(
       appBar: AppBar(title: Text(tr('create_account'))),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                if (_error != null) ...[
-                  Text(
-                    _error!,
-                    style: TextStyle(color: Theme.of(context).colorScheme.error),
-                  ),
-                  const SizedBox(height: 16),
-                ],
-                TextFormField(
-                  controller: _nameController,
-                  decoration: InputDecoration(
-                    labelText: tr('name'),
-                    border: const OutlineInputBorder(),
-                  ),
-                  textCapitalization: TextCapitalization.words,
-                  validator: (v) {
-                    if (v == null || v.trim().isEmpty) return tr('enter_name');
-                    return null;
-                  },
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 400),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (_error != null) ...[
+                      Text(
+                        _error!,
+                        style: TextStyle(color: Theme.of(context).colorScheme.error),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                    TextFormField(
+                      controller: _nameController,
+                      decoration: InputDecoration(
+                        labelText: tr('name'),
+                        border: const OutlineInputBorder(),
+                      ),
+                      textCapitalization: TextCapitalization.words,
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) return tr('enter_name');
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _emailController,
+                      decoration: InputDecoration(
+                        labelText: tr('email'),
+                        border: const OutlineInputBorder(),
+                      ),
+                      keyboardType: TextInputType.emailAddress,
+                      autocorrect: false,
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) return tr('enter_email');
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _passwordController,
+                      decoration: InputDecoration(
+                        labelText: tr('password'),
+                        border: const OutlineInputBorder(),
+                      ),
+                      obscureText: true,
+                      validator: (v) {
+                        if (v == null || v.isEmpty) return tr('enter_password');
+                        if (v.length < 6) return tr('at_least_6_chars');
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 24),
+                    FilledButton(
+                      onPressed: _loading
+                          ? null
+                          : () {
+                              if (_formKey.currentState?.validate() ?? false) {
+                                _submit();
+                              }
+                            },
+                      child: _loading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Text(tr('register')),
+                    ),
+                    const SizedBox(height: 16),
+                    TextButton(
+                      onPressed: () => context.pop(),
+                      child: Text(tr('back_to_sign_in')),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _emailController,
-                  decoration: InputDecoration(
-                    labelText: tr('email'),
-                    border: const OutlineInputBorder(),
-                  ),
-                  keyboardType: TextInputType.emailAddress,
-                  autocorrect: false,
-                  validator: (v) {
-                    if (v == null || v.trim().isEmpty) return tr('enter_email');
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _passwordController,
-                  decoration: InputDecoration(
-                    labelText: tr('password'),
-                    border: const OutlineInputBorder(),
-                  ),
-                  obscureText: true,
-                  validator: (v) {
-                    if (v == null || v.isEmpty) return tr('enter_password');
-                    if (v.length < 6) return tr('at_least_6_chars');
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 24),
-                FilledButton(
-                  onPressed: _loading
-                      ? null
-                      : () {
-                          if (_formKey.currentState?.validate() ?? false) {
-                            _submit();
-                          }
-                        },
-                  child: _loading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text(tr('register')),
-                ),
-                const SizedBox(height: 16),
-                TextButton(
-                  onPressed: () => context.pop(),
-                  child: Text(tr('back_to_sign_in')),
-                ),
-              ],
+              ),
             ),
           ),
         ),

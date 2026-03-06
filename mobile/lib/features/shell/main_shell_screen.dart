@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:fitflow/core/layout/responsive.dart';
 import 'package:fitflow/core/locale/locale_provider.dart';
 import 'package:fitflow/core/router/app_router.dart';
 import 'package:fitflow/features/workouts/presentation/widgets/template_picker_dialog.dart';
@@ -66,6 +67,77 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
   Widget build(BuildContext context) {
     final tr = ref.watch(trProvider);
     final index = _selectedIndex(widget.location);
+    final isWide = context.isWide;
+
+    final drawer = Drawer(
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          DrawerHeader(
+            decoration: BoxDecoration(color: Theme.of(context).colorScheme.primaryContainer),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                const BarbellLogo(size: 40),
+                const SizedBox(height: 8),
+                Text(tr('app_name'), style: Theme.of(context).textTheme.titleLarge),
+              ],
+            ),
+          ),
+          ListTile(leading: const Icon(Icons.person), title: Text(tr('profile')), onTap: () => _drawerNavigate(context, () => _go(context, '/profile'))),
+          ListTile(leading: const Icon(Icons.fitness_center), title: Text(tr('gym')), onTap: () => _drawerNavigate(context, () => _push(context, '/gym'))),
+          ListTile(leading: const Icon(Icons.directions_run), title: Text(tr('workouts')), onTap: () => _drawerNavigate(context, () => _go(context, '/home'))),
+          ListTile(leading: const Icon(Icons.fitness_center), title: Text(tr('exercises_base')), onTap: () => _drawerNavigate(context, () => _go(context, '/exercises'))),
+          ListTile(leading: const Icon(Icons.list_alt), title: Text(tr('templates')), onTap: () => _drawerNavigate(context, () => _push(context, '/templates'))),
+          ListTile(leading: const Icon(Icons.play_circle), title: Text(tr('current_workout')), onTap: () => _drawerNavigate(context, () => _push(context, '/current-workout'))),
+          ListTile(leading: const Icon(Icons.timer), title: Text(tr('timers')), onTap: () => _drawerNavigate(context, () => _push(context, '/timers'))),
+          ListTile(leading: const Icon(Icons.show_chart), title: Text(tr('progress')), onTap: () => _drawerNavigate(context, () => _go(context, '/progress'))),
+          ListTile(leading: const Icon(Icons.dynamic_feed), title: Text(tr('feed')), onTap: () => _drawerNavigate(context, () => _go(context, '/feed'))),
+          ListTile(leading: const Icon(Icons.sports_gymnastics), title: Text(tr('trainer')), onTap: () => _drawerNavigate(context, () => _push(context, '/trainer'))),
+          ListTile(leading: const Icon(Icons.help_outline), title: Text(tr('help')), onTap: () => _drawerNavigate(context, () => _push(context, '/help'))),
+          ListTile(leading: const Icon(Icons.settings), title: Text(tr('options')), onTap: () => _drawerNavigate(context, () => _push(context, '/options'))),
+        ],
+      ),
+    );
+
+    final body = SafeArea(
+      child: isWide ? ResponsiveCenter(child: widget.child) : widget.child,
+    );
+
+    if (isWide) {
+      return Scaffold(
+        appBar: AppBar(
+          leading: Builder(
+            builder: (ctx) => IconButton(
+              icon: const Icon(Icons.menu),
+              onPressed: () => Scaffold.of(ctx).openDrawer(),
+            ),
+          ),
+          title: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const BarbellLogo(size: 28),
+              const SizedBox(width: 8),
+              Text(tr('app_name')),
+            ],
+          ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.logout),
+              onPressed: () async {
+                await ref.read(logoutProvider)();
+                ref.read(authRedirectNotifierProvider).setLoggedIn(false);
+                if (context.mounted) _router.go('/login');
+              },
+            ),
+          ],
+        ),
+        drawer: drawer,
+        body: body,
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         leading: Builder(
@@ -79,7 +151,7 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
           children: [
             const BarbellLogo(size: 28),
             const SizedBox(width: 8),
-            Text(tr('app_name')),
+            Flexible(child: Text(tr('app_name'), overflow: TextOverflow.ellipsis)),
           ],
         ),
         actions: [
@@ -93,37 +165,8 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
           ),
         ],
       ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            DrawerHeader(
-              decoration: BoxDecoration(color: Theme.of(context).colorScheme.primaryContainer),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  const BarbellLogo(size: 40),
-                  const SizedBox(height: 8),
-                  Text(tr('app_name'), style: Theme.of(context).textTheme.titleLarge),
-                ],
-              ),
-            ),
-            ListTile(leading: const Icon(Icons.person), title: Text(tr('profile')), onTap: () => _drawerNavigate(context, () => _go(context, '/profile'))),
-            ListTile(leading: const Icon(Icons.fitness_center), title: Text(tr('gym')), onTap: () => _drawerNavigate(context, () => _push(context, '/gym'))),
-            ListTile(leading: const Icon(Icons.directions_run), title: Text(tr('workouts')), onTap: () => _drawerNavigate(context, () => _go(context, '/home'))),
-            ListTile(leading: const Icon(Icons.fitness_center), title: Text(tr('exercises_base')), onTap: () => _drawerNavigate(context, () => _go(context, '/exercises'))),
-            ListTile(leading: const Icon(Icons.list_alt), title: Text(tr('templates')), onTap: () => _drawerNavigate(context, () => _push(context, '/templates'))),
-            ListTile(leading: const Icon(Icons.play_circle), title: Text(tr('current_workout')), onTap: () => _drawerNavigate(context, () => _push(context, '/current-workout'))),
-            ListTile(leading: const Icon(Icons.timer), title: Text(tr('timers')), onTap: () => _drawerNavigate(context, () => _push(context, '/timers'))),
-            ListTile(leading: const Icon(Icons.show_chart), title: Text(tr('progress')), onTap: () => _drawerNavigate(context, () => _go(context, '/progress'))),
-            ListTile(leading: const Icon(Icons.dynamic_feed), title: Text(tr('feed')), onTap: () => _drawerNavigate(context, () => _go(context, '/feed'))),
-            ListTile(leading: const Icon(Icons.sports_gymnastics), title: Text(tr('trainer')), onTap: () => _drawerNavigate(context, () => _push(context, '/trainer'))),
-            ListTile(leading: const Icon(Icons.settings), title: Text(tr('options')), onTap: () => _drawerNavigate(context, () => _push(context, '/options'))),
-          ],
-        ),
-      ),
-      body: widget.child,
+      drawer: drawer,
+      body: body,
       bottomNavigationBar: BottomAppBar(
         shape: const CircularNotchedRectangle(),
         notchMargin: 8,

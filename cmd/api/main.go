@@ -1,4 +1,4 @@
-// FITFLOW API Server
+// GymMore API Server (gymmore.ru)
 package main
 
 import (

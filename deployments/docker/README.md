@@ -1,4 +1,4 @@
-# Docker
+# Docker — GymMore (gymmore.ru)
 
 Run the API with Postgres and Redis:
 

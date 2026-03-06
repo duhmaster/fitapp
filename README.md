@@ -1,6 +1,6 @@
-# FITFLOW API
+# GymMore API
 
-Go API for the FITFLOW fitness app: auth, users, gyms, workouts, progress, social, blog, trainer, notifications.
+Go API for [GymMore](https://gymmore.ru) fitness app: auth, users, gyms, workouts, progress, social, blog, trainer, notifications.
 
 ## Prerequisites
 

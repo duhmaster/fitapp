@@ -81,7 +81,7 @@ class _ProgressWorkoutsScreenState extends ConsumerState<ProgressWorkoutsScreen>
                         Text(tr('volume_chart'), style: Theme.of(context).textTheme.titleMedium),
                         const SizedBox(height: 8),
                         SizedBox(
-                          height: 220,
+                          height: _chartHeight(context),
                           child: LineChart(
                             _chartData(byTemplate.reversed.toList(), context),
                             duration: const Duration(milliseconds: 250),
@@ -121,6 +121,13 @@ class _ProgressWorkoutsScreenState extends ConsumerState<ProgressWorkoutsScreen>
 
   String _formatDate(DateTime d) {
     return DateFormat.yMMMd().format(d);
+  }
+
+  double _chartHeight(BuildContext context) {
+    final h = MediaQuery.sizeOf(context).height;
+    if (h < 500) return 140;
+    if (h < 700) return 180;
+    return 220;
   }
 
   LineChartData _chartData(List<Workout> list, BuildContext context) {

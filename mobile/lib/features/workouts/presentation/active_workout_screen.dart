@@ -199,11 +199,15 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                           : (isCurrent ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurfaceVariant),
                       size: 20,
                     ),
-                    label: Text(
-                      exerciseName,
-                      style: TextStyle(
-                        color: completed ? Colors.green : (isCurrent ? null : Theme.of(context).colorScheme.onSurfaceVariant),
-                        fontWeight: isCurrent ? FontWeight.bold : null,
+                    label: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 140),
+                      child: Text(
+                        exerciseName,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: completed ? Colors.green : (isCurrent ? null : Theme.of(context).colorScheme.onSurfaceVariant),
+                          fontWeight: isCurrent ? FontWeight.bold : null,
+                        ),
                       ),
                     ),
                   ),

@@ -8,6 +8,7 @@ import 'package:fitflow/core/widgets/loading_skeleton.dart';
 import 'package:fitflow/core/locale/locale_provider.dart';
 import 'package:fitflow/features/workouts/data/workout_repository.dart';
 import 'package:fitflow/features/workouts/domain/workout_models.dart';
+import 'package:fitflow/core/layout/responsive.dart';
 import 'package:fitflow/features/workouts/presentation/workouts_provider.dart';
 import 'package:fitflow/features/templates/templates_screen.dart';
 
@@ -70,15 +71,17 @@ class _WorkoutsListScreenState extends ConsumerState<WorkoutsListScreen> {
         context: context,
         builder: (ctx) => AlertDialog(
           title: Text(ref.read(trProvider)('workout')),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('${ref.read(trProvider)('exercises_count')}: ${detail.exercises.length}'),
-              Text('${ref.read(trProvider)('sets_logged')}: ${detail.logs.length}'),
-              if (detail.workout.startedAt != null) Text('${ref.read(trProvider)('started')}: ${detail.workout.startedAt}'),
-              if (detail.workout.finishedAt != null) Text('${ref.read(trProvider)('finished')}: ${detail.workout.finishedAt}'),
-            ],
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('${ref.read(trProvider)('exercises_count')}: ${detail.exercises.length}'),
+                Text('${ref.read(trProvider)('sets_logged')}: ${detail.logs.length}'),
+                if (detail.workout.startedAt != null) Text('${ref.read(trProvider)('started')}: ${detail.workout.startedAt}'),
+                if (detail.workout.finishedAt != null) Text('${ref.read(trProvider)('finished')}: ${detail.workout.finishedAt}'),
+              ],
+            ),
           ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx), child: Text(MaterialLocalizations.of(ctx).okButtonLabel)),
@@ -166,9 +169,10 @@ class _WorkoutsListScreenState extends ConsumerState<WorkoutsListScreen> {
                     final volumeStr = w.volumeKg != null && w.volumeKg! > 0
                         ? '${tr('volume_completed')}: ${w.volumeKg!.toStringAsFixed(0)} kg'
                         : null;
+                    final isNarrow = context.isNarrow;
                     return Card(
                       child: ListTile(
-                        title: Text(title),
+                        title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
@@ -181,30 +185,32 @@ class _WorkoutsListScreenState extends ConsumerState<WorkoutsListScreen> {
                             ),
                             if (volumeStr != null) ...[
                               const SizedBox(height: 2),
-                              Text(volumeStr, style: Theme.of(context).textTheme.bodySmall),
+                              Text(volumeStr, style: Theme.of(context).textTheme.bodySmall, maxLines: 1, overflow: TextOverflow.ellipsis),
                             ],
                           ],
                         ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.bar_chart),
-                              tooltip: tr('stat'),
-                              onPressed: () => _showWorkoutStat(w.id),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.edit),
-                              tooltip: tr('edit'),
-                              onPressed: () => context.push('/workout/${w.id}/active'),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.delete_outline),
-                              tooltip: tr('delete_workout'),
-                              onPressed: () => _confirmDeleteWorkout(context, w.id),
-                            ),
-                          ],
-                        ),
+                        trailing: isNarrow
+                            ? PopupMenuButton<String>(
+                                icon: const Icon(Icons.more_vert),
+                                onSelected: (v) {
+                                  if (v == 'stat') _showWorkoutStat(w.id);
+                                  else if (v == 'open') context.push('/workout/${w.id}/active');
+                                  else if (v == 'delete') _confirmDeleteWorkout(context, w.id);
+                                },
+                                itemBuilder: (_) => [
+                                  PopupMenuItem(value: 'stat', child: Text(tr('stat'))),
+                                  PopupMenuItem(value: 'open', child: Text(tr('edit'))),
+                                  PopupMenuItem(value: 'delete', child: Text(tr('delete_workout'))),
+                                ],
+                              )
+                            : Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(icon: const Icon(Icons.bar_chart), tooltip: tr('stat'), onPressed: () => _showWorkoutStat(w.id)),
+                                  IconButton(icon: const Icon(Icons.edit), tooltip: tr('edit'), onPressed: () => context.push('/workout/${w.id}/active')),
+                                  IconButton(icon: const Icon(Icons.delete_outline), tooltip: tr('delete_workout'), onPressed: () => _confirmDeleteWorkout(context, w.id)),
+                                ],
+                              ),
                         onTap: () => context.push('/workout/${w.id}/active'),
                       ),
                     );

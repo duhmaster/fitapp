@@ -104,7 +104,7 @@ class _ProgressExercisesScreenState extends ConsumerState<ProgressExercisesScree
                   Text(tr('volume_chart'), style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 8),
                   SizedBox(
-                    height: 220,
+                    height: _chartHeight(context),
                     child: LineChart(_chartData(sorted, context), duration: const Duration(milliseconds: 250)),
                   ),
                   const SizedBox(height: 24),
@@ -124,6 +124,13 @@ class _ProgressExercisesScreenState extends ConsumerState<ProgressExercisesScree
         ],
       ),
     );
+  }
+
+  double _chartHeight(BuildContext context) {
+    final h = MediaQuery.sizeOf(context).height;
+    if (h < 500) return 140;
+    if (h < 700) return 180;
+    return 220;
   }
 
   String _formatDate(String iso) {

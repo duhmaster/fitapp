@@ -24,6 +24,8 @@ import 'package:fitflow/features/templates/template_edit_screen.dart';
 import 'package:fitflow/features/templates/exercise_picker_screen.dart';
 import 'package:fitflow/features/current_workout/current_workout_screen.dart';
 import 'package:fitflow/features/timers/timers_screen.dart';
+import 'package:fitflow/features/help/help_screen.dart';
+import 'package:fitflow/features/help/help_topic_screen.dart';
 
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -84,6 +86,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 ],
               ),
               GoRoute(path: 'feed', builder: (_, __) => const FeedScreen()),
+              GoRoute(
+                path: 'help',
+                builder: (_, __) => const HelpScreen(),
+                routes: [
+                  GoRoute(
+                    path: ':topicId',
+                    builder: (_, state) => HelpTopicScreen(topicId: state.pathParameters['topicId']!),
+                  ),
+                ],
+              ),
               GoRoute(
                 path: 'workout/:id',
                 builder: (_, state) => WorkoutDetailScreen(workoutId: state.pathParameters['id']!),

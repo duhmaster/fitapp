@@ -113,22 +113,22 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
             if (withInterp.isNotEmpty) ...[
               Text(tr('weight_chart'), style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
-              SizedBox(height: 200, child: LineChart(_chartData(withInterp.map((e) => e.weight).toList(), context), duration: const Duration(milliseconds: 250))),
+              SizedBox(height: _chartHeight(context), child: LineChart(_chartData(withInterp.map((e) => e.weight).toList(), context), duration: const Duration(milliseconds: 250))),
               const SizedBox(height: 24),
               Text(tr('body_fat_chart'), style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
-              SizedBox(height: 200, child: LineChart(_chartData(withInterp.map((e) => e.bodyFat).toList(), context, isPct: true), duration: const Duration(milliseconds: 250))),
+              SizedBox(height: _chartHeight(context), child: LineChart(_chartData(withInterp.map((e) => e.bodyFat).toList(), context, isPct: true), duration: const Duration(milliseconds: 250))),
               if (withInterp.any((e) => e.ffmi != null)) ...[
                 const SizedBox(height: 24),
                 Text(tr('ffmi_interpretation'), style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 8),
-                SizedBox(height: 200, child: LineChart(_chartData(withInterp.map((e) => e.ffmi ?? 0).toList(), context), duration: const Duration(milliseconds: 250))),
+                SizedBox(height: _chartHeight(context), child: LineChart(_chartData(withInterp.map((e) => e.ffmi ?? 0).toList(), context), duration: const Duration(milliseconds: 250))),
               ],
               if (withInterp.any((e) => e.bmi != null)) ...[
                 const SizedBox(height: 24),
                 Text(tr('bmi_interpretation'), style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 8),
-                SizedBox(height: 200, child: LineChart(_chartData(withInterp.map((e) => e.bmi ?? 0).toList(), context), duration: const Duration(milliseconds: 250))),
+                SizedBox(height: _chartHeight(context), child: LineChart(_chartData(withInterp.map((e) => e.bmi ?? 0).toList(), context), duration: const Duration(milliseconds: 250))),
               ],
             ],
             if (withInterp.isEmpty)
@@ -140,6 +140,13 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
         ),
       ),
     );
+  }
+
+  double _chartHeight(BuildContext context) {
+    final h = MediaQuery.sizeOf(context).height;
+    if (h < 500) return 140;
+    if (h < 700) return 180;
+    return 200;
   }
 
   LineChartData _chartData(List<double> values, BuildContext context, {bool isPct = false}) {
