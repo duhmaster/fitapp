@@ -16,7 +16,8 @@ MOBILE_DIR="$PROJECT_ROOT/mobile"
 cd "$MOBILE_DIR"
 flutter pub get
 if [[ -n "${1:-}" ]]; then
-  flutter run -d "$1"
+  flutter run
+  # -d "$1"
 else
   flutter run
 fi

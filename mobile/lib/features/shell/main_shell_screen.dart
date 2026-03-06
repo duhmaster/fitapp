@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fitflow/core/locale/locale_provider.dart';
 import 'package:fitflow/core/router/app_router.dart';
+import 'package:fitflow/features/workouts/presentation/widgets/template_picker_dialog.dart';
 import 'package:fitflow/core/widgets/barbell_logo.dart';
 import 'package:fitflow/features/auth/presentation/auth_state.dart';
 
@@ -57,7 +58,8 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
   }
 
   Future<void> _onStartWorkout() async {
-    if (mounted) _router.push('/templates');
+    if (!mounted) return;
+    await showTemplatePickerDialog(context, ref);
   }
 
   @override

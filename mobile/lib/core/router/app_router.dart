@@ -73,15 +73,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(path: 'profile', builder: (_, __) => const ProfileScreen()),
               GoRoute(path: 'progress', builder: (_, __) => const ProgressScreen()),
               GoRoute(path: 'feed', builder: (_, __) => const FeedScreen()),
-            ],
-          ),
-          GoRoute(
-            path: 'workout/:id',
-            builder: (_, state) => WorkoutDetailScreen(workoutId: state.pathParameters['id']!),
-            routes: [
               GoRoute(
-                path: 'active',
-                builder: (_, state) => ActiveWorkoutScreen(workoutId: state.pathParameters['id']!),
+                path: 'workout/:id',
+                builder: (_, state) => WorkoutDetailScreen(workoutId: state.pathParameters['id']!),
+                routes: [
+                  GoRoute(
+                    path: 'active',
+                    builder: (_, state) => ActiveWorkoutScreen(workoutId: state.pathParameters['id']!),
+                  ),
+                ],
               ),
             ],
           ),

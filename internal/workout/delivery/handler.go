@@ -55,14 +55,15 @@ type ProgramExerciseResponse struct {
 
 // WorkoutResponse is the JSON response for a workout.
 type WorkoutResponse struct {
-	ID          string  `json:"id"`
-	TemplateID  *string `json:"template_id,omitempty"`
-	ProgramID   *string `json:"program_id,omitempty"`
-	UserID      string  `json:"user_id"`
-	ScheduledAt *string `json:"scheduled_at,omitempty"`
-	StartedAt   *string `json:"started_at,omitempty"`
-	FinishedAt  *string `json:"finished_at,omitempty"`
-	CreatedAt   string  `json:"created_at"`
+	ID          string   `json:"id"`
+	TemplateID  *string  `json:"template_id,omitempty"`
+	ProgramID   *string  `json:"program_id,omitempty"`
+	UserID      string   `json:"user_id"`
+	ScheduledAt *string  `json:"scheduled_at,omitempty"`
+	StartedAt   *string  `json:"started_at,omitempty"`
+	FinishedAt  *string  `json:"finished_at,omitempty"`
+	CreatedAt   string   `json:"created_at"`
+	VolumeKg    *float64 `json:"volume_kg,omitempty"`
 }
 
 // WorkoutExerciseResponse is the JSON response for a workout exercise.
@@ -263,7 +264,16 @@ func (h *Handler) ListMyWorkouts(c *gin.Context) {
 
 	out := make([]WorkoutResponse, 0, len(list))
 	for _, w := range list {
-		out = append(out, toWorkoutResponse(w))
+		resp := toWorkoutResponse(w)
+		logs, _ := h.uc.GetWorkoutLogs(c.Request.Context(), user, w.ID)
+		var volume float64
+		for _, l := range logs {
+			if l.Reps != nil && l.WeightKg != nil && *l.Reps > 0 {
+				volume += float64(*l.Reps) * *l.WeightKg
+			}
+		}
+		resp.VolumeKg = &volume
+		out = append(out, resp)
 	}
 	c.JSON(http.StatusOK, gin.H{"workouts": out})
 }
@@ -292,6 +302,19 @@ func (h *Handler) GetWorkout(c *gin.Context) {
 	exercises, _ := h.uc.GetWorkoutExercises(c.Request.Context(), user, workoutID)
 	logs, _ := h.uc.GetWorkoutLogs(c.Request.Context(), user, workoutID)
 
+	var templateName *string
+	if w.TemplateID != nil {
+		if t, err := h.uc.GetTemplate(c.Request.Context(), user, *w.TemplateID); err == nil {
+			templateName = &t.Name
+		}
+	}
+	var volume float64
+	for _, l := range logs {
+		if l.Reps != nil && l.WeightKg != nil && *l.Reps > 0 {
+			volume += float64(*l.Reps) * *l.WeightKg
+		}
+	}
+
 	exResp := make([]WorkoutExerciseResponse, 0, len(exercises))
 	for _, e := range exercises {
 		exResp = append(exResp, toWorkoutExerciseResponse(e))
@@ -301,11 +324,16 @@ func (h *Handler) GetWorkout(c *gin.Context) {
 		logResp = append(logResp, toExerciseLogResponse(l))
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	out := gin.H{
 		"workout":    toWorkoutResponse(w),
 		"exercises":  exResp,
 		"logs":       logResp,
-	})
+		"volume_kg":  volume,
+	}
+	if templateName != nil {
+		out["template_name"] = *templateName
+	}
+	c.JSON(http.StatusOK, out)
 }
 
 func (h *Handler) StartWorkout(c *gin.Context) {
@@ -884,7 +912,7 @@ func (h *Handler) StartWorkoutFromTemplate(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"workout_id": w.ID.String()})
+	c.JSON(http.StatusCreated, gin.H{"workout": toWorkoutResponse(w)})
 }
 
 func getUser(c *gin.Context) *authdomain.User {

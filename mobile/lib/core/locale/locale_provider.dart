@@ -204,6 +204,16 @@ final Map<String, String> _fallbackStringsRu = {
   'actions': 'Действия',
   'close': 'Закрыть',
   'start_workout_short': 'Старт',
+  'volume_completed': 'Выполненный объем',
+  'progress_exercises': 'Выполнено упражнений',
+  'set_number': 'Подход',
+  'sets': 'Подходы',
+  'skip': 'Пропустить',
+  'exercise_description': 'Описание упражнения',
+  'exercise_completed': 'Выполнено',
+  'exercise_pending': 'Ожидание',
+  'exercise_current': 'Текущее',
+  'finish_workout': 'Завершить тренировку',
 };
 
 /// List of available locale codes (from server, or default [en, ru]).
@@ -375,6 +385,16 @@ final Map<String, String> _fallbackStrings = {
   'actions': 'Actions',
   'close': 'Close',
   'start_workout_short': 'Start',
+  'volume_completed': 'Volume completed',
+  'progress_exercises': 'Exercises done',
+  'set_number': 'Set',
+  'sets': 'Sets',
+  'skip': 'Skip',
+  'exercise_description': 'Exercise description',
+  'exercise_completed': 'Completed',
+  'exercise_pending': 'Pending',
+  'exercise_current': 'Current',
+  'finish_workout': 'Finish workout',
 };
 
 /// Helper to get a localized string by key.

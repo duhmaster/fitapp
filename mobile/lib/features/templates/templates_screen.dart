@@ -174,7 +174,7 @@ class TemplatesScreen extends ConsumerWidget {
     try {
       final w = await ref.read(workoutRepositoryProvider).startWorkoutFromTemplate(t.id);
       ref.invalidate(workoutsListProvider);
-      if (context.mounted) context.push('/workout/${w.id}');
+      if (context.mounted) context.push('/workout/${w.id}/active');
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));

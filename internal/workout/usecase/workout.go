@@ -311,15 +311,11 @@ func (uc *WorkoutUseCase) StartWorkoutFromTemplate(ctx context.Context, user *au
 		return nil, err
 	}
 	for i, te := range tes {
-		we, err := uc.woExercises.Create(ctx, w.ID, te.ExerciseID, nil, nil, nil, i)
+		_, err := uc.woExercises.Create(ctx, w.ID, te.ExerciseID, nil, nil, nil, i)
 		if err != nil {
 			return nil, err
 		}
-		sets, _ := uc.templateSets.ListByTemplateExerciseID(ctx, te.ID)
-		for j, s := range sets {
-			_, _ = uc.logs.Create(ctx, w.ID, te.ExerciseID, j+1, s.Reps, s.WeightKg, nil)
-		}
-		_ = we
+		// Planned sets come from template; logs are created when user saves/skips a set
 	}
 	return uc.workouts.Start(ctx, w.ID, time.Now().UTC())
 }

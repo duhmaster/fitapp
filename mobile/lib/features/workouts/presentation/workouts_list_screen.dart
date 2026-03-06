@@ -163,14 +163,27 @@ class _WorkoutsListScreenState extends ConsumerState<WorkoutsListScreen> {
                     final title = dateStr.isNotEmpty
                         ? '${templateName ?? tr('workout')} – $dateStr'
                         : (templateName ?? tr('workout'));
+                    final volumeStr = w.volumeKg != null && w.volumeKg! > 0
+                        ? '${tr('volume_completed')}: ${w.volumeKg!.toStringAsFixed(0)} kg'
+                        : null;
                     return Card(
                       child: ListTile(
                         title: Text(title),
-                        subtitle: Text(
-                          w.isActive ? tr('in_progress') : w.isCompleted ? tr('completed_status') : tr('not_started'),
-                          style: TextStyle(
-                            color: w.isActive ? Colors.green : w.isCompleted ? Colors.grey : null,
-                          ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              w.isActive ? tr('in_progress') : w.isCompleted ? tr('completed_status') : tr('not_started'),
+                              style: TextStyle(
+                                color: w.isActive ? Colors.green : w.isCompleted ? Colors.grey : null,
+                              ),
+                            ),
+                            if (volumeStr != null) ...[
+                              const SizedBox(height: 2),
+                              Text(volumeStr, style: Theme.of(context).textTheme.bodySmall),
+                            ],
+                          ],
                         ),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -183,7 +196,7 @@ class _WorkoutsListScreenState extends ConsumerState<WorkoutsListScreen> {
                             IconButton(
                               icon: const Icon(Icons.edit),
                               tooltip: tr('edit'),
-                              onPressed: () => context.push('/workout/${w.id}'),
+                              onPressed: () => context.push('/workout/${w.id}/active'),
                             ),
                             IconButton(
                               icon: const Icon(Icons.delete_outline),
@@ -192,7 +205,7 @@ class _WorkoutsListScreenState extends ConsumerState<WorkoutsListScreen> {
                             ),
                           ],
                         ),
-                        onTap: () => context.push('/workout/${w.id}'),
+                        onTap: () => context.push('/workout/${w.id}/active'),
                       ),
                     );
                   },
@@ -209,7 +222,7 @@ class _WorkoutsListScreenState extends ConsumerState<WorkoutsListScreen> {
     try {
       final w = await ref.read(workoutRepositoryProvider).createWorkout();
       ref.invalidate(workoutsListProvider);
-      if (mounted) context.push('/workout/${w.id}');
+      if (mounted) context.push('/workout/${w.id}/active');
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
     }

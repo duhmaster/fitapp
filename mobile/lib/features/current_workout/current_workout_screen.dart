@@ -5,6 +5,7 @@ import 'package:fitflow/core/widgets/empty_state_widget.dart';
 import 'package:fitflow/core/widgets/error_state_widget.dart';
 import 'package:fitflow/core/locale/locale_provider.dart';
 import 'package:fitflow/features/workouts/presentation/workouts_provider.dart';
+import 'package:fitflow/features/workouts/presentation/widgets/template_picker_dialog.dart';
 
 class CurrentWorkoutScreen extends ConsumerWidget {
   const CurrentWorkoutScreen({super.key});
@@ -32,9 +33,20 @@ class CurrentWorkoutScreen extends ConsumerWidget {
                 Card(
                   child: ListTile(
                     title: Text(tr('active_workout')),
-                    subtitle: Text(tr('in_progress')),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(tr('in_progress')),
+                        if (w.volumeKg != null && w.volumeKg! > 0) ...[
+                          const SizedBox(height: 2),
+                          Text('${tr('volume_completed')}: ${w.volumeKg!.toStringAsFixed(0)} kg',
+                              style: Theme.of(context).textTheme.bodySmall),
+                        ],
+                      ],
+                    ),
                     trailing: const Icon(Icons.play_arrow),
-                    onTap: () => context.push('/workout/${w.id}'),
+                    onTap: () => context.push('/workout/${w.id}/active'),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -51,7 +63,7 @@ class CurrentWorkoutScreen extends ConsumerWidget {
           message: tr('no_active_workout'),
           icon: Icons.fitness_center,
           actionLabel: tr('start_from_template'),
-          onAction: () => context.push('/templates'),
+          onAction: () => showTemplatePickerDialog(context, ref),
         );
       },
     );
