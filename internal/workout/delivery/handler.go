@@ -915,6 +915,57 @@ func (h *Handler) StartWorkoutFromTemplate(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"workout": toWorkoutResponse(w)})
 }
 
+// ListProgressExerciseIDs returns exercise IDs that appear in user's workout logs.
+func (h *Handler) ListProgressExerciseIDs(c *gin.Context) {
+	user := getUser(c)
+	if user == nil {
+		return
+	}
+	ids, err := h.uc.ListUserExerciseIDsForProgress(c.Request.Context(), user)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	out := make([]string, 0, len(ids))
+	for _, id := range ids {
+		out = append(out, id.String())
+	}
+	c.JSON(http.StatusOK, gin.H{"exercise_ids": out})
+}
+
+// ExerciseVolumeHistoryResponse is one workout's volume for an exercise.
+type ExerciseVolumeHistoryResponse struct {
+	WorkoutID   string  `json:"workout_id"`
+	WorkoutDate string  `json:"workout_date"`
+	VolumeKg    float64 `json:"volume_kg"`
+}
+
+// ListExerciseVolumeHistory returns per-workout volume for an exercise.
+func (h *Handler) ListExerciseVolumeHistory(c *gin.Context) {
+	user := getUser(c)
+	if user == nil {
+		return
+	}
+	exerciseID, ok := parseUUIDParam(c, "exercise_id")
+	if !ok {
+		return
+	}
+	list, err := h.uc.ListExerciseVolumeHistoryForProgress(c.Request.Context(), user, exerciseID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	out := make([]ExerciseVolumeHistoryResponse, 0, len(list))
+	for _, e := range list {
+		out = append(out, ExerciseVolumeHistoryResponse{
+			WorkoutID:   e.WorkoutID.String(),
+			WorkoutDate: e.WorkoutDate.Format(time.RFC3339),
+			VolumeKg:    e.VolumeKg,
+		})
+	}
+	c.JSON(http.StatusOK, gin.H{"history": out})
+}
+
 func getUser(c *gin.Context) *authdomain.User {
 	val, exists := c.Get(string(middleware.UserContextKey))
 	if !exists {

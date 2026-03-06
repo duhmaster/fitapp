@@ -257,6 +257,38 @@ class WorkoutRepository {
     if (workoutData == null) throw Exception('No workout in response');
     return Workout.fromJson(workoutData);
   }
+
+  /// Exercise IDs that appear in user's workout logs (for progress).
+  Future<List<String>> listProgressExerciseIds() async {
+    final res = await dio.get<Map<String, dynamic>>('/api/v1/me/progress/exercise-ids');
+    final list = res.data?['exercise_ids'] as List<dynamic>? ?? [];
+    return list.map((e) => e.toString()).toList();
+  }
+
+  /// Per-workout volume history for an exercise.
+  Future<List<ExerciseVolumeEntry>> listExerciseVolumeHistory(String exerciseId) async {
+    final res = await dio.get<Map<String, dynamic>>('/api/v1/me/progress/exercises/$exerciseId/volume-history');
+    final list = res.data?['history'] as List<dynamic>? ?? [];
+    return list.map((e) => ExerciseVolumeEntry.fromJson(e as Map<String, dynamic>)).toList();
+  }
+}
+
+class ExerciseVolumeEntry {
+  ExerciseVolumeEntry({
+    required this.workoutId,
+    required this.workoutDate,
+    required this.volumeKg,
+  });
+  final String workoutId;
+  final String workoutDate;
+  final double volumeKg;
+  static ExerciseVolumeEntry fromJson(Map<String, dynamic> json) {
+    return ExerciseVolumeEntry(
+      workoutId: (json['workout_id'] as String?) ?? '',
+      workoutDate: (json['workout_date'] as String?) ?? '',
+      volumeKg: (json['volume_kg'] as num?)?.toDouble() ?? 0,
+    );
+  }
 }
 
 class WorkoutDetail {

@@ -26,7 +26,7 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
     final profileHeight = profileData?.heightCm;
     final inShell = GoRouterState.of(context).matchedLocation == '/progress';
     return Scaffold(
-      appBar: inShell ? null : AppBar(title: Text(tr('progress'))),
+      appBar: inShell ? null : AppBar(title: Text(tr('progress_measurements'))),
       body: measurementsAsync.when(
         loading: () => const _ProgressSkeleton(),
         error: (e, _) => ErrorStateWidget(

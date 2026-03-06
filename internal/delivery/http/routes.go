@@ -144,6 +144,8 @@ func (s *Server) RegisterRoutes(cfg *RoutesConfig) {
 					protected.POST("/me/workout-templates/:template_id/exercises", cfg.WorkoutHandler.AddExerciseToTemplate)
 					protected.PUT("/me/workout-templates/:template_id/reorder", cfg.WorkoutHandler.ReorderTemplateExercises)
 					protected.POST("/me/workout-templates/:template_id/start", cfg.WorkoutHandler.StartWorkoutFromTemplate)
+					protected.GET("/me/progress/exercise-ids", cfg.WorkoutHandler.ListProgressExerciseIDs)
+					protected.GET("/me/progress/exercises/:exercise_id/volume-history", cfg.WorkoutHandler.ListExerciseVolumeHistory)
 				}
 
 				if cfg.ProgressHandler != nil {

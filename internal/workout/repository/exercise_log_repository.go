@@ -55,3 +55,55 @@ func (r *ExerciseLogRepository) ListByWorkoutID(ctx context.Context, workoutID u
 	}
 	return list, rows.Err()
 }
+
+// ListDistinctExerciseIDsForUser returns exercise IDs that appear in user's workout logs.
+func (r *ExerciseLogRepository) ListDistinctExerciseIDsForUser(ctx context.Context, userID uuid.UUID) ([]uuid.UUID, error) {
+	query := `
+		SELECT DISTINCT el.exercise_id
+		FROM exercise_logs el
+		INNER JOIN workouts w ON w.id = el.workout_id
+		WHERE w.user_id = $1
+		ORDER BY el.exercise_id
+	`
+	rows, err := r.pool.Query(ctx, query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var ids []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
+}
+
+// ListVolumeHistoryByExerciseForUser returns per-workout volume (reps*weight_kg) for an exercise.
+func (r *ExerciseLogRepository) ListVolumeHistoryByExerciseForUser(ctx context.Context, userID, exerciseID uuid.UUID) ([]workoutdomain.ExerciseVolumeEntry, error) {
+	query := `
+		SELECT w.id, COALESCE(w.started_at, w.created_at) AS workout_date,
+		       COALESCE(SUM(el.reps * el.weight_kg), 0) AS volume_kg
+		FROM exercise_logs el
+		INNER JOIN workouts w ON w.id = el.workout_id
+		WHERE w.user_id = $1 AND el.exercise_id = $2 AND el.reps > 0 AND el.weight_kg IS NOT NULL
+		GROUP BY w.id, w.started_at, w.created_at
+		ORDER BY COALESCE(w.started_at, w.created_at) ASC
+	`
+	rows, err := r.pool.Query(ctx, query, userID, exerciseID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []workoutdomain.ExerciseVolumeEntry
+	for rows.Next() {
+		var e workoutdomain.ExerciseVolumeEntry
+		if err := rows.Scan(&e.WorkoutID, &e.WorkoutDate, &e.VolumeKg); err != nil {
+			return nil, err
+		}
+		out = append(out, e)
+	}
+	return out, rows.Err()
+}

@@ -319,3 +319,13 @@ func (uc *WorkoutUseCase) StartWorkoutFromTemplate(ctx context.Context, user *au
 	}
 	return uc.workouts.Start(ctx, w.ID, time.Now().UTC())
 }
+
+// ListUserExerciseIDsForProgress returns exercise IDs that appear in user's workout logs.
+func (uc *WorkoutUseCase) ListUserExerciseIDsForProgress(ctx context.Context, user *authdomain.User) ([]uuid.UUID, error) {
+	return uc.logs.ListDistinctExerciseIDsForUser(ctx, user.ID)
+}
+
+// ListExerciseVolumeHistoryForProgress returns per-workout volume for an exercise.
+func (uc *WorkoutUseCase) ListExerciseVolumeHistoryForProgress(ctx context.Context, user *authdomain.User, exerciseID uuid.UUID) ([]workoutdomain.ExerciseVolumeEntry, error) {
+	return uc.logs.ListVolumeHistoryByExerciseForUser(ctx, user.ID, exerciseID)
+}

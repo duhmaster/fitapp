@@ -8,7 +8,10 @@ import 'package:fitflow/features/feed/feed_screen.dart';
 import 'package:fitflow/features/profile/presentation/profile_screen.dart';
 import 'package:fitflow/features/gym/gym_screen.dart';
 import 'package:fitflow/features/options/options_screen.dart';
+import 'package:fitflow/features/progress/presentation/progress_menu_screen.dart';
 import 'package:fitflow/features/progress/presentation/progress_screen.dart';
+import 'package:fitflow/features/progress/presentation/progress_workouts_screen.dart';
+import 'package:fitflow/features/progress/presentation/progress_exercises_screen.dart';
 import 'package:fitflow/features/shell/main_shell_screen.dart';
 import 'package:fitflow/features/trainer/trainer_screen.dart';
 import 'package:fitflow/features/workouts/presentation/active_workout_screen.dart';
@@ -71,7 +74,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(path: 'current-workout', builder: (_, __) => const CurrentWorkoutScreen()),
               GoRoute(path: 'timers', builder: (_, __) => const TimersScreen()),
               GoRoute(path: 'profile', builder: (_, __) => const ProfileScreen()),
-              GoRoute(path: 'progress', builder: (_, __) => const ProgressScreen()),
+              GoRoute(
+                path: 'progress',
+                builder: (_, __) => const ProgressMenuScreen(),
+                routes: [
+                  GoRoute(path: 'measurements', builder: (_, __) => const ProgressScreen()),
+                  GoRoute(path: 'workouts', builder: (_, __) => const ProgressWorkoutsScreen()),
+                  GoRoute(path: 'exercises', builder: (_, __) => const ProgressExercisesScreen()),
+                ],
+              ),
               GoRoute(path: 'feed', builder: (_, __) => const FeedScreen()),
               GoRoute(
                 path: 'workout/:id',

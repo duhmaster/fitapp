@@ -36,6 +36,17 @@ type WorkoutExerciseRepository interface {
 type ExerciseLogRepository interface {
 	Create(ctx context.Context, workoutID, exerciseID uuid.UUID, setNumber int, reps *int, weightKg *float64, restSeconds *int) (*ExerciseLog, error)
 	ListByWorkoutID(ctx context.Context, workoutID uuid.UUID) ([]*ExerciseLog, error)
+	// ListDistinctExerciseIDsForUser returns exercise IDs that appear in user's logs.
+	ListDistinctExerciseIDsForUser(ctx context.Context, userID uuid.UUID) ([]uuid.UUID, error)
+	// ListVolumeHistoryByExerciseForUser returns per-workout volume for an exercise.
+	ListVolumeHistoryByExerciseForUser(ctx context.Context, userID, exerciseID uuid.UUID) ([]ExerciseVolumeEntry, error)
+}
+
+// ExerciseVolumeEntry is one workout's volume for an exercise.
+type ExerciseVolumeEntry struct {
+	WorkoutID   uuid.UUID
+	WorkoutDate time.Time
+	VolumeKg    float64
 }
 
 type ProgramRepository interface {
