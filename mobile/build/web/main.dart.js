@@ -51184,7 +51184,7 @@ s.aI($.bar(),t.gu)
 s.aI($.bak(),t.ie)},
 $S:5}
 A.aSq.prototype={
-$1(a){return new A.pA("http://localhost:8080")},
+$1(a){return new A.pA("https://api.gymmore.ru")},
 $S:794}
 A.pA.prototype={}
 A.fF.prototype={
