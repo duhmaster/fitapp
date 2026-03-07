@@ -212,10 +212,11 @@ setup_letsencrypt() {
     log "Сертификаты уже есть, обновление..."
     sudo certbot renew --quiet --no-self-upgrade 2>/dev/null || true
   else
+    # Только gymmore.ru и api.gymmore.ru (www добавляйте, когда есть DNS)
     sudo certbot certonly --webroot -w "$web_root" \
-      -d gymmore.ru -d www.gymmore.ru -d api.gymmore.ru \
+      -d gymmore.ru -d api.gymmore.ru \
       --email "$email" --agree-tos --non-interactive \
-      || { err "Certbot не смог получить сертификаты. Проверьте, что gymmore.ru и api.gymmore.ru указывают на этот сервер."; return; }
+      || { err "Certbot не смог получить сертификаты. Проверьте: 1) gymmore.ru и api.gymmore.ru указывают на IP сервера, 2) порт 80 открыт (ufw allow 80; ufw reload), 3) nginx слушает 80."; return; }
   fi
 
   log "Настройка HTTPS в nginx..."
@@ -229,7 +230,7 @@ server {
 
 server {
     listen 443 ssl http2;
-    server_name gymmore.ru www.gymmore.ru;
+    server_name gymmore.ru;
     ssl_certificate     /etc/letsencrypt/live/gymmore.ru/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/gymmore.ru/privkey.pem;
     ssl_protocols TLSv1.2 TLSv1.3;

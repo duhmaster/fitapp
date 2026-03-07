@@ -17,6 +17,8 @@ services:
     depends_on:
       - api
     restart: unless-stopped
+    networks:
+      - backend
 
   api:
     image: ${API_IMAGE:-gymmore-api:latest}
