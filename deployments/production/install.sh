@@ -101,7 +101,7 @@ WEB_ROOT=./web
 DB_NAME=gymmore
 DB_USER=gymmore
 DB_PASSWORD=$db_pass
-DB_SSLMODE=require
+DB_SSLMODE=disable
 
 REDIS_PASSWORD=$redis_pass
 
@@ -187,8 +187,13 @@ start_stack_and_migrate() {
   # shellcheck source=/dev/null
   source "$env_file"
   set +a
-  local dsn="postgres://${DB_USER:-gymmore}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-gymmore}?sslmode=${DB_SSLMODE:-require}"
-  sudo docker compose -f "$compose_file" --env-file "$env_file" run --rm --profile tools -e "MIGRATE_DSN=$dsn" migrate sh -c 'migrate -path /migrations -database "$MIGRATE_DSN" up'
+  # Postgres в Docker не использует SSL (внутренняя сеть)
+  local dsn="postgres://${DB_USER:-gymmore}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-gymmore}?sslmode=disable"
+  local net
+  net=$(sudo docker compose -f "$compose_file" --env-file "$env_file" ps -q api 2>/dev/null | head -1 | xargs sudo docker inspect -f '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}{{end}}' 2>/dev/null)
+  [[ -z "$net" ]] && { err "Не удалось определить сеть Docker для миграций."; exit 1; }
+  sudo docker run --rm --network "$net" -v "$PROJECT_ROOT/migrations:/migrations" migrate/migrate \
+    -path /migrations -database "$dsn" up
 
   log "Миграции выполнены."
 }

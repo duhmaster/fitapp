@@ -31,7 +31,7 @@ services:
       DB_NAME: ${DB_NAME:-gymmore}
       DB_USER: ${DB_USER:-gymmore}
       DB_PASSWORD: ${DB_PASSWORD}
-      DB_SSLMODE: ${DB_SSLMODE:-require}
+      DB_SSLMODE: ${DB_SSLMODE:-disable}
       REDIS_ADDR: redis:6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
       REDIS_DB: 0
