@@ -225,6 +225,10 @@ setup_letsencrypt() {
 server {
     listen 80;
     server_name gymmore.ru www.gymmore.ru api.gymmore.ru;
+    location /.well-known/acme-challenge/ {
+        root /var/www/html;
+        try_files $uri =404;
+    }
     return 301 https://$host$request_uri;
 }
 
@@ -241,7 +245,7 @@ server {
         try_files $uri $uri/ /index.html;
         add_header Cache-Control "public, max-age=0, must-revalidate";
     }
-    location ~ /\. { deny all; }
+    location ~ /\.(?!well-known) { deny all; }
 }
 
 server {
