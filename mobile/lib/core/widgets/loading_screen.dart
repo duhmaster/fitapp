@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:fitflow/core/widgets/barbell_logo.dart';
 
-/// Экран загрузки в дефолтных (светлых) цветах с вращающейся гантелью в центре.
+/// Экран загрузки в дефолтных (светлых) цветах с вращающимся логотипом (гантель) в центре. в дефолтных (светлых) цветах с вращающейся гантелью в центре.
 class LoadingScreen extends StatefulWidget {
   const LoadingScreen({super.key});
 
@@ -37,8 +38,7 @@ class _LoadingScreenState extends State<LoadingScreen>
           builder: (context, child) {
             return Transform.rotate(
               angle: _controller.value * 2 * 3.14159,
-              child: Icon(
-                Icons.fitness_center,
+              child: BarbellLogo(
                 size: 64,
                 color: Theme.of(context).colorScheme.primary,
               ),
