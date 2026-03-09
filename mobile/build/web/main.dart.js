@@ -51407,7 +51407,7 @@ s.aH($.bb1(),t.gu)
 s.aH($.baV(),t.ie)},
 $S:5}
 A.aT_.prototype={
-$1(a){return new A.pE("http://localhost:8080")},
+$1(a){return new A.pE("https://api.gymmore.ru")},
 $S:684}
 A.pE.prototype={}
 A.fH.prototype={
