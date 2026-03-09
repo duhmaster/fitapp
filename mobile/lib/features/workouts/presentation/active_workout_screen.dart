@@ -25,6 +25,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
   Timer? _restTimer;
   final _weightController = TextEditingController();
   final _repsController = TextEditingController();
+  String _lastPrefilledKey = '';
 
   @override
   void dispose() {
@@ -123,12 +124,14 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
     final showSetPanel = nextSetToLog < setCount && _restSecondsRemaining == 0;
     final defaultWeight = nextSetToLog < setCount ? (currentPlanned.sets[nextSetToLog].weightKg ?? 0) : 0;
     final defaultReps = nextSetToLog < setCount ? (currentPlanned.sets[nextSetToLog].reps ?? 0) : 0;
-    if (showSetPanel && _weightController.text.isEmpty) {
+    final prefillKey = '${currentPlanned.exerciseId}_$nextSetToLog';
+    if (showSetPanel && prefillKey != _lastPrefilledKey) {
+      _lastPrefilledKey = prefillKey;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && _weightController.text.isEmpty) {
-          _weightController.text = defaultWeight > 0 ? defaultWeight.toString() : '';
-          _repsController.text = defaultReps > 0 ? defaultReps.toString() : '';
-        }
+        if (!mounted) return;
+        _weightController.text = defaultWeight > 0 ? defaultWeight.toString() : '';
+        _repsController.text = defaultReps > 0 ? defaultReps.toString() : '';
+        setState(() {});
       });
     }
 
@@ -190,6 +193,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                     _currentSetIndex = 0;
                     _weightController.clear();
                     _repsController.clear();
+                    _lastPrefilledKey = '';
                   }),
                   child: Chip(
                     avatar: Icon(
@@ -273,47 +277,6 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                       ],
                     ),
                   ),
-                ] else if (showSetPanel) ...[
-                  Text(tr('weight_kg'), style: Theme.of(context).textTheme.titleSmall),
-                  const SizedBox(height: 4),
-                  TextField(
-                    controller: _weightController,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    decoration: InputDecoration(
-                      border: const OutlineInputBorder(),
-                      suffixText: tr('kg_suffix'),
-                    ),
-                    onChanged: (_) => setState(() {}),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(tr('reps'), style: Theme.of(context).textTheme.titleSmall),
-                  const SizedBox(height: 4),
-                  TextField(
-                    controller: _repsController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(border: OutlineInputBorder()),
-                    onChanged: (_) => setState(() {}),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: FilledButton.icon(
-                          onPressed: () => _saveSet(tr, detail, currentPlanned, nextSetToLog, setCount, template),
-                          icon: const Icon(Icons.check),
-                          label: Text(tr('save')),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () => _skipSet(tr, detail, currentPlanned, nextSetToLog, setCount),
-                          icon: const Icon(Icons.skip_next),
-                          label: Text(tr('skip')),
-                        ),
-                      ),
-                    ],
-                  ),
                 ] else if (nextSetToLog >= setCount && setCount > 0) ...[
                   Text(tr('exercise_completed'), style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 12),
@@ -324,6 +287,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                         _currentSetIndex = 0;
                         _weightController.clear();
                         _repsController.clear();
+                        _lastPrefilledKey = '';
                       }),
                       child: Text(tr('continue_workout')),
                     )
@@ -337,6 +301,85 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
             ),
           ),
         ),
+        if (showSetPanel)
+          Material(
+            elevation: 8,
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(tr('weight_kg'), style: Theme.of(context).textTheme.titleSmall),
+                              const SizedBox(height: 4),
+                              TextField(
+                                controller: _weightController,
+                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                decoration: InputDecoration(
+                                  border: const OutlineInputBorder(),
+                                  suffixText: tr('kg_suffix'),
+                                ),
+                                onChanged: (_) => setState(() {}),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          flex: 2,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(tr('reps'), style: Theme.of(context).textTheme.titleSmall),
+                              const SizedBox(height: 4),
+                              TextField(
+                                controller: _repsController,
+                                keyboardType: TextInputType.number,
+                                decoration: const InputDecoration(border: OutlineInputBorder()),
+                                onChanged: (_) => setState(() {}),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: FilledButton.icon(
+                            onPressed: () => _saveSet(tr, detail, currentPlanned, nextSetToLog, setCount, template),
+                            icon: const Icon(Icons.check),
+                            label: Text(tr('save')),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () => _skipSet(tr, detail, currentPlanned, nextSetToLog, setCount),
+                            icon: const Icon(Icons.skip_next),
+                            label: Text(tr('skip')),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
       ],
     );
   }

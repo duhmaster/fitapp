@@ -69,4 +69,29 @@ class AuthRepository {
     final token = await tokenStorage.getAccessToken();
     return token != null && token.isNotEmpty;
   }
+
+  /// POST /api/v1/auth/refresh — обмен refresh_token на новую пару токенов.
+  /// Возвращает true при успехе, false при невалидном/истёкшем refresh.
+  Future<bool> refreshTokens() async {
+    final refreshToken = await tokenStorage.getRefreshToken();
+    if (refreshToken == null || refreshToken.isEmpty) return false;
+    try {
+      final res = await dio.post<Map<String, dynamic>>(
+        '/api/v1/auth/refresh',
+        data: {'refresh_token': refreshToken},
+      );
+      final data = res.data;
+      if (data == null) return false;
+      final access = data['access_token'] as String?;
+      final refresh = data['refresh_token'] as String?;
+      if (access == null || access.isEmpty) return false;
+      await tokenStorage.saveTokens(
+        accessToken: access,
+        refreshToken: refresh ?? refreshToken,
+      );
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
 }

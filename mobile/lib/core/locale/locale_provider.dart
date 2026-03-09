@@ -2,7 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fitflow/core/locale/locale_repository.dart';
 
 /// Currently selected locale code (saved). Use this to trigger reload of strings.
-final selectedLocaleCodeProvider = StateProvider<String>((ref) => 'en');
+/// По умолчанию русский.
+final selectedLocaleCodeProvider = StateProvider<String>((ref) => 'ru');
 
 /// Load selected locale at app start. Deferred so first frame can paint.
 final selectedLocaleCodeInitProvider = FutureProvider<String>((ref) async {
@@ -150,6 +151,9 @@ final Map<String, String> _fallbackStringsRu = {
   'enter_email': 'Введите email',
   'enter_password': 'Введите пароль',
   'enter_name': 'Введите имя',
+  'placeholder_email': 'example@mail.ru',
+  'placeholder_password': '••••••••',
+  'placeholder_name': 'Иван Иванов',
   'name_required': 'Введите имя',
   'email_required': 'Введите email',
   'enter_valid_email': 'Введите корректный email',
@@ -224,6 +228,7 @@ final Map<String, String> _fallbackStringsRu = {
   'error_label': 'Ошибка',
   'suffix_sec': 'с',
   'kg_suffix': 'кг',
+  'weight_kg': 'Вес (кг)',
   'lang_en': 'English',
   'lang_ru': 'Русский',
   'image_format_hint': 'Используйте изображение в формате JPEG, PNG или WebP',
@@ -240,6 +245,9 @@ final Map<String, String> _fallbackStringsRu = {
   'exercise_pending': 'Ожидание',
   'exercise_current': 'Текущее',
   'finish_workout': 'Завершить тренировку',
+  'terms_accept': 'Я принимаю условия использования',
+  'terms_title': 'Условия использования',
+  'terms_must_accept': 'Необходимо принять условия использования',
 };
 
 /// List of available locale codes (from server, or default [en, ru]).
@@ -357,6 +365,9 @@ final Map<String, String> _fallbackStrings = {
   'enter_email': 'Enter email',
   'enter_password': 'Enter password',
   'enter_name': 'Enter name',
+  'placeholder_email': 'example@email.com',
+  'placeholder_password': '••••••••',
+  'placeholder_name': 'John Doe',
   'name_required': 'Name is required',
   'email_required': 'Email is required',
   'enter_valid_email': 'Enter a valid email',
@@ -431,6 +442,7 @@ final Map<String, String> _fallbackStrings = {
   'error_label': 'Error',
   'suffix_sec': 's',
   'kg_suffix': 'kg',
+  'weight_kg': 'Weight (kg)',
   'lang_en': 'English',
   'lang_ru': 'Russian',
   'image_format_hint': 'Use a JPEG, PNG or WebP image',
@@ -447,6 +459,9 @@ final Map<String, String> _fallbackStrings = {
   'exercise_pending': 'Pending',
   'exercise_current': 'Current',
   'finish_workout': 'Finish workout',
+  'terms_accept': 'I accept the Terms of Use',
+  'terms_title': 'Terms of Use',
+  'terms_must_accept': 'You must accept the Terms of Use',
 };
 
 /// Helper to get a localized string by key.

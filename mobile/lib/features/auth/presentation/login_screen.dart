@@ -112,6 +112,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     controller: _emailController,
                     decoration: InputDecoration(
                       labelText: tr('email'),
+                      hintText: tr('placeholder_email'),
                       border: const OutlineInputBorder(),
                     ),
                     keyboardType: TextInputType.emailAddress,
@@ -126,6 +127,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     controller: _passwordController,
                     decoration: InputDecoration(
                       labelText: tr('password'),
+                      hintText: tr('placeholder_password'),
                       border: const OutlineInputBorder(),
                     ),
                     obscureText: true,

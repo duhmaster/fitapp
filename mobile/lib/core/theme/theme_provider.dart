@@ -10,7 +10,8 @@ import 'package:fitflow/features/auth/data/auth_repository.dart';
 import 'package:fitflow/features/auth/domain/auth_models.dart';
 
 /// Theme key: system (default light/dark), main (from colors.json maintheme), dark (from colors.json darktheme).
-final selectedThemeKeyProvider = StateProvider<String>((ref) => 'system');
+/// По умолчанию светлая тема.
+final selectedThemeKeyProvider = StateProvider<String>((ref) => 'main');
 
 /// Loads colors.json once.
 final colorsJsonProvider = FutureProvider<Map<String, dynamic>>((ref) => loadColorsJson());

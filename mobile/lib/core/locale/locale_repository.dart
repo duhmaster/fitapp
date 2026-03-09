@@ -68,10 +68,10 @@ class LocaleRepository {
     }
   }
 
-  /// Get saved selected locale code. Defaults to "en".
+  /// Get saved selected locale code. Defaults to "ru".
   Future<String> getSelectedLocale() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_keySelectedLocale) ?? 'en';
+    return prefs.getString(_keySelectedLocale) ?? 'ru';
   }
 
   /// Save selected locale code.

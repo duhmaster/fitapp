@@ -26,12 +26,12 @@ import 'package:fitflow/features/current_workout/current_workout_screen.dart';
 import 'package:fitflow/features/timers/timers_screen.dart';
 import 'package:fitflow/features/help/help_screen.dart';
 import 'package:fitflow/features/help/help_topic_screen.dart';
-
+import 'package:fitflow/core/widgets/loading_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final authNotifier = ref.read(authRedirectNotifierProvider);
   return GoRouter(
-    initialLocation: '/login',
+    initialLocation: '/loading',
     refreshListenable: authNotifier,
     redirect: (context, state) {
       if (!authNotifier.isKnown) {
@@ -39,12 +39,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return null;
       }
       final isAuthRoute = state.matchedLocation == '/login' || state.matchedLocation == '/register';
+      final isLoadingRoute = state.matchedLocation == '/loading';
+      if (isLoadingRoute) return authNotifier.isLoggedIn ? '/home' : '/login';
       if (!authNotifier.isLoggedIn && !isAuthRoute) return '/login';
       if (authNotifier.isLoggedIn && isAuthRoute) return '/home';
       if (state.matchedLocation == '/') return '/home';
       return null;
     },
     routes: [
+      GoRoute(path: '/loading', builder: (_, __) => const LoadingScreen()),
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
       GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
       GoRoute(

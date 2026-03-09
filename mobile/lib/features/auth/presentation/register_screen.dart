@@ -9,6 +9,7 @@ import 'package:fitflow/core/errors/app_exceptions.dart';
 import 'package:fitflow/features/auth/data/auth_repository.dart';
 import 'package:fitflow/features/auth/domain/auth_models.dart';
 import 'package:fitflow/features/auth/presentation/auth_state.dart';
+import 'package:fitflow/features/auth/presentation/terms_of_use_dialog.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -23,6 +24,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _loading = false;
+  bool _termsAccepted = false;
   String? _error;
 
   @override
@@ -34,6 +36,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   }
 
   Future<void> _submit() async {
+    final tr = ref.read(trProvider);
+    if (!_termsAccepted) {
+      setState(() => _error = tr('terms_must_accept'));
+      return;
+    }
     setState(() {
       _error = null;
       _loading = true;
@@ -100,6 +107,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       controller: _nameController,
                       decoration: InputDecoration(
                         labelText: tr('name'),
+                        hintText: tr('placeholder_name'),
                         border: const OutlineInputBorder(),
                       ),
                       textCapitalization: TextCapitalization.words,
@@ -127,6 +135,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       controller: _passwordController,
                       decoration: InputDecoration(
                         labelText: tr('password'),
+                        hintText: tr('placeholder_password'),
                         border: const OutlineInputBorder(),
                       ),
                       obscureText: true,
@@ -136,13 +145,45 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         return null;
                       },
                     ),
+                    const SizedBox(height: 16),
+                    CheckboxListTile(
+                      value: _termsAccepted,
+                      onChanged: (v) => setState(() => _termsAccepted = v ?? false),
+                      title: GestureDetector(
+                        onTap: () => showTermsOfUseDialog(
+                          context,
+                          localeCode: ref.read(selectedLocaleCodeProvider),
+                        ),
+                        child: RichText(
+                          text: TextSpan(
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: Theme.of(context).colorScheme.onSurface,
+                                ),
+                            children: [
+                              TextSpan(text: tr('terms_accept')),
+                              TextSpan(
+                                text: ' (${tr('terms_title')})',
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      controlAffinity: ListTileControlAffinity.leading,
+                      contentPadding: EdgeInsets.zero,
+                    ),
                     const SizedBox(height: 24),
                     FilledButton(
                       onPressed: _loading
                           ? null
                           : () {
-                              if (_formKey.currentState?.validate() ?? false) {
+                              if ((_formKey.currentState?.validate() ?? false) && _termsAccepted) {
                                 _submit();
+                              } else if (!_termsAccepted) {
+                                setState(() => _error = tr('terms_must_accept'));
                               }
                             },
                       child: _loading
