@@ -102,3 +102,34 @@ func (r *ProgramRepository) Create(ctx context.Context, name, description string
 	}
 	return &p, nil
 }
+
+func (r *ProgramRepository) Update(ctx context.Context, id uuid.UUID, name, description string, createdBy *uuid.UUID) (*workoutdomain.Program, error) {
+	query := `
+		UPDATE programs SET name = $2, description = $3, created_by = $4
+		WHERE id = $1
+		RETURNING id, name, description, created_by, created_at
+	`
+	var p workoutdomain.Program
+	err := r.pool.QueryRow(ctx, query, id, name, description, createdBy).Scan(
+		&p.ID, &p.Name, &p.Description, &p.CreatedBy, &p.CreatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, workoutdomain.ErrProgramNotFound
+		}
+		return nil, err
+	}
+	return &p, nil
+}
+
+func (r *ProgramRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	query := `DELETE FROM programs WHERE id = $1`
+	ct, err := r.pool.Exec(ctx, query, id)
+	if err != nil {
+		return err
+	}
+	if ct.RowsAffected() == 0 {
+		return workoutdomain.ErrProgramNotFound
+	}
+	return nil
+}

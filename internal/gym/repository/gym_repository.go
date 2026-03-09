@@ -34,6 +34,38 @@ func (r *GymRepository) Create(ctx context.Context, name string, latitude, longi
 	return &g, nil
 }
 
+func (r *GymRepository) Update(ctx context.Context, id uuid.UUID, name string, latitude, longitude *float64, address string) (*gymdomain.Gym, error) {
+	query := `
+		UPDATE gyms
+		SET name = $2, latitude = $3, longitude = $4, address = $5, updated_at = NOW()
+		WHERE id = $1 AND deleted_at IS NULL
+		RETURNING id, name, latitude, longitude, address, created_at, updated_at
+	`
+	var g gymdomain.Gym
+	err := r.pool.QueryRow(ctx, query, id, name, latitude, longitude, address).Scan(
+		&g.ID, &g.Name, &g.Latitude, &g.Longitude, &g.Address, &g.CreatedAt, &g.UpdatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, gymdomain.ErrGymNotFound
+		}
+		return nil, err
+	}
+	return &g, nil
+}
+
+func (r *GymRepository) SoftDelete(ctx context.Context, id uuid.UUID) error {
+	query := `UPDATE gyms SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL`
+	ct, err := r.pool.Exec(ctx, query, id)
+	if err != nil {
+		return err
+	}
+	if ct.RowsAffected() == 0 {
+		return gymdomain.ErrGymNotFound
+	}
+	return nil
+}
+
 func (r *GymRepository) GetByID(ctx context.Context, id uuid.UUID) (*gymdomain.Gym, error) {
 	query := `
 		SELECT id, name, latitude, longitude, address, created_at, updated_at

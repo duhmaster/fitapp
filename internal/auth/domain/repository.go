@@ -27,6 +27,10 @@ type UserRepository interface {
 	GetByEmail(ctx context.Context, email string) (*UserRecord, error)
 	GetByID(ctx context.Context, id uuid.UUID) (*UserRecord, error)
 	UpdatePreferences(ctx context.Context, userID uuid.UUID, theme, locale string) error
+	// List returns users for admin; search filters by email (empty = all).
+	List(ctx context.Context, limit, offset int, search string) ([]*UserRecord, error)
+	// UpdateRole updates user role (admin only).
+	UpdateRole(ctx context.Context, userID uuid.UUID, role Role) error
 }
 
 // RefreshTokenRepository defines refresh token operations.

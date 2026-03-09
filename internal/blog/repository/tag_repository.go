@@ -95,3 +95,15 @@ func (r *TagRepository) List(ctx context.Context, limit, offset int) ([]*blogdom
 	}
 	return list, rows.Err()
 }
+
+func (r *TagRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	query := `DELETE FROM tags WHERE id = $1`
+	ct, err := r.pool.Exec(ctx, query, id)
+	if err != nil {
+		return err
+	}
+	if ct.RowsAffected() == 0 {
+		return blogdomain.ErrTagNotFound
+	}
+	return nil
+}

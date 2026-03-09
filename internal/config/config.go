@@ -41,6 +41,10 @@ type Config struct {
 	GymPresenceWindow   time.Duration
 	GymSnapshotInterval time.Duration
 	GymSnapshotBatchSize int
+
+	// Admin panel (HTTP Basic or session; separate from app users)
+	AdminUsername string
+	AdminPassword string
 }
 
 // Load reads configuration from environment variables.
@@ -66,9 +70,19 @@ func Load() (*Config, error) {
 		GymPresenceWindow:   getEnvDuration("GYM_PRESENCE_WINDOW", 90*time.Minute),
 		GymSnapshotInterval: getEnvDuration("GYM_SNAPSHOT_INTERVAL", 5*time.Minute),
 		GymSnapshotBatchSize: getEnvInt("GYM_SNAPSHOT_BATCH_SIZE", 1000),
+		AdminUsername: getEnv("ADMIN_USERNAME", "admin"),
+		AdminPassword: getEnv("ADMIN_PASSWORD", adminPasswordDefault(getEnv("ENV", "development"))),
 	}
 
 	return cfg, nil
+}
+
+// adminPasswordDefault: в development без ADMIN_PASSWORD включаем админку с паролем "admin".
+func adminPasswordDefault(env string) string {
+	if env == "development" {
+		return "admin"
+	}
+	return ""
 }
 
 func getEnvDuration(key string, fallback time.Duration) time.Duration {

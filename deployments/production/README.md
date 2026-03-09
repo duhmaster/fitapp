@@ -12,7 +12,7 @@ curl -sSL https://raw.githubusercontent.com/duhmaster/fitapp/main/deployments/pr
 
 Скрипт: ставит git и Docker (с устранением конфликтов репозитория), клонирует [репозиторий](https://github.com/duhmaster/fitapp) в `/opt/gymmore`, создаёт `.env` с сгенерированными паролями БД/Redis и JWT, при наличии Flutter собирает веб, запускает контейнеры и выполняет миграции. Переменные: `INSTALL_DIR=/opt/gymmore`, `REPO=https://github.com/duhmaster/fitapp`.
 
-После установки: **сайт** — http://gymmore.ru, **API** — http://api.gymmore.ru. Для HTTPS настройте сертификаты (см. ниже).
+После установки: **сайт** — http://gymmore.ru, **API** — http://api.gymmore.ru, **админка** — http://adm.gymmore.ru (логин `admin`, пароль задаётся в `.env` как `ADMIN_PASSWORD`). Для HTTPS настройте сертификаты (см. ниже).
 
 ---
 
@@ -68,6 +68,7 @@ cp deployments/production/.env.example deployments/production/.env
 - `JWT_SECRET` — длинная случайная строка (≥32 символа)
 - `CORS_ALLOWED_ORIGINS` — домен сайта (`https://gymmore.ru`)
 - `STORAGE_BASE_URL` — URL загрузок (`https://api.gymmore.ru/uploads`)
+- `ADMIN_PASSWORD` — пароль входа в админку (adm.gymmore.ru); если не задан, админка отключена
 
 ## 3. Сборка и размещение Flutter web
 

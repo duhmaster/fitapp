@@ -73,6 +73,52 @@ func (r *UserRepository) UpdatePreferences(ctx context.Context, userID uuid.UUID
 	return err
 }
 
+// List returns users for admin; search filters by email (empty = all).
+func (r *UserRepository) List(ctx context.Context, limit, offset int, search string) ([]*domain.UserRecord, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+	if limit > 200 {
+		limit = 200
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	query := `
+		SELECT id, email, password_hash, role, theme, locale, paid_subscriber, subscription_expires_at, created_at, updated_at
+		FROM users
+		WHERE deleted_at IS NULL
+		  AND ($1 = '' OR email ILIKE '%' || $1 || '%')
+		ORDER BY created_at DESC
+		LIMIT $2 OFFSET $3
+	`
+	rows, err := r.pool.Query(ctx, query, search, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var list []*domain.UserRecord
+	for rows.Next() {
+		var u domain.UserRecord
+		var roleStr string
+		var subExp *time.Time
+		if err := rows.Scan(&u.ID, &u.Email, &u.PasswordHash, &roleStr, &u.Theme, &u.Locale, &u.PaidSubscriber, &subExp, &u.CreatedAt, &u.UpdatedAt); err != nil {
+			return nil, err
+		}
+		u.Role = domain.Role(roleStr)
+		u.SubscriptionExpiresAt = subExp
+		list = append(list, &u)
+	}
+	return list, rows.Err()
+}
+
+// UpdateRole updates user role (admin only).
+func (r *UserRepository) UpdateRole(ctx context.Context, userID uuid.UUID, role domain.Role) error {
+	query := `UPDATE users SET role = $1, updated_at = NOW() WHERE id = $2 AND deleted_at IS NULL`
+	_, err := r.pool.Exec(ctx, query, string(role), userID)
+	return err
+}
+
 func (r *UserRepository) scanUser(row pgx.Row) (*domain.UserRecord, error) {
 	var u domain.UserRecord
 	var roleStr string

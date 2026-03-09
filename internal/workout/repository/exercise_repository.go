@@ -132,3 +132,54 @@ func (r *ExerciseRepository) scanExercise(row pgx.Row) (*workoutdomain.Exercise,
 	}
 	return &e, nil
 }
+
+func (r *ExerciseRepository) Create(ctx context.Context, e *workoutdomain.Exercise) (*workoutdomain.Exercise, error) {
+	muscleLoadsJSON := []byte("{}")
+	if len(e.MuscleLoads) > 0 {
+		muscleLoadsJSON, _ = json.Marshal(e.MuscleLoads)
+	}
+	query := `
+		INSERT INTO exercises (name, muscle_group, equipment, tags, description, instruction, muscle_loads, formula, difficulty_level, is_base, is_popular, is_free)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+		RETURNING id, name, muscle_group, COALESCE(equipment, '{}'), COALESCE(tags, '{}'), description,
+		       COALESCE(instruction, '{}'), COALESCE(muscle_loads, '{}'::jsonb), formula, difficulty_level,
+		       COALESCE(is_base, false), COALESCE(is_popular, false), COALESCE(is_free, true), created_at
+	`
+	row := r.pool.QueryRow(ctx, query,
+		e.Name, e.MuscleGroup, e.Equipment, e.Tags, e.Description, e.Instruction, muscleLoadsJSON,
+		e.Formula, e.DifficultyLevel, e.IsBase, e.IsPopular, e.IsFree,
+	)
+	return r.scanExercise(row)
+}
+
+func (r *ExerciseRepository) Update(ctx context.Context, e *workoutdomain.Exercise) (*workoutdomain.Exercise, error) {
+	muscleLoadsJSON := []byte("{}")
+	if len(e.MuscleLoads) > 0 {
+		muscleLoadsJSON, _ = json.Marshal(e.MuscleLoads)
+	}
+	query := `
+		UPDATE exercises
+		SET name = $2, muscle_group = $3, equipment = $4, tags = $5, description = $6, instruction = $7, muscle_loads = $8, formula = $9, difficulty_level = $10, is_base = $11, is_popular = $12, is_free = $13
+		WHERE id = $1
+		RETURNING id, name, muscle_group, COALESCE(equipment, '{}'), COALESCE(tags, '{}'), description,
+		       COALESCE(instruction, '{}'), COALESCE(muscle_loads, '{}'::jsonb), formula, difficulty_level,
+		       COALESCE(is_base, false), COALESCE(is_popular, false), COALESCE(is_free, true), created_at
+	`
+	row := r.pool.QueryRow(ctx, query,
+		e.ID, e.Name, e.MuscleGroup, e.Equipment, e.Tags, e.Description, e.Instruction, muscleLoadsJSON,
+		e.Formula, e.DifficultyLevel, e.IsBase, e.IsPopular, e.IsFree,
+	)
+	return r.scanExercise(row)
+}
+
+func (r *ExerciseRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	query := `DELETE FROM exercises WHERE id = $1`
+	ct, err := r.pool.Exec(ctx, query, id)
+	if err != nil {
+		return err
+	}
+	if ct.RowsAffected() == 0 {
+		return workoutdomain.ErrExerciseNotFound
+	}
+	return nil
+}

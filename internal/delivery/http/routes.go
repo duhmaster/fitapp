@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/fitflow/fitflow/internal/admin"
 	"github.com/fitflow/fitflow/internal/auth/domain"
 	"github.com/fitflow/fitflow/internal/delivery/http/spec"
 	authdelivery "github.com/fitflow/fitflow/internal/auth/delivery"
@@ -34,8 +35,9 @@ type RoutesConfig struct {
 	BlogHandler     *blogdelivery.Handler
 	TrainerHandler     *trainerdelivery.Handler
 	NotificationHandler *notificationdelivery.Handler
-	JWTSecret          []byte
-	UploadsPath     string // local path for serving uploads (e.g. ./uploads)
+	AdminHandler        *admin.Handler
+	JWTSecret           []byte
+	UploadsPath          string // local path for serving uploads (e.g. ./uploads)
 }
 
 // RegisterRoutes registers all HTTP routes with the given config.
@@ -63,6 +65,12 @@ func (s *Server) RegisterRoutes(cfg *RoutesConfig) {
 	s.router.GET("/openapi.yaml", func(c *gin.Context) {
 		c.Data(http.StatusOK, "application/yaml; charset=utf-8", spec.OpenAPIYAML)
 	})
+
+	// Admin panel: localhost:port/admin or adm.gymmore.ru (nginx routes same backend)
+	if cfg.AdminHandler != nil {
+		adminGroup := s.router.Group("/admin")
+		admin.RegisterRoutes(adminGroup, cfg.AdminHandler)
+	}
 
 	// API v1 (30s request timeout for handlers that use context)
 	v1 := s.router.Group("/api/v1")

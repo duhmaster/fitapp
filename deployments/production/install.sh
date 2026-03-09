@@ -32,6 +32,11 @@ install_packages() {
     sudo sed -i '/download\.docker\.com/d' /etc/apt/sources.list
   fi
 
+  #cd /opt/gymmore
+  #sudo docker compose -f deployments/production/docker-compose.yml --env-file deployments/production/.env down -v
+  sudo docker system prune -af
+  sudo docker image prune -af
+
   log "Обновление apt и установка git, curl, ca-certificates, certbot..."
   sudo apt-get update -qq
   sudo apt-get install -y -qq ca-certificates curl git certbot
@@ -212,11 +217,11 @@ setup_letsencrypt() {
     log "Сертификаты уже есть, обновление..."
     sudo certbot renew --quiet --no-self-upgrade 2>/dev/null || true
   else
-    # Только gymmore.ru и api.gymmore.ru (www добавляйте, когда есть DNS)
+    # gymmore.ru, api.gymmore.ru, adm.gymmore.ru (www добавляйте, когда есть DNS)
     sudo certbot certonly --webroot -w "$web_root" \
-      -d gymmore.ru -d api.gymmore.ru \
+      -d gymmore.ru -d api.gymmore.ru -d adm.gymmore.ru \
       --email "$email" --agree-tos --non-interactive \
-      || { err "Certbot не смог получить сертификаты. Проверьте: 1) gymmore.ru и api.gymmore.ru указывают на IP сервера, 2) порт 80 открыт (ufw allow 80; ufw reload), 3) nginx слушает 80."; return; }
+      || { err "Certbot не смог получить сертификаты. Проверьте: 1) gymmore.ru, api.gymmore.ru, adm.gymmore.ru указывают на IP сервера, 2) порт 80 открыт (ufw allow 80; ufw reload), 3) nginx слушает 80."; return; }
   fi
 
   log "Настройка HTTPS в nginx..."
@@ -224,7 +229,7 @@ setup_letsencrypt() {
 # HTTP -> HTTPS redirect + HTTPS servers (создано install.sh)
 server {
     listen 80;
-    server_name gymmore.ru www.gymmore.ru api.gymmore.ru;
+    server_name gymmore.ru www.gymmore.ru api.gymmore.ru adm.gymmore.ru;
     location /.well-known/acme-challenge/ {
         root /var/www/html;
         try_files $uri =404;
@@ -273,10 +278,26 @@ server {
         access_log off;
     }
 }
+
+server {
+    listen 443 ssl http2;
+    server_name adm.gymmore.ru;
+    ssl_certificate     /etc/letsencrypt/live/gymmore.ru/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/gymmore.ru/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    location / {
+        proxy_pass http://api_backend;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
 NGINX_SSL
 
   sudo docker compose -f "$compose_file" --env-file "$env_file" exec -T nginx nginx -s reload 2>/dev/null || true
-  log "HTTPS включён. Сайт: https://gymmore.ru, API: https://api.gymmore.ru"
+  log "HTTPS включён. Сайт: https://gymmore.ru, API: https://api.gymmore.ru, Админка: https://adm.gymmore.ru"
 }
 
 # --- main ---
@@ -291,6 +312,7 @@ main() {
   echo ""
   echo "  Сайт (Flutter):  https://gymmore.ru"
   echo "  API:             https://api.gymmore.ru"
+  echo "  Админка:         https://adm.gymmore.ru (логин admin, пароль — ADMIN_PASSWORD из .env)"
   echo "  Здоровье API:    https://api.gymmore.ru/health"
   echo ""
   echo "  Управление: cd $PROJECT_ROOT && ./scripts/production/start.sh | stop.sh | logs.sh | migrate.sh"

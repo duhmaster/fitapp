@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/fitflow/fitflow/internal/admin"
 	authdelivery "github.com/fitflow/fitflow/internal/auth/delivery"
 	authrepository "github.com/fitflow/fitflow/internal/auth/repository"
 	blogdelivery "github.com/fitflow/fitflow/internal/blog/delivery"
@@ -163,23 +164,62 @@ func run() error {
 	notificationUC := notificationusecase.NewNotificationUseCase(notificationRepo)
 	notificationHandler := notificationdelivery.NewHandler(notificationUC)
 
+	// Admin panel (only if credentials set)
+	var adminHandler *admin.Handler
+	if cfg.AdminPassword != "" {
+		adminDeps := &admin.Deps{
+			AdminUsername:  cfg.AdminUsername,
+			AdminPassword:  cfg.AdminPassword,
+			SessionSecret:  cfg.AdminPassword,
+			UsersList:      authUserRepo.List,
+			UsersGet:       authUserRepo.GetByID,
+			UsersUpdateRole: authUserRepo.UpdateRole,
+			GymsSearch:     gymRepo.Search,
+			GymsCreate:     gymRepo.Create,
+			GymsGet:        gymRepo.GetByID,
+			GymsUpdate:     gymRepo.Update,
+			GymsDelete:     gymRepo.SoftDelete,
+			ExercisesList:   exerciseRepo.List,
+			ExercisesGet:   exerciseRepo.GetByID,
+			ExercisesCreate: exerciseRepo.Create,
+			ExercisesUpdate: exerciseRepo.Update,
+			ExercisesDelete: exerciseRepo.Delete,
+			ProgramsList:   programRepo.List,
+			ProgramsGet:    programRepo.GetByID,
+			ProgramsCreate: programRepo.Create,
+			ProgramsUpdate: programRepo.Update,
+			ProgramsDelete: programRepo.Delete,
+			TagsList:       tagRepo.List,
+			TagsGet:        tagRepo.GetByID,
+			TagsCreate:     tagRepo.Create,
+			TagsDelete:     tagRepo.Delete,
+			BlogPostsList:   blogPostRepo.List,
+			BlogPostsGet:   blogPostRepo.GetByID,
+			BlogPostsCreate: blogPostRepo.Create,
+			BlogPostsUpdate: blogPostRepo.Update,
+			BlogPostsDelete: blogPostRepo.SoftDelete,
+		}
+		adminHandler = admin.NewHandler(adminDeps)
+	}
+
 	// HTTP server
 	healthHandler := httpdelivery.NewHealthHandler(db, rdb)
 	srv := httpdelivery.New(log)
 	srv.RegisterRoutes(&httpdelivery.RoutesConfig{
-		AllowedOrigins:  middleware.ParseCORSOrigins(cfg.CORSAllowedOrigins),
-		HealthHandler:  healthHandler,
-		AuthHandler:    authHandler,
-		UserHandler:    userHandler,
-		GymHandler:     gymHandler,
-		WorkoutHandler:  workoutHandler,
-		ProgressHandler: progressHandler,
-		SocialHandler:   socialHandler,
-		BlogHandler:     blogHandler,
-		TrainerHandler:      trainerHandler,
+		AllowedOrigins:     middleware.ParseCORSOrigins(cfg.CORSAllowedOrigins),
+		HealthHandler:     healthHandler,
+		AuthHandler:       authHandler,
+		UserHandler:       userHandler,
+		GymHandler:        gymHandler,
+		WorkoutHandler:    workoutHandler,
+		ProgressHandler:   progressHandler,
+		SocialHandler:     socialHandler,
+		BlogHandler:       blogHandler,
+		TrainerHandler:    trainerHandler,
 		NotificationHandler: notificationHandler,
-		JWTSecret:           []byte(cfg.JWTSecret),
-		UploadsPath:    cfg.StoragePath,
+		AdminHandler:      adminHandler,
+		JWTSecret:         []byte(cfg.JWTSecret),
+		UploadsPath:       cfg.StoragePath,
 	})
 
 	// Background workers (in-process for now; split into separate worker cmd later)
