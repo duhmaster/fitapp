@@ -6,6 +6,11 @@ final workoutsListProvider = FutureProvider<List<Workout>>((ref) {
   return ref.watch(workoutRepositoryProvider).listMyWorkouts(limit: 50);
 });
 
+/// Для календаря — больше тренировок, чтобы покрыть месяц.
+final workoutsCalendarProvider = FutureProvider<List<Workout>>((ref) {
+  return ref.watch(workoutRepositoryProvider).listMyWorkouts(limit: 200);
+});
+
 final exercisesListProvider = FutureProvider<List<Exercise>>((ref) {
   return ref.watch(workoutRepositoryProvider).listExercises(limit: 100);
 });

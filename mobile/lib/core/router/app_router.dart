@@ -15,13 +15,13 @@ import 'package:fitflow/features/progress/presentation/progress_exercises_screen
 import 'package:fitflow/features/shell/main_shell_screen.dart';
 import 'package:fitflow/features/trainer/trainer_screen.dart';
 import 'package:fitflow/features/workouts/presentation/active_workout_screen.dart';
-import 'package:fitflow/features/workouts/presentation/workout_detail_screen.dart';
 import 'package:fitflow/features/workouts/presentation/workouts_list_screen.dart';
 import 'package:fitflow/features/home/home_screen.dart';
 import 'package:fitflow/features/exercises/exercises_screen.dart';
 import 'package:fitflow/features/templates/templates_screen.dart';
 import 'package:fitflow/features/templates/template_edit_screen.dart';
 import 'package:fitflow/features/templates/exercise_picker_screen.dart';
+import 'package:fitflow/features/calendar/calendar_screen.dart';
 import 'package:fitflow/features/current_workout/current_workout_screen.dart';
 import 'package:fitflow/features/timers/timers_screen.dart';
 import 'package:fitflow/features/help/help_screen.dart';
@@ -61,6 +61,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ),
             routes: [
               GoRoute(path: 'home', builder: (_, __) => const WorkoutsListScreen()),
+              GoRoute(path: 'calendar', builder: (_, __) => const CalendarScreen()),
               GoRoute(path: 'exercises', builder: (_, __) => const ExercisesScreen()),
               GoRoute(
                 path: 'templates',
@@ -101,13 +102,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               ),
               GoRoute(
                 path: 'workout/:id',
-                builder: (_, state) => WorkoutDetailScreen(workoutId: state.pathParameters['id']!),
-                routes: [
-                  GoRoute(
-                    path: 'active',
-                    builder: (_, state) => ActiveWorkoutScreen(workoutId: state.pathParameters['id']!),
-                  ),
-                ],
+                builder: (_, state) => ActiveWorkoutScreen(workoutId: state.pathParameters['id']!),
               ),
             ],
           ),

@@ -10,6 +10,7 @@
         "dio",
         "fl_chart",
         "flutter",
+        "flutter_localizations",
         "flutter_riverpod",
         "go_router",
         "http_parser",
@@ -198,10 +199,19 @@
     },
     {
       "name": "intl",
-      "version": "0.19.0",
+      "version": "0.20.2",
       "dependencies": [
         "clock",
         "meta",
+        "path"
+      ]
+    },
+    {
+      "name": "flutter_localizations",
+      "version": "0.0.0",
+      "dependencies": [
+        "flutter",
+        "intl",
         "path"
       ]
     },

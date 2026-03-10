@@ -8,10 +8,9 @@ import 'package:fitflow/core/locale/locale_provider.dart';
 import 'package:fitflow/features/workouts/data/workout_repository.dart';
 import 'package:fitflow/features/workouts/domain/workout_models.dart';
 import 'package:fitflow/features/workouts/presentation/workouts_provider.dart';
+import 'package:fitflow/features/templates/templates_provider.dart';
 
-final templatesListProvider = FutureProvider<List<WorkoutTemplate>>((ref) {
-  return ref.watch(workoutRepositoryProvider).listTemplates(limit: 50);
-});
+export 'package:fitflow/features/templates/templates_provider.dart' show templatesListProvider;
 
 void _showCreateTemplateDialog(BuildContext context, WidgetRef ref) {
   final nameController = TextEditingController();

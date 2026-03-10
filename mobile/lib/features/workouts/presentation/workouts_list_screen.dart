@@ -10,6 +10,7 @@ import 'package:fitflow/features/workouts/data/workout_repository.dart';
 import 'package:fitflow/features/workouts/domain/workout_models.dart';
 import 'package:fitflow/core/layout/responsive.dart';
 import 'package:fitflow/features/workouts/presentation/workouts_provider.dart';
+import 'package:fitflow/features/workouts/presentation/widgets/template_picker_dialog.dart';
 import 'package:fitflow/features/templates/templates_screen.dart';
 
 class WorkoutsListScreen extends ConsumerStatefulWidget {
@@ -119,14 +120,26 @@ class _WorkoutsListScreenState extends ConsumerState<WorkoutsListScreen> {
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-          child: TextField(
-            decoration: InputDecoration(
-              hintText: tr('search_workouts'),
-              prefixIcon: const Icon(Icons.search),
-              border: const OutlineInputBorder(),
-              isDense: true,
-            ),
-            onChanged: (v) => setState(() => _searchQuery = v),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  decoration: InputDecoration(
+                    hintText: tr('search_workouts'),
+                    prefixIcon: const Icon(Icons.search),
+                    border: const OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  onChanged: (v) => setState(() => _searchQuery = v),
+                ),
+              ),
+              const SizedBox(width: 8),
+              FilledButton.icon(
+                onPressed: () => showTemplatePickerDialog(context, ref),
+                icon: const Icon(Icons.add, size: 20),
+                label: Text(tr('create_workout')),
+              ),
+            ],
           ),
         ),
         SingleChildScrollView(
@@ -194,7 +207,7 @@ class _WorkoutsListScreenState extends ConsumerState<WorkoutsListScreen> {
                                 icon: const Icon(Icons.more_vert),
                                 onSelected: (v) {
                                   if (v == 'stat') _showWorkoutStat(w.id);
-                                  else if (v == 'open') context.push('/workout/${w.id}/active');
+                                  else if (v == 'open') context.push('/workout/${w.id}');
                                   else if (v == 'delete') _confirmDeleteWorkout(context, w.id);
                                 },
                                 itemBuilder: (_) => [
@@ -207,11 +220,11 @@ class _WorkoutsListScreenState extends ConsumerState<WorkoutsListScreen> {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   IconButton(icon: const Icon(Icons.bar_chart), tooltip: tr('stat'), onPressed: () => _showWorkoutStat(w.id)),
-                                  IconButton(icon: const Icon(Icons.edit), tooltip: tr('edit'), onPressed: () => context.push('/workout/${w.id}/active')),
+                                  IconButton(icon: const Icon(Icons.edit), tooltip: tr('edit'), onPressed: () => context.push(w.isActive ? '/workout/${w.id}/active' : '/workout/${w.id}')),
                                   IconButton(icon: const Icon(Icons.delete_outline), tooltip: tr('delete_workout'), onPressed: () => _confirmDeleteWorkout(context, w.id)),
                                 ],
                               ),
-                        onTap: () => context.push('/workout/${w.id}/active'),
+                        onTap: () => context.push('/workout/${w.id}'),
                       ),
                     );
                   },
@@ -228,7 +241,7 @@ class _WorkoutsListScreenState extends ConsumerState<WorkoutsListScreen> {
     try {
       final w = await ref.read(workoutRepositoryProvider).createWorkout();
       ref.invalidate(workoutsListProvider);
-      if (mounted) context.push('/workout/${w.id}/active');
+      if (mounted) context.push('/workout/${w.id}');
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
     }

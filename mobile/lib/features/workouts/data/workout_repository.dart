@@ -74,10 +74,15 @@ class WorkoutRepository {
     return list.map((e) => Workout.fromJson(e as Map<String, dynamic>)).toList();
   }
 
-  Future<Workout> createWorkout({String? templateId, String? programId}) async {
+  Future<Workout> createWorkout({
+    String? templateId,
+    String? programId,
+    String? scheduledAt,
+  }) async {
     final data = <String, dynamic>{};
     if (templateId != null) data['template_id'] = templateId;
     if (programId != null) data['program_id'] = programId;
+    if (scheduledAt != null) data['scheduled_at'] = scheduledAt;
     final res = await dio.post<Map<String, dynamic>>('/api/v1/me/workouts', data: data);
     return Workout.fromJson(res.data!);
   }

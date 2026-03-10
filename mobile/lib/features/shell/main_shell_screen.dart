@@ -21,6 +21,7 @@ class MainShellScreen extends ConsumerStatefulWidget {
 class _MainShellScreenState extends ConsumerState<MainShellScreen> {
   int _selectedIndex(String location) {
     final path = location.split('?').first;
+    if (path == '/calendar' || path.startsWith('/calendar/')) return 6;
     if (path == '/profile' || path.startsWith('/profile/')) return 1;
     if (path == '/exercises' || path.startsWith('/exercises')) return 2;
     if (path == '/progress' || path.startsWith('/progress/')) return 4;
@@ -87,10 +88,17 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
           ),
           ListTile(leading: const Icon(Icons.person), title: Text(tr('profile')), onTap: () => _drawerNavigate(context, () => _go(context, '/profile'))),
           ListTile(leading: const Icon(Icons.fitness_center), title: Text(tr('gym')), onTap: () => _drawerNavigate(context, () => _push(context, '/gym'))),
-          ListTile(leading: const Icon(Icons.directions_run), title: Text(tr('workouts')), onTap: () => _drawerNavigate(context, () => _go(context, '/home'))),
-          ListTile(leading: const Icon(Icons.fitness_center), title: Text(tr('exercises_base')), onTap: () => _drawerNavigate(context, () => _go(context, '/exercises'))),
-          ListTile(leading: const Icon(Icons.list_alt), title: Text(tr('templates')), onTap: () => _drawerNavigate(context, () => _push(context, '/templates'))),
-          ListTile(leading: const Icon(Icons.play_circle), title: Text(tr('current_workout')), onTap: () => _drawerNavigate(context, () => _push(context, '/current-workout'))),
+          ExpansionTile(
+            leading: const Icon(Icons.directions_run),
+            title: Text(tr('my_workouts')),
+            children: [
+              ListTile(leading: const Icon(Icons.play_circle, size: 20), title: Text(tr('current_workout')), onTap: () => _drawerNavigate(context, () => _push(context, '/current-workout'))),
+              ListTile(leading: const Icon(Icons.calendar_month, size: 20), title: Text(tr('calendar')), onTap: () => _drawerNavigate(context, () => _push(context, '/calendar'))),
+              ListTile(leading: const Icon(Icons.list_alt, size: 20), title: Text(tr('workout_templates')), onTap: () => _drawerNavigate(context, () => _push(context, '/templates'))),
+              ListTile(leading: const Icon(Icons.fitness_center, size: 20), title: Text(tr('exercises_base')), onTap: () => _drawerNavigate(context, () => _go(context, '/exercises'))),
+              ListTile(leading: const Icon(Icons.format_list_bulleted, size: 20), title: Text(tr('all_workouts')), onTap: () => _drawerNavigate(context, () => _go(context, '/home'))),
+            ],
+          ),
           ListTile(leading: const Icon(Icons.timer), title: Text(tr('timers')), onTap: () => _drawerNavigate(context, () => _push(context, '/timers'))),
           ListTile(leading: const Icon(Icons.show_chart), title: Text(tr('progress')), onTap: () => _drawerNavigate(context, () => _go(context, '/progress'))),
           ListTile(leading: const Icon(Icons.dynamic_feed), title: Text(tr('feed')), onTap: () => _drawerNavigate(context, () => _go(context, '/feed'))),
@@ -173,7 +181,7 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _navItem(context, 0, Icons.home, tr('workouts'), index == 0),
+            _navItem(context, 0, Icons.home, tr('all_workouts'), index == 0),
             _navItem(context, 1, Icons.person, tr('profile'), index == 1),
             _navItem(context, 2, Icons.fitness_center, tr('exercises'), index == 2),
             const SizedBox(width: 56),

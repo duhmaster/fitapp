@@ -50,7 +50,22 @@ func (uc *WorkoutUseCase) ListExercises(ctx context.Context, limit, offset int, 
 }
 
 func (uc *WorkoutUseCase) CreateWorkout(ctx context.Context, user *authdomain.User, templateID *uuid.UUID, programID *uuid.UUID, scheduledAt *time.Time) (*workoutdomain.Workout, error) {
-	return uc.workouts.Create(ctx, user.ID, templateID, programID, scheduledAt)
+	w, err := uc.workouts.Create(ctx, user.ID, templateID, programID, scheduledAt)
+	if err != nil {
+		return nil, err
+	}
+	if templateID != nil {
+		tes, err := uc.templateExercises.ListByTemplateID(ctx, *templateID)
+		if err != nil {
+			return nil, err
+		}
+		for _, te := range tes {
+			if _, err := uc.woExercises.Create(ctx, w.ID, te.ExerciseID, nil, nil, nil, te.ExerciseOrder); err != nil {
+				return nil, err
+			}
+		}
+	}
+	return w, nil
 }
 
 func (uc *WorkoutUseCase) ListPrograms(ctx context.Context, user *authdomain.User, limit, offset int) ([]*workoutdomain.Program, error) {
