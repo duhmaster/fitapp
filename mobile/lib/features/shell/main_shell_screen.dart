@@ -19,6 +19,9 @@ class MainShellScreen extends ConsumerStatefulWidget {
 }
 
 class _MainShellScreenState extends ConsumerState<MainShellScreen> {
+  /// Пункты меню «Тренер», «Зал», «Лента», «Таймеры» — скрыты, не удалены.
+  static const bool _showHiddenMenuItems = false;
+
   int _selectedIndex(String location) {
     final path = location.split('?').first;
     if (path == '/calendar' || path.startsWith('/calendar/')) return 6;
@@ -87,7 +90,7 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
             ),
           ),
           ListTile(leading: const Icon(Icons.person), title: Text(tr('profile')), onTap: () => _drawerNavigate(context, () => _go(context, '/profile'))),
-          ListTile(leading: const Icon(Icons.fitness_center), title: Text(tr('gym')), onTap: () => _drawerNavigate(context, () => _push(context, '/gym'))),
+          if (_showHiddenMenuItems) ListTile(leading: const Icon(Icons.fitness_center), title: Text(tr('gym')), onTap: () => _drawerNavigate(context, () => _push(context, '/gym'))),
           ExpansionTile(
             leading: const Icon(Icons.directions_run),
             title: Text(tr('my_workouts')),
@@ -99,10 +102,10 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
               ListTile(leading: const Icon(Icons.format_list_bulleted, size: 20), title: Text(tr('all_workouts')), onTap: () => _drawerNavigate(context, () => _go(context, '/home'))),
             ],
           ),
-          ListTile(leading: const Icon(Icons.timer), title: Text(tr('timers')), onTap: () => _drawerNavigate(context, () => _push(context, '/timers'))),
+          if (_showHiddenMenuItems) ListTile(leading: const Icon(Icons.timer), title: Text(tr('timers')), onTap: () => _drawerNavigate(context, () => _push(context, '/timers'))),
           ListTile(leading: const Icon(Icons.show_chart), title: Text(tr('progress')), onTap: () => _drawerNavigate(context, () => _go(context, '/progress'))),
-          ListTile(leading: const Icon(Icons.dynamic_feed), title: Text(tr('feed')), onTap: () => _drawerNavigate(context, () => _go(context, '/feed'))),
-          ListTile(leading: const Icon(Icons.sports_gymnastics), title: Text(tr('trainer')), onTap: () => _drawerNavigate(context, () => _push(context, '/trainer'))),
+          if (_showHiddenMenuItems) ListTile(leading: const Icon(Icons.dynamic_feed), title: Text(tr('feed')), onTap: () => _drawerNavigate(context, () => _go(context, '/feed'))),
+          if (_showHiddenMenuItems) ListTile(leading: const Icon(Icons.sports_gymnastics), title: Text(tr('trainer')), onTap: () => _drawerNavigate(context, () => _push(context, '/trainer'))),
           ListTile(leading: const Icon(Icons.help_outline), title: Text(tr('help')), onTap: () => _drawerNavigate(context, () => _push(context, '/help'))),
           ListTile(leading: const Icon(Icons.settings), title: Text(tr('options')), onTap: () => _drawerNavigate(context, () => _push(context, '/options'))),
         ],
@@ -175,26 +178,6 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
       ),
       drawer: drawer,
       body: body,
-      bottomNavigationBar: BottomAppBar(
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 8,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _navItem(context, 0, Icons.home, tr('all_workouts'), index == 0),
-            _navItem(context, 1, Icons.person, tr('profile'), index == 1),
-            _navItem(context, 2, Icons.fitness_center, tr('exercises'), index == 2),
-            const SizedBox(width: 56),
-            _navItem(context, 4, Icons.show_chart, tr('progress'), index == 4),
-            _navItem(context, 5, Icons.article, tr('feed'), index == 5),
-          ],
-        ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      floatingActionButton: FloatingActionButton(
-        onPressed: _onStartWorkout,
-        child: const Icon(Icons.play_arrow, size: 32),
-      ),
     );
   }
 
