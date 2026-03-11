@@ -24,6 +24,8 @@ services:
       JWT_SECRET: change-me-in-production
       STORAGE_PATH: /app/uploads
       STORAGE_BASE_URL: http://localhost:8080/uploads
+      DADATA_API_KEY: ${DADATA_API_KEY:-}
+      DADATA_SECRET_KEY: ${DADATA_SECRET_KEY:-}
     volumes:
       - api_uploads:/app/uploads
     depends_on:

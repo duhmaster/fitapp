@@ -28,7 +28,7 @@ func TestGymRepository_CreateAndGet_Integration(t *testing.T) {
 
 	lat := 13.7563
 	lng := 100.5018
-	g, err := repo.Create(ctx, "Integration Gym "+uuid.NewString(), &lat, &lng, "Somewhere")
+	g, err := repo.Create(ctx, "Integration Gym "+uuid.NewString(), "", "Somewhere", "", "", &lat, &lng)
 	if err != nil {
 		t.Fatalf("Create err = %v", err)
 	}

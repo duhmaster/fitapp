@@ -90,7 +90,7 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
             ),
           ),
           ListTile(leading: const Icon(Icons.person), title: Text(tr('profile')), onTap: () => _drawerNavigate(context, () => _go(context, '/profile'))),
-          if (_showHiddenMenuItems) ListTile(leading: const Icon(Icons.fitness_center), title: Text(tr('gym')), onTap: () => _drawerNavigate(context, () => _push(context, '/gym'))),
+          ListTile(leading: const Icon(Icons.fitness_center), title: Text(tr('my_gyms')), onTap: () => _drawerNavigate(context, () => _push(context, '/gym'))),
           ExpansionTile(
             leading: const Icon(Icons.directions_run),
             title: Text(tr('my_workouts')),

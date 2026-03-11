@@ -7,6 +7,7 @@ class ProfileHeader extends ConsumerWidget {
     super.key,
     required this.displayName,
     required this.email,
+    this.city,
     this.avatarUrl,
     this.onAvatarTap,
     this.uploadingAvatar = false,
@@ -16,6 +17,7 @@ class ProfileHeader extends ConsumerWidget {
 
   final String displayName;
   final String email;
+  final String? city;
   final String? avatarUrl;
   final VoidCallback? onAvatarTap;
   final bool uploadingAvatar;
@@ -75,6 +77,23 @@ class ProfileHeader extends ConsumerWidget {
               ),
           textAlign: TextAlign.center,
         ),
+        if (city != null && city!.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.location_on_outlined, size: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
+              const SizedBox(width: 4),
+              Text(
+                city!,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+              ),
+            ],
+          ),
+        ],
         const SizedBox(height: 8),
         Text(tr('subscription_status'), style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
         const SizedBox(height: 2),

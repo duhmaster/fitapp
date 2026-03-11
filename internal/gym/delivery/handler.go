@@ -22,18 +22,36 @@ func NewHandler(uc *usecase.GymUseCase) *Handler {
 }
 
 type GymResponse struct {
-	ID        string   `json:"id"`
-	Name      string   `json:"name"`
-	Latitude  *float64 `json:"latitude,omitempty"`
-	Longitude *float64 `json:"longitude,omitempty"`
-	Address   string   `json:"address,omitempty"`
+	ID           string   `json:"id"`
+	Name         string   `json:"name"`
+	City         string   `json:"city,omitempty"`
+	Latitude     *float64 `json:"latitude,omitempty"`
+	Longitude    *float64 `json:"longitude,omitempty"`
+	Address      string   `json:"address,omitempty"`
+	ContactPhone string   `json:"contact_phone,omitempty"`
+	ContactURL   string   `json:"contact_url,omitempty"`
 }
 
 type CreateGymRequest struct {
-	Name      string   `json:"name" binding:"required"`
-	Latitude  *float64 `json:"latitude"`
-	Longitude *float64 `json:"longitude"`
-	Address   string   `json:"address"`
+	Name         string   `json:"name" binding:"required"`
+	City         string   `json:"city"`
+	Latitude     *float64 `json:"latitude"`
+	Longitude    *float64 `json:"longitude"`
+	Address      string   `json:"address"`
+	ContactPhone string   `json:"contact_phone"`
+	ContactURL   string   `json:"contact_url"`
+}
+
+// AddMyGymRequest: either gym_id (link existing) or create payload.
+type AddMyGymRequest struct {
+	GymID        *string  `json:"gym_id"`
+	Name         string   `json:"name"`
+	City         string   `json:"city"`
+	Address      string   `json:"address"`
+	ContactPhone string   `json:"contact_phone"`
+	ContactURL   string   `json:"contact_url"`
+	Latitude     *float64 `json:"latitude"`
+	Longitude    *float64 `json:"longitude"`
 }
 
 func (h *Handler) CreateGym(c *gin.Context) {
@@ -49,10 +67,13 @@ func (h *Handler) CreateGym(c *gin.Context) {
 	}
 
 	g, err := h.uc.CreateGym(c.Request.Context(), user, usecase.CreateGymInput{
-		Name:      req.Name,
-		Latitude:  req.Latitude,
-		Longitude: req.Longitude,
-		Address:   req.Address,
+		Name:         req.Name,
+		City:         req.City,
+		Address:      req.Address,
+		ContactPhone: req.ContactPhone,
+		ContactURL:   req.ContactURL,
+		Latitude:     req.Latitude,
+		Longitude:    req.Longitude,
 	})
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -62,8 +83,110 @@ func (h *Handler) CreateGym(c *gin.Context) {
 	c.JSON(http.StatusCreated, toGymResponse(g))
 }
 
+func (h *Handler) ListMyGyms(c *gin.Context) {
+	user := getUser(c)
+	if user == nil {
+		return
+	}
+	gyms, err := h.uc.ListMyGyms(c.Request.Context(), user)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list gyms"})
+		return
+	}
+	out := make([]GymResponse, 0, len(gyms))
+	for _, g := range gyms {
+		out = append(out, toGymResponse(g))
+	}
+	c.JSON(http.StatusOK, gin.H{"gyms": out})
+}
+
+func (h *Handler) AddMyGym(c *gin.Context) {
+	user := getUser(c)
+	if user == nil {
+		return
+	}
+	var req AddMyGymRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	var gymID *uuid.UUID
+	if req.GymID != nil && *req.GymID != "" {
+		id, err := uuid.Parse(*req.GymID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid gym_id"})
+			return
+		}
+		gymID = &id
+	}
+	var orCreate *usecase.CreateGymInput
+	if gymID == nil {
+		orCreate = &usecase.CreateGymInput{
+			Name:         req.Name,
+			City:         req.City,
+			Address:      req.Address,
+			ContactPhone: req.ContactPhone,
+			ContactURL:   req.ContactURL,
+			Latitude:     req.Latitude,
+			Longitude:    req.Longitude,
+		}
+	}
+	g, err := h.uc.AddGymToUser(c.Request.Context(), user, gymID, orCreate)
+	if err != nil {
+		if err == gymdomain.ErrGymNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "gym not found"})
+			return
+		}
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusCreated, toGymResponse(g))
+}
+
+func (h *Handler) RemoveMyGym(c *gin.Context) {
+	user := getUser(c)
+	if user == nil {
+		return
+	}
+	gymID, ok := parseUUIDParam(c, "gym_id")
+	if !ok {
+		return
+	}
+	if err := h.uc.RemoveGymFromUser(c.Request.Context(), user, gymID); err != nil {
+		if err == gymdomain.ErrGymNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "gym not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to remove"})
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
+func (h *Handler) GetMyGym(c *gin.Context) {
+	user := getUser(c)
+	if user == nil {
+		return
+	}
+	gymID, ok := parseUUIDParam(c, "gym_id")
+	if !ok {
+		return
+	}
+	g, err := h.uc.GetMyGym(c.Request.Context(), user, gymID)
+	if err != nil {
+		if err == gymdomain.ErrGymNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "gym not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get gym"})
+		return
+	}
+	c.JSON(http.StatusOK, toGymResponse(g))
+}
+
 func (h *Handler) SearchGyms(c *gin.Context) {
 	q := c.Query("q")
+	city := c.Query("city")
 
 	var lat *float64
 	var lng *float64
@@ -91,7 +214,7 @@ func (h *Handler) SearchGyms(c *gin.Context) {
 		}
 	}
 
-	gyms, err := h.uc.SearchGyms(c.Request.Context(), q, lat, lng, limit, offset)
+	gyms, err := h.uc.SearchGyms(c.Request.Context(), q, city, lat, lng, limit, offset)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to search gyms"})
 		return
@@ -205,11 +328,14 @@ func parseUUIDParam(c *gin.Context, key string) (uuid.UUID, bool) {
 
 func toGymResponse(g *gymdomain.Gym) GymResponse {
 	return GymResponse{
-		ID:        g.ID.String(),
-		Name:      g.Name,
-		Latitude:  g.Latitude,
-		Longitude: g.Longitude,
-		Address:   g.Address,
+		ID:           g.ID.String(),
+		Name:         g.Name,
+		City:         g.City,
+		Latitude:     g.Latitude,
+		Longitude:    g.Longitude,
+		Address:      g.Address,
+		ContactPhone: g.ContactPhone,
+		ContactURL:   g.ContactURL,
 	}
 }
 

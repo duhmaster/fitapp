@@ -24,6 +24,7 @@ final profilePageDataProvider = FutureProvider<ProfilePageData>((ref) async {
     displayName: profile.displayName,
     avatarUrl: profile.avatarUrl,
     email: me.email,
+    city: profile.city,
     heightCm: metric['height_cm'],
     weightKg: metric['weight_kg'],
     bodyFatPct: bodyFat,

@@ -4,11 +4,13 @@ class Profile {
     required this.userId,
     required this.displayName,
     this.avatarUrl,
+    this.city,
   });
   final String id;
   final String userId;
   final String displayName;
   final String? avatarUrl;
+  final String? city;
 
   factory Profile.fromJson(Map<String, dynamic> json) {
     return Profile(
@@ -16,15 +18,17 @@ class Profile {
       userId: (json['user_id'] as String?) ?? '',
       displayName: (json['display_name'] as String?) ?? '',
       avatarUrl: json['avatar_url'] as String?,
+      city: json['city'] as String?,
     );
   }
 
-  Profile copyWith({String? displayName, String? avatarUrl}) {
+  Profile copyWith({String? displayName, String? avatarUrl, String? city}) {
     return Profile(
       id: id,
       userId: userId,
       displayName: displayName ?? this.displayName,
       avatarUrl: avatarUrl ?? this.avatarUrl,
+      city: city ?? this.city,
     );
   }
 }
@@ -35,6 +39,7 @@ class ProfilePageData {
     required this.displayName,
     this.avatarUrl,
     required this.email,
+    this.city,
     this.heightCm,
     this.weightKg,
     this.bodyFatPct,
@@ -44,6 +49,7 @@ class ProfilePageData {
   final String displayName;
   final String? avatarUrl;
   final String email;
+  final String? city;
   final double? heightCm;
   final double? weightKg;
   final double? bodyFatPct;

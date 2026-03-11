@@ -7,13 +7,16 @@ import (
 )
 
 type Gym struct {
-	ID        uuid.UUID
-	Name      string
-	Latitude  *float64
-	Longitude *float64
-	Address   string
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID           uuid.UUID
+	Name         string
+	City         string
+	Latitude     *float64
+	Longitude    *float64
+	Address      string
+	ContactPhone string
+	ContactURL   string
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
 }
 
 type CheckIn struct {

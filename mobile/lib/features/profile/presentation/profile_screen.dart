@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:fitflow/core/errors/app_exceptions.dart';
+import 'package:fitflow/core/network/geo_repository.dart';
 import 'package:fitflow/core/widgets/error_state_widget.dart';
 import 'package:fitflow/core/widgets/loading_skeleton.dart';
 import 'package:fitflow/features/profile/data/profile_repository.dart';
@@ -60,6 +61,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   Future<void> _save({
     required String displayName,
+    String? city,
     double? heightCm,
     double? weightKg,
     double? bodyFatPct,
@@ -67,7 +69,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     setState(() => _saving = true);
     try {
       final repo = ref.read(profileRepositoryProvider);
-      await repo.updateProfile(displayName: displayName);
+      await repo.updateProfile(displayName: displayName, city: city);
       if (heightCm != null || weightKg != null) {
         await repo.recordMetric(heightCm: heightCm, weightKg: weightKg);
       }
@@ -143,6 +145,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ProfileHeader(
                       displayName: data.displayName,
                       email: data.email,
+                      city: data.city,
                       avatarUrl: data.avatarUrl,
                       onAvatarTap: _pickAndUploadAvatar,
                       uploadingAvatar: _uploadingAvatar,
@@ -159,12 +162,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     if (_editMode)
                       EditProfileForm(
                         initialDisplayName: data.displayName,
+                        initialCity: data.city,
                         initialHeightCm: data.heightCm,
                         initialWeightKg: data.weightKg,
                         initialBodyFatPct: data.bodyFatPct,
                         onSave: _save,
                         saving: _saving,
+                        onCitySearch: (q) => ref.read(geoRepositoryProvider).suggestCities(query: q),
                         labelDisplayName: tr('display_name'),
+                        labelCity: tr('city'),
                         labelHeight: tr('height_cm'),
                         labelWeight: tr('weight_kg'),
                         labelBodyFat: tr('body_fat_pct'),

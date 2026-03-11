@@ -18,15 +18,15 @@ func NewGymRepository(pool *pgxpool.Pool) *GymRepository {
 	return &GymRepository{pool: pool}
 }
 
-func (r *GymRepository) Create(ctx context.Context, name string, latitude, longitude *float64, address string) (*gymdomain.Gym, error) {
+func (r *GymRepository) Create(ctx context.Context, name, city, address, contactPhone, contactURL string, latitude, longitude *float64) (*gymdomain.Gym, error) {
 	query := `
-		INSERT INTO gyms (name, latitude, longitude, address)
-		VALUES ($1, $2, $3, $4)
-		RETURNING id, name, latitude, longitude, address, created_at, updated_at
+		INSERT INTO gyms (name, city, latitude, longitude, address, contact_phone, contact_url)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		RETURNING id, name, city, latitude, longitude, address, contact_phone, contact_url, created_at, updated_at
 	`
 	var g gymdomain.Gym
-	err := r.pool.QueryRow(ctx, query, name, latitude, longitude, address).Scan(
-		&g.ID, &g.Name, &g.Latitude, &g.Longitude, &g.Address, &g.CreatedAt, &g.UpdatedAt,
+	err := r.pool.QueryRow(ctx, query, name, city, latitude, longitude, address, contactPhone, contactURL).Scan(
+		&g.ID, &g.Name, &g.City, &g.Latitude, &g.Longitude, &g.Address, &g.ContactPhone, &g.ContactURL, &g.CreatedAt, &g.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err
@@ -34,16 +34,16 @@ func (r *GymRepository) Create(ctx context.Context, name string, latitude, longi
 	return &g, nil
 }
 
-func (r *GymRepository) Update(ctx context.Context, id uuid.UUID, name string, latitude, longitude *float64, address string) (*gymdomain.Gym, error) {
+func (r *GymRepository) Update(ctx context.Context, id uuid.UUID, name, city, address, contactPhone, contactURL string, latitude, longitude *float64) (*gymdomain.Gym, error) {
 	query := `
 		UPDATE gyms
-		SET name = $2, latitude = $3, longitude = $4, address = $5, updated_at = NOW()
+		SET name = $2, city = $3, latitude = $4, longitude = $5, address = $6, contact_phone = $7, contact_url = $8, updated_at = NOW()
 		WHERE id = $1 AND deleted_at IS NULL
-		RETURNING id, name, latitude, longitude, address, created_at, updated_at
+		RETURNING id, name, city, latitude, longitude, address, contact_phone, contact_url, created_at, updated_at
 	`
 	var g gymdomain.Gym
-	err := r.pool.QueryRow(ctx, query, id, name, latitude, longitude, address).Scan(
-		&g.ID, &g.Name, &g.Latitude, &g.Longitude, &g.Address, &g.CreatedAt, &g.UpdatedAt,
+	err := r.pool.QueryRow(ctx, query, id, name, city, latitude, longitude, address, contactPhone, contactURL).Scan(
+		&g.ID, &g.Name, &g.City, &g.Latitude, &g.Longitude, &g.Address, &g.ContactPhone, &g.ContactURL, &g.CreatedAt, &g.UpdatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -68,13 +68,13 @@ func (r *GymRepository) SoftDelete(ctx context.Context, id uuid.UUID) error {
 
 func (r *GymRepository) GetByID(ctx context.Context, id uuid.UUID) (*gymdomain.Gym, error) {
 	query := `
-		SELECT id, name, latitude, longitude, address, created_at, updated_at
+		SELECT id, name, city, latitude, longitude, address, contact_phone, contact_url, created_at, updated_at
 		FROM gyms
 		WHERE id = $1 AND deleted_at IS NULL
 	`
 	var g gymdomain.Gym
 	err := r.pool.QueryRow(ctx, query, id).Scan(
-		&g.ID, &g.Name, &g.Latitude, &g.Longitude, &g.Address, &g.CreatedAt, &g.UpdatedAt,
+		&g.ID, &g.Name, &g.City, &g.Latitude, &g.Longitude, &g.Address, &g.ContactPhone, &g.ContactURL, &g.CreatedAt, &g.UpdatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -85,7 +85,7 @@ func (r *GymRepository) GetByID(ctx context.Context, id uuid.UUID) (*gymdomain.G
 	return &g, nil
 }
 
-func (r *GymRepository) Search(ctx context.Context, q string, latitude, longitude *float64, limit, offset int) ([]*gymdomain.Gym, error) {
+func (r *GymRepository) Search(ctx context.Context, q, city string, latitude, longitude *float64, limit, offset int) ([]*gymdomain.Gym, error) {
 	if limit <= 0 {
 		limit = 20
 	}
@@ -97,19 +97,21 @@ func (r *GymRepository) Search(ctx context.Context, q string, latitude, longitud
 	}
 
 	// If lat/lng provided, order by approximate distance (squared) with NULL coords last.
+	// If city provided, filter by city (ILIKE).
 	query := `
-		SELECT id, name, latitude, longitude, address, created_at, updated_at
+		SELECT id, name, city, latitude, longitude, address, contact_phone, contact_url, created_at, updated_at
 		FROM gyms
 		WHERE deleted_at IS NULL
 		  AND ($1 = '' OR name ILIKE '%' || $1 || '%')
+		  AND ($4 = '' OR city ILIKE '%' || $4 || '%')
 		ORDER BY
 			CASE WHEN $2::float8 IS NULL OR $3::float8 IS NULL OR latitude IS NULL OR longitude IS NULL THEN 1 ELSE 0 END,
 			CASE WHEN $2::float8 IS NULL OR $3::float8 IS NULL OR latitude IS NULL OR longitude IS NULL THEN NULL
 			     ELSE ((latitude - $2) * (latitude - $2) + (longitude - $3) * (longitude - $3)) END ASC NULLS LAST,
 			name ASC
-		LIMIT $4 OFFSET $5
+		LIMIT $5 OFFSET $6
 	`
-	rows, err := r.pool.Query(ctx, query, q, latitude, longitude, limit, offset)
+	rows, err := r.pool.Query(ctx, query, q, latitude, longitude, city, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +120,7 @@ func (r *GymRepository) Search(ctx context.Context, q string, latitude, longitud
 	var gyms []*gymdomain.Gym
 	for rows.Next() {
 		var g gymdomain.Gym
-		if err := rows.Scan(&g.ID, &g.Name, &g.Latitude, &g.Longitude, &g.Address, &g.CreatedAt, &g.UpdatedAt); err != nil {
+		if err := rows.Scan(&g.ID, &g.Name, &g.City, &g.Latitude, &g.Longitude, &g.Address, &g.ContactPhone, &g.ContactURL, &g.CreatedAt, &g.UpdatedAt); err != nil {
 			return nil, err
 		}
 		gyms = append(gyms, &g)

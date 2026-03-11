@@ -24,7 +24,7 @@ type Deps struct {
 	UsersGet     func(ctx context.Context, id uuid.UUID) (*authdomain.UserRecord, error)
 	UsersUpdateRole func(ctx context.Context, id uuid.UUID, role authdomain.Role) error
 
-	GymsSearch   func(ctx context.Context, q string, lat, lng *float64, limit, offset int) ([]*gymdomain.Gym, error)
+	GymsSearch   func(ctx context.Context, q, city string, lat, lng *float64, limit, offset int) ([]*gymdomain.Gym, error)
 	GymsCreate   func(ctx context.Context, name string, lat, lng *float64, address string) (*gymdomain.Gym, error)
 	GymsGet      func(ctx context.Context, id uuid.UUID) (*gymdomain.Gym, error)
 	GymsUpdate   func(ctx context.Context, id uuid.UUID, name string, lat, lng *float64, address string) (*gymdomain.Gym, error)

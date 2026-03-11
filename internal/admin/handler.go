@@ -244,7 +244,7 @@ func option(val, selected string) string {
 func (h *Handler) GymsList(c *gin.Context) {
 	page, limit, offset := pageLimit(c)
 	q := strings.TrimSpace(c.Query("q"))
-	list, err := h.Deps.GymsSearch(c.Request.Context(), q, nil, nil, limit, offset)
+	list, err := h.Deps.GymsSearch(c.Request.Context(), q, "", nil, nil, limit, offset)
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return

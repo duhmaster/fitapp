@@ -52,6 +52,7 @@ func (uc *UserUseCase) GetProfile(ctx context.Context, user *authdomain.User) (*
 type UpdateProfileInput struct {
 	DisplayName string
 	AvatarURL   string
+	City        string
 }
 
 // UpdateProfile updates the user's profile.
@@ -69,6 +70,8 @@ func (uc *UserUseCase) UpdateProfile(ctx context.Context, user *authdomain.User,
 	if in.AvatarURL != "" {
 		p.AvatarURL = in.AvatarURL
 	}
+	// Empty string means "do not change" for optional fields; use a sentinel or allow empty to clear city
+	p.City = in.City
 	if err := uc.profileRepo.Upsert(ctx, p); err != nil {
 		return nil, err
 	}

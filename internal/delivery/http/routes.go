@@ -7,6 +7,7 @@ import (
 	"github.com/fitflow/fitflow/internal/admin"
 	"github.com/fitflow/fitflow/internal/auth/domain"
 	"github.com/fitflow/fitflow/internal/delivery/http/spec"
+	"github.com/fitflow/fitflow/internal/geo"
 	authdelivery "github.com/fitflow/fitflow/internal/auth/delivery"
 	"github.com/fitflow/fitflow/internal/pkg/version"
 	blogdelivery "github.com/fitflow/fitflow/internal/blog/delivery"
@@ -37,7 +38,8 @@ type RoutesConfig struct {
 	NotificationHandler *notificationdelivery.Handler
 	AdminHandler        *admin.Handler
 	JWTSecret           []byte
-	UploadsPath          string // local path for serving uploads (e.g. ./uploads)
+	UploadsPath         string       // local path for serving uploads (e.g. ./uploads)
+	GeoClient           *geo.Client  // 2GIS proxy for cities/organizations (optional)
 }
 
 // RegisterRoutes registers all HTTP routes with the given config.
@@ -122,7 +124,15 @@ func (s *Server) RegisterRoutes(cfg *RoutesConfig) {
 					protected.DELETE("/users/me/body-measurements/:id", cfg.UserHandler.DeleteBodyMeasurement)
 				}
 
+				if cfg.GeoClient != nil {
+					geo.RegisterRoutes(protected.Group("/geo"), cfg.GeoClient)
+				}
+
 				if cfg.GymHandler != nil {
+					protected.GET("/me/gyms", cfg.GymHandler.ListMyGyms)
+					protected.POST("/me/gyms", cfg.GymHandler.AddMyGym)
+					protected.GET("/me/gyms/:gym_id", cfg.GymHandler.GetMyGym)
+					protected.DELETE("/me/gyms/:gym_id", cfg.GymHandler.RemoveMyGym)
 					protected.POST("/gyms/:gym_id/checkins", cfg.GymHandler.CheckIn)
 				}
 

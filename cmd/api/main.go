@@ -18,15 +18,18 @@ import (
 	blogusecase "github.com/fitflow/fitflow/internal/blog/usecase"
 	authusecase "github.com/fitflow/fitflow/internal/auth/usecase"
 	"github.com/fitflow/fitflow/internal/config"
+	"github.com/fitflow/fitflow/internal/geo"
 	"github.com/fitflow/fitflow/internal/delivery/middleware"
 	httpdelivery "github.com/fitflow/fitflow/internal/delivery/http"
 	"github.com/fitflow/fitflow/internal/pkg/logger"
 	"github.com/fitflow/fitflow/internal/pkg/postgres"
 	"github.com/fitflow/fitflow/internal/pkg/redis"
 	"github.com/fitflow/fitflow/internal/pkg/storage"
+	gymdomain "github.com/fitflow/fitflow/internal/gym/domain"
 	gymdelivery "github.com/fitflow/fitflow/internal/gym/delivery"
 	gymrepository "github.com/fitflow/fitflow/internal/gym/repository"
 	gymusecase "github.com/fitflow/fitflow/internal/gym/usecase"
+	"github.com/google/uuid"
 	progressdelivery "github.com/fitflow/fitflow/internal/progress/delivery"
 	progressrepository "github.com/fitflow/fitflow/internal/progress/repository"
 	progressusecase "github.com/fitflow/fitflow/internal/progress/usecase"
@@ -109,10 +112,11 @@ func run() error {
 
 	// Gym module
 	gymRepo := gymrepository.NewGymRepository(db)
+	userGymRepo := gymrepository.NewUserGymRepository(db)
 	checkInRepo := gymrepository.NewCheckInRepository(db)
 	snapshotRepo := gymrepository.NewLoadSnapshotRepository(db)
 	loadService := gymusecase.NewRedisLoadService(rdb, cfg.GymPresenceWindow)
-	gymUC := gymusecase.NewGymUseCase(gymRepo, checkInRepo, snapshotRepo, loadService)
+	gymUC := gymusecase.NewGymUseCase(gymRepo, userGymRepo, checkInRepo, snapshotRepo, loadService)
 	gymHandler := gymdelivery.NewHandler(gymUC)
 
 	// Workout module
@@ -174,11 +178,17 @@ func run() error {
 			UsersList:      authUserRepo.List,
 			UsersGet:       authUserRepo.GetByID,
 			UsersUpdateRole: authUserRepo.UpdateRole,
-			GymsSearch:     gymRepo.Search,
-			GymsCreate:     gymRepo.Create,
-			GymsGet:        gymRepo.GetByID,
-			GymsUpdate:     gymRepo.Update,
-			GymsDelete:     gymRepo.SoftDelete,
+			GymsSearch:     func(ctx context.Context, q, city string, lat, lng *float64, limit, offset int) ([]*gymdomain.Gym, error) {
+				return gymRepo.Search(ctx, q, city, lat, lng, limit, offset)
+			},
+			GymsCreate:     func(ctx context.Context, name string, lat, lng *float64, address string) (*gymdomain.Gym, error) {
+				return gymRepo.Create(ctx, name, "", address, "", "", lat, lng)
+			},
+			GymsGet:    gymRepo.GetByID,
+			GymsUpdate: func(ctx context.Context, id uuid.UUID, name string, lat, lng *float64, address string) (*gymdomain.Gym, error) {
+				return gymRepo.Update(ctx, id, name, "", address, "", "", lat, lng)
+			},
+			GymsDelete: gymRepo.SoftDelete,
 			ExercisesList:   exerciseRepo.List,
 			ExercisesGet:   exerciseRepo.GetByID,
 			ExercisesCreate: exerciseRepo.Create,
@@ -210,6 +220,7 @@ func run() error {
 		HealthHandler:     healthHandler,
 		AuthHandler:       authHandler,
 		UserHandler:       userHandler,
+		GeoClient:         geo.NewClient(cfg.DADATAAPIKey, cfg.DADATASecretKey),
 		GymHandler:        gymHandler,
 		WorkoutHandler:    workoutHandler,
 		ProgressHandler:   progressHandler,

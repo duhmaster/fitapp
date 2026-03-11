@@ -20,11 +20,10 @@ class ProfileRepository {
     return Profile.fromJson(res.data!);
   }
 
-  Future<Profile> updateProfile({required String displayName}) async {
-    final res = await dio.put<Map<String, dynamic>>(
-      _profilePath,
-      data: {'display_name': displayName},
-    );
+  Future<Profile> updateProfile({required String displayName, String? city}) async {
+    final data = <String, dynamic>{'display_name': displayName};
+    if (city != null) data['city'] = city;
+    final res = await dio.put<Map<String, dynamic>>(_profilePath, data: data);
     return Profile.fromJson(res.data!);
   }
 

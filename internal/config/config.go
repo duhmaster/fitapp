@@ -45,6 +45,10 @@ type Config struct {
 	// Admin panel (HTTP Basic or session; separate from app users)
 	AdminUsername string
 	AdminPassword string
+
+	// DaData API for city and organization suggest (geo)
+	DADATAAPIKey    string
+	DADATASecretKey string
 }
 
 // Load reads configuration from environment variables.
@@ -72,6 +76,8 @@ func Load() (*Config, error) {
 		GymSnapshotBatchSize: getEnvInt("GYM_SNAPSHOT_BATCH_SIZE", 1000),
 		AdminUsername: getEnv("ADMIN_USERNAME", "admin"),
 		AdminPassword: getEnv("ADMIN_PASSWORD", adminPasswordDefault(getEnv("ENV", "development"))),
+		DADATAAPIKey:    getEnv("DADATA_API_KEY", "dfd6d88dbc8ad4121becbac2491eb6d9fdd1dc90"),
+		DADATASecretKey: getEnv("DADATA_SECRET_KEY", "6da2b0c689818b4a38a8accd7f197fa5fc0e3fb4"),
 	}
 
 	return cfg, nil

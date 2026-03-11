@@ -23,13 +23,13 @@ func NewProfileRepository(pool *pgxpool.Pool) *ProfileRepository {
 // GetByUserID returns the profile for a user, or nil if not found.
 func (r *ProfileRepository) GetByUserID(ctx context.Context, userID uuid.UUID) (*domain.Profile, error) {
 	query := `
-		SELECT id, user_id, display_name, avatar_url, created_at, updated_at
+		SELECT id, user_id, display_name, avatar_url, COALESCE(city, ''), created_at, updated_at
 		FROM user_profiles
 		WHERE user_id = $1
 	`
 	var p domain.Profile
 	err := r.pool.QueryRow(ctx, query, userID).Scan(
-		&p.ID, &p.UserID, &p.DisplayName, &p.AvatarURL, &p.CreatedAt, &p.UpdatedAt,
+		&p.ID, &p.UserID, &p.DisplayName, &p.AvatarURL, &p.City, &p.CreatedAt, &p.UpdatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -43,14 +43,15 @@ func (r *ProfileRepository) GetByUserID(ctx context.Context, userID uuid.UUID) (
 // Upsert creates or updates a profile.
 func (r *ProfileRepository) Upsert(ctx context.Context, profile *domain.Profile) error {
 	query := `
-		INSERT INTO user_profiles (user_id, display_name, avatar_url, updated_at)
-		VALUES ($1, $2, $3, NOW())
+		INSERT INTO user_profiles (user_id, display_name, avatar_url, city, updated_at)
+		VALUES ($1, $2, $3, $4, NOW())
 		ON CONFLICT (user_id) DO UPDATE SET
 			display_name = EXCLUDED.display_name,
 			avatar_url = EXCLUDED.avatar_url,
+			city = EXCLUDED.city,
 			updated_at = NOW()
 		RETURNING id, created_at, updated_at
 	`
-	return r.pool.QueryRow(ctx, query, profile.UserID, profile.DisplayName, profile.AvatarURL).
+	return r.pool.QueryRow(ctx, query, profile.UserID, profile.DisplayName, profile.AvatarURL, profile.City).
 		Scan(&profile.ID, &profile.CreatedAt, &profile.UpdatedAt)
 }

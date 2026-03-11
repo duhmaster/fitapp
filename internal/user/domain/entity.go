@@ -6,12 +6,13 @@ import (
 	"github.com/google/uuid"
 )
 
-// Profile represents a user's profile (display name, avatar).
+// Profile represents a user's profile (display name, avatar, city).
 type Profile struct {
 	ID          uuid.UUID
 	UserID      uuid.UUID
 	DisplayName string
 	AvatarURL   string
+	City        string
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 }

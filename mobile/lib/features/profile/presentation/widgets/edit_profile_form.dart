@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:fitflow/core/network/geo_repository.dart';
+import 'package:fitflow/core/widgets/city_picker_field.dart';
 import 'package:fitflow/core/utils/validators.dart';
 
 class EditProfileForm extends StatefulWidget {
   const EditProfileForm({
     super.key,
     required this.initialDisplayName,
+    this.initialCity,
     this.initialHeightCm,
     this.initialWeightKg,
     this.initialBodyFatPct,
     required this.onSave,
     required this.saving,
+    this.onCitySearch,
     this.labelDisplayName = 'Display name',
+    this.labelCity = 'City',
     this.labelHeight = 'Height (cm)',
     this.labelWeight = 'Weight (kg)',
     this.labelBodyFat = 'Body fat (%)',
@@ -19,10 +24,13 @@ class EditProfileForm extends StatefulWidget {
   });
 
   final String initialDisplayName;
+  final String? initialCity;
   final double? initialHeightCm;
   final double? initialWeightKg;
   final double? initialBodyFatPct;
+  final Future<List<CitySuggestion>> Function(String query)? onCitySearch;
   final String labelDisplayName;
+  final String labelCity;
   final String labelHeight;
   final String labelWeight;
   final String labelBodyFat;
@@ -30,6 +38,7 @@ class EditProfileForm extends StatefulWidget {
   final String nameFieldLabel;
   final Future<void> Function({
     required String displayName,
+    String? city,
     double? heightCm,
     double? weightKg,
     double? bodyFatPct,
@@ -46,11 +55,13 @@ class _EditProfileFormState extends State<EditProfileForm> {
   late TextEditingController _heightController;
   late TextEditingController _weightController;
   late TextEditingController _bodyFatController;
+  String? _selectedCity;
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.initialDisplayName);
+    _selectedCity = widget.initialCity;
     _heightController = TextEditingController(
       text: widget.initialHeightCm != null
           ? widget.initialHeightCm!.toStringAsFixed(1)
@@ -84,6 +95,7 @@ class _EditProfileFormState extends State<EditProfileForm> {
     final bodyFat = double.tryParse(_bodyFatController.text.trim().replaceAll(',', '.'));
     await widget.onSave(
       displayName: _nameController.text.trim(),
+      city: _selectedCity,
       heightCm: height,
       weightKg: weight,
       bodyFatPct: bodyFat,
@@ -106,6 +118,15 @@ class _EditProfileFormState extends State<EditProfileForm> {
             textCapitalization: TextCapitalization.words,
             validator: (v) => Validators.required(v, widget.nameFieldLabel),
           ),
+          if (widget.onCitySearch != null) ...[
+            const SizedBox(height: 16),
+            CityPickerField(
+              initialCity: widget.initialCity ?? '',
+              label: widget.labelCity,
+              onSearch: widget.onCitySearch!,
+              onChanged: (v) => setState(() => _selectedCity = v),
+            ),
+          ],
           const SizedBox(height: 16),
           TextFormField(
             controller: _heightController,

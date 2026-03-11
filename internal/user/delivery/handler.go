@@ -29,11 +29,13 @@ type ProfileResponse struct {
 	UserID      string  `json:"user_id"`
 	DisplayName string  `json:"display_name"`
 	AvatarURL   string  `json:"avatar_url"`
+	City        string  `json:"city,omitempty"`
 }
 
 // UpdateProfileRequest is the JSON body for profile update.
 type UpdateProfileRequest struct {
 	DisplayName string `json:"display_name"`
+	City        string `json:"city"`
 }
 
 // MetricResponse is the JSON response for a metric.
@@ -106,6 +108,7 @@ func (h *Handler) UpdateProfile(c *gin.Context) {
 
 	profile, err := h.uc.UpdateProfile(c.Request.Context(), user, usecase.UpdateProfileInput{
 		DisplayName: req.DisplayName,
+		City:        req.City,
 	})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update profile"})
@@ -364,6 +367,7 @@ func toProfileResponse(p *userdomain.Profile) ProfileResponse {
 		UserID:      p.UserID.String(),
 		DisplayName: p.DisplayName,
 		AvatarURL:   p.AvatarURL,
+		City:        p.City,
 	}
 }
 
