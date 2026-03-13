@@ -49,7 +49,12 @@ func (uc *GymUseCase) CreateGym(ctx context.Context, _ *authdomain.User, in Crea
 
 // ListMyGyms returns gyms linked to the user.
 func (uc *GymUseCase) ListMyGyms(ctx context.Context, user *authdomain.User) ([]*gymdomain.Gym, error) {
-	ids, err := uc.userGyms.ListGymIDsByUserID(ctx, user.ID)
+	return uc.ListGymsByUserID(ctx, user.ID)
+}
+
+// ListGymsByUserID returns gyms linked to the given user (e.g. for public trainer profile).
+func (uc *GymUseCase) ListGymsByUserID(ctx context.Context, userID uuid.UUID) ([]*gymdomain.Gym, error) {
+	ids, err := uc.userGyms.ListGymIDsByUserID(ctx, userID)
 	if err != nil {
 		return nil, err
 	}

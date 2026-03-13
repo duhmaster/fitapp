@@ -9,6 +9,11 @@ import (
 	"github.com/google/uuid"
 )
 
+// TrainerClientChecker allows workout usecase to verify trainer–client relationship (optional).
+type TrainerClientChecker interface {
+	IsClientOfTrainer(ctx context.Context, trainerID, clientID uuid.UUID) (bool, error)
+}
+
 type WorkoutUseCase struct {
 	exercises           workoutdomain.ExerciseRepository
 	workouts            workoutdomain.WorkoutRepository
@@ -19,6 +24,7 @@ type WorkoutUseCase struct {
 	templates           workoutdomain.WorkoutTemplateRepository
 	templateExercises   workoutdomain.WorkoutTemplateExerciseRepository
 	templateSets        workoutdomain.TemplateExerciseSetRepository
+	trainerChecker      TrainerClientChecker
 }
 
 func NewWorkoutUseCase(
@@ -45,12 +51,28 @@ func NewWorkoutUseCase(
 	}
 }
 
+// SetTrainerChecker sets optional checker so trainers can view their trainees' workouts.
+func (uc *WorkoutUseCase) SetTrainerChecker(c TrainerClientChecker) {
+	uc.trainerChecker = c
+}
+
+func (uc *WorkoutUseCase) canAccessWorkout(ctx context.Context, user *authdomain.User, workoutUserID uuid.UUID) bool {
+	if user.ID == workoutUserID {
+		return true
+	}
+	if uc.trainerChecker != nil {
+		ok, _ := uc.trainerChecker.IsClientOfTrainer(ctx, user.ID, workoutUserID)
+		return ok
+	}
+	return false
+}
+
 func (uc *WorkoutUseCase) ListExercises(ctx context.Context, limit, offset int, filters *workoutdomain.ExerciseFilters) ([]*workoutdomain.Exercise, error) {
 	return uc.exercises.List(ctx, limit, offset, filters)
 }
 
-func (uc *WorkoutUseCase) CreateWorkout(ctx context.Context, user *authdomain.User, templateID *uuid.UUID, programID *uuid.UUID, scheduledAt *time.Time) (*workoutdomain.Workout, error) {
-	w, err := uc.workouts.Create(ctx, user.ID, templateID, programID, scheduledAt)
+func (uc *WorkoutUseCase) CreateWorkout(ctx context.Context, user *authdomain.User, trainerID *uuid.UUID, templateID *uuid.UUID, programID *uuid.UUID, scheduledAt *time.Time) (*workoutdomain.Workout, error) {
+	w, err := uc.workouts.Create(ctx, user.ID, trainerID, templateID, programID, scheduledAt)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +110,7 @@ func (uc *WorkoutUseCase) StartWorkoutFromProgram(ctx context.Context, user *aut
 	if _, err := uc.programs.GetByID(ctx, programID); err != nil {
 		return nil, err
 	}
-	w, err := uc.workouts.Create(ctx, user.ID, nil, &programID, scheduledAt)
+	w, err := uc.workouts.Create(ctx, user.ID, nil, nil, &programID, scheduledAt)
 	if err != nil {
 		return nil, err
 	}
@@ -110,12 +132,20 @@ func (uc *WorkoutUseCase) ListMyWorkouts(ctx context.Context, user *authdomain.U
 	return uc.workouts.ListByUserID(ctx, user.ID, limit, offset)
 }
 
+func (uc *WorkoutUseCase) ListWorkoutsByTrainerID(ctx context.Context, trainerID uuid.UUID, limit, offset int) ([]*workoutdomain.Workout, error) {
+	return uc.workouts.ListByTrainerID(ctx, trainerID, limit, offset)
+}
+
+func (uc *WorkoutUseCase) CountByTrainerID(ctx context.Context, trainerID uuid.UUID) (int, error) {
+	return uc.workouts.CountByTrainerID(ctx, trainerID)
+}
+
 func (uc *WorkoutUseCase) GetWorkout(ctx context.Context, user *authdomain.User, workoutID uuid.UUID) (*workoutdomain.Workout, error) {
 	w, err := uc.workouts.GetByID(ctx, workoutID)
 	if err != nil {
 		return nil, err
 	}
-	if w.UserID != user.ID {
+	if !uc.canAccessWorkout(ctx, user, w.UserID) {
 		return nil, workoutdomain.ErrWorkoutForbidden
 	}
 	return w, nil
@@ -184,7 +214,7 @@ func (uc *WorkoutUseCase) GetWorkoutExercises(ctx context.Context, user *authdom
 	if err != nil {
 		return nil, err
 	}
-	if w.UserID != user.ID {
+	if !uc.canAccessWorkout(ctx, user, w.UserID) {
 		return nil, workoutdomain.ErrWorkoutForbidden
 	}
 	return uc.woExercises.ListByWorkoutID(ctx, workoutID)
@@ -195,7 +225,7 @@ func (uc *WorkoutUseCase) GetWorkoutLogs(ctx context.Context, user *authdomain.U
 	if err != nil {
 		return nil, err
 	}
-	if w.UserID != user.ID {
+	if !uc.canAccessWorkout(ctx, user, w.UserID) {
 		return nil, workoutdomain.ErrWorkoutForbidden
 	}
 	return uc.logs.ListByWorkoutID(ctx, workoutID)
@@ -219,7 +249,7 @@ func (uc *WorkoutUseCase) GetTemplate(ctx context.Context, user *authdomain.User
 	if err != nil {
 		return nil, err
 	}
-	if t.CreatedBy != user.ID {
+	if !uc.canAccessWorkout(ctx, user, t.CreatedBy) {
 		return nil, workoutdomain.ErrTemplateForbidden
 	}
 	return t, nil
@@ -317,7 +347,7 @@ func (uc *WorkoutUseCase) StartWorkoutFromTemplate(ctx context.Context, user *au
 	if err != nil {
 		return nil, err
 	}
-	w, err := uc.workouts.Create(ctx, user.ID, &t.ID, nil, scheduledAt)
+	w, err := uc.workouts.Create(ctx, user.ID, nil, &t.ID, nil, scheduledAt)
 	if err != nil {
 		return nil, err
 	}

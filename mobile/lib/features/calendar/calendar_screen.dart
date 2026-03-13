@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fitflow/core/locale/locale_provider.dart';
+import 'package:fitflow/features/calendar/calendar_provider.dart';
+import 'package:fitflow/features/calendar/calendar_workout_item.dart';
 import 'package:fitflow/features/workouts/data/workout_repository.dart';
 import 'package:fitflow/features/workouts/domain/workout_models.dart';
 import 'package:fitflow/features/workouts/presentation/workouts_provider.dart';
@@ -48,7 +50,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   @override
   Widget build(BuildContext context) {
     final tr = ref.watch(trProvider);
-    final workoutsAsync = ref.watch(workoutsCalendarProvider);
+    final combinedAsync = ref.watch(workoutsCalendarCombinedProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -64,23 +66,23 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           ),
         ],
       ),
-      body: workoutsAsync.when(
+      body: combinedAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('${tr('error_label')}: $e')),
-        data: (workouts) {
+        data: (items) {
           if (_view == CalendarView.month) {
             return _MonthView(
               selectedMonth: _selectedMonth,
               selectedDate: _selectedDate,
-              workouts: workouts,
+              items: items,
               onMonthChanged: (m) => setState(() => _selectedMonth = m),
               onDateSelected: (d) => setState(() {
                 _selectedDate = d;
-                _showDayDialog(context, ref, workouts, d);
+                _showDayDialog(context, ref, items, d);
               }),
             );
           }
-          return _ListView(workouts: workouts);
+          return _ListView(items: items);
         },
       ),
       bottomNavigationBar: _selectedDate != null
@@ -92,7 +94,10 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   label: Text(tr('create_workout')),
                   onPressed: () async {
                     await showTemplatePickerDialog(context, ref, initialDate: _selectedDate);
-                    setState(() {});
+                    ref.invalidate(workoutsCalendarCombinedProvider);
+                    ref.invalidate(workoutsCalendarProvider);
+                    ref.invalidate(workoutsListProvider);
+                    if (mounted) setState(() {});
                   },
                 ),
               ),
@@ -101,25 +106,28 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     );
   }
 
-  void _showDayDialog(BuildContext context, WidgetRef ref, List<Workout> workouts, DateTime date) {
+  void _showDayDialog(BuildContext context, WidgetRef ref, List<CalendarWorkoutItem> items, DateTime date) {
     final tr = ref.read(trProvider);
-    final dayWorkouts = workouts.where((w) => _isSameDay(_workoutDate(w), date)).toList();
+    final dayItems = items.where((item) => _isSameDay(_workoutDate(item.workout), date)).toList();
     showDialog<void>(
       context: context,
       builder: (ctx) => _DayDialog(
         tr: tr,
         date: date,
-        workouts: dayWorkouts,
+        items: dayItems,
         onCreate: () async {
           Navigator.of(ctx).pop();
           await showTemplatePickerDialog(context, ref, initialDate: date);
+          ref.invalidate(workoutsCalendarCombinedProvider);
           ref.invalidate(workoutsCalendarProvider);
           ref.invalidate(workoutsListProvider);
           if (mounted) setState(() {});
         },
-        onDelete: (w) async {
+        onDelete: (item) async {
+          if (!item.isOwn) return;
           try {
-            await ref.read(workoutRepositoryProvider).deleteWorkout(w.id);
+            await ref.read(workoutRepositoryProvider).deleteWorkout(item.workout.id);
+            ref.invalidate(workoutsCalendarCombinedProvider);
             ref.invalidate(workoutsCalendarProvider);
             ref.invalidate(workoutsListProvider);
             if (ctx.mounted) Navigator.of(ctx).pop();
@@ -132,9 +140,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             }
           }
         },
-        onTapWorkout: (w) {
+        onTapWorkout: (item) {
           Navigator.of(ctx).pop();
-          GoRouter.of(context).push('/workout/${w.id}');
+          GoRouter.of(context).push('/workout/${item.workout.id}');
         },
       ),
     );
@@ -145,14 +153,14 @@ class _MonthView extends StatelessWidget {
   const _MonthView({
     required this.selectedMonth,
     required this.selectedDate,
-    required this.workouts,
+    required this.items,
     required this.onMonthChanged,
     required this.onDateSelected,
   });
 
   final DateTime selectedMonth;
   final DateTime? selectedDate;
-  final List<Workout> workouts;
+  final List<CalendarWorkoutItem> items;
   final ValueChanged<DateTime> onMonthChanged;
   final ValueChanged<DateTime> onDateSelected;
 
@@ -195,7 +203,7 @@ class _MonthView extends StatelessWidget {
       'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
     ];
 
-    final daysWithWorkouts = workouts.map(_workoutDate).map((d) => DateTime(d.year, d.month, d.day)).toSet();
+    final daysWithWorkouts = items.map((i) => _workoutDate(i.workout)).map((d) => DateTime(d.year, d.month, d.day)).toSet();
 
     return Column(
       children: [
@@ -243,7 +251,7 @@ class _MonthView extends StatelessWidget {
                         color: isSelected
                             ? Theme.of(context).colorScheme.primaryContainer
                             : hasWorkout
-                                ? Theme.of(context).colorScheme.primary.withOpacity(0.2)
+                                ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.2)
                                 : Colors.transparent,
                         borderRadius: BorderRadius.circular(8),
                         child: InkWell(
@@ -275,32 +283,21 @@ class _MonthView extends StatelessWidget {
 }
 
 class _ListView extends ConsumerWidget {
-  const _ListView({required this.workouts});
+  const _ListView({required this.items});
 
-  final List<Workout> workouts;
-
-  static bool _isSameDay(DateTime a, DateTime b) =>
-      a.year == b.year && a.month == b.month && a.day == b.day;
+  final List<CalendarWorkoutItem> items;
 
   static DateTime _workoutDate(Workout w) {
     if (w.scheduledAt != null && w.scheduledAt!.isNotEmpty) {
-      try {
-        final dt = DateTime.parse(w.scheduledAt!);
-        return DateTime(dt.year, dt.month, dt.day);
-      } catch (_) {}
+      final dt = DateTime.tryParse(w.scheduledAt!);
+      if (dt != null) return DateTime(dt.year, dt.month, dt.day);
     }
     if (w.startedAt != null && w.startedAt!.isNotEmpty) {
-      try {
-        final dt = DateTime.parse(w.startedAt!);
-        return DateTime(dt.year, dt.month, dt.day);
-      } catch (_) {}
+      final dt = DateTime.tryParse(w.startedAt!);
+      if (dt != null) return DateTime(dt.year, dt.month, dt.day);
     }
-    try {
-      final dt = DateTime.parse(w.createdAt);
-      return DateTime(dt.year, dt.month, dt.day);
-    } catch (_) {
-      return DateTime.now();
-    }
+    final dt = DateTime.tryParse(w.createdAt);
+    return dt ?? DateTime.now();
   }
 
   @override
@@ -308,11 +305,11 @@ class _ListView extends ConsumerWidget {
     final tr = ref.watch(trProvider);
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final upcoming = workouts.where((w) {
-      final d = _workoutDate(w);
+    final upcoming = items.where((item) {
+      final d = _workoutDate(item.workout);
       return d.isAtSameMomentAs(today) || d.isAfter(today);
     }).toList();
-    upcoming.sort((a, b) => _workoutDate(a).compareTo(_workoutDate(b)));
+    upcoming.sort((a, b) => _workoutDate(a.workout).compareTo(_workoutDate(b.workout)));
 
     if (upcoming.isEmpty) {
       return Center(child: Text(tr('no_workouts_yet')));
@@ -321,14 +318,30 @@ class _ListView extends ConsumerWidget {
       padding: const EdgeInsets.all(16),
       itemCount: upcoming.length,
       itemBuilder: (_, i) {
-        final w = upcoming[i];
+        final item = upcoming[i];
+        final w = item.workout;
         final d = _workoutDate(w);
         final dateStr = '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+        final title = formatCalendarWorkoutTitle(item, tr('workout'));
         return Card(
           margin: const EdgeInsets.only(bottom: 8),
           child: ListTile(
-            title: Text(tr('workout')),
-            subtitle: Text(dateStr),
+            leading: Icon(
+              item.isOwn ? Icons.person : Icons.people,
+              color: item.isOwn ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.secondary,
+            ),
+            title: Text(title, maxLines: 2, overflow: TextOverflow.ellipsis),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(dateStr),
+                Text(
+                  item.statusLabel,
+                  style: TextStyle(color: Color(item.statusColorValue), fontSize: 12),
+                ),
+              ],
+            ),
             trailing: Icon(w.isActive ? Icons.play_circle : Icons.fitness_center),
             onTap: () => context.push('/workout/${w.id}'),
           ),
@@ -342,7 +355,7 @@ class _DayDialog extends StatelessWidget {
   const _DayDialog({
     required this.tr,
     required this.date,
-    required this.workouts,
+    required this.items,
     required this.onCreate,
     required this.onDelete,
     required this.onTapWorkout,
@@ -350,10 +363,10 @@ class _DayDialog extends StatelessWidget {
 
   final String Function(String) tr;
   final DateTime date;
-  final List<Workout> workouts;
+  final List<CalendarWorkoutItem> items;
   final VoidCallback onCreate;
-  final ValueChanged<Workout> onDelete;
-  final ValueChanged<Workout> onTapWorkout;
+  final ValueChanged<CalendarWorkoutItem> onDelete;
+  final ValueChanged<CalendarWorkoutItem> onTapWorkout;
 
   @override
   Widget build(BuildContext context) {
@@ -362,21 +375,31 @@ class _DayDialog extends StatelessWidget {
       title: Text('${tr('workouts_for_date')} $dateStr'),
       content: SizedBox(
         width: double.maxFinite,
-        child: workouts.isEmpty
+        child: items.isEmpty
             ? Text(tr('no_workouts_for_date'))
             : ListView.builder(
                 shrinkWrap: true,
-                itemCount: workouts.length,
+                itemCount: items.length,
                 itemBuilder: (_, i) {
-                  final w = workouts[i];
+                  final item = items[i];
+                  final title = formatCalendarWorkoutTitle(item, tr('workout'));
                   return ListTile(
-                    title: Text(tr('workout')),
-                    subtitle: Text(w.isActive ? tr('in_progress') : (w.isCompleted ? tr('completed_status') : tr('not_started'))),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.delete_outline),
-                      onPressed: () => onDelete(w),
+                    leading: Icon(
+                      item.isOwn ? Icons.person : Icons.people,
+                      color: item.isOwn ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.secondary,
                     ),
-                    onTap: () => onTapWorkout(w),
+                    title: Text(title, maxLines: 2, overflow: TextOverflow.ellipsis),
+                    subtitle: Text(
+                      item.statusLabel,
+                      style: TextStyle(color: Color(item.statusColorValue), fontSize: 12),
+                    ),
+                    trailing: item.isOwn
+                        ? IconButton(
+                            icon: const Icon(Icons.delete_outline),
+                            onPressed: () => onDelete(item),
+                          )
+                        : null,
+                    onTap: () => onTapWorkout(item),
                   );
                 },
               ),

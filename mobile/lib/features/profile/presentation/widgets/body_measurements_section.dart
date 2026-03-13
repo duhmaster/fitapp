@@ -19,8 +19,10 @@ class BodyMeasurementsSection extends ConsumerWidget {
       children: [
         Padding(
           padding: const EdgeInsets.only(bottom: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
             children: [
               Text(
                 tr('body_measurements_history'),

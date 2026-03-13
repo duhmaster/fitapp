@@ -116,6 +116,12 @@ func (r *TrainerClientRepository) ListClientsByTrainer(ctx context.Context, trai
 	return list, rows.Err()
 }
 
+func (r *TrainerClientRepository) CountByTrainerID(ctx context.Context, trainerID uuid.UUID) (int, error) {
+	var n int
+	err := r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM trainer_clients WHERE trainer_id = $1`, trainerID).Scan(&n)
+	return n, err
+}
+
 func (r *TrainerClientRepository) ListTrainersByClient(ctx context.Context, clientID uuid.UUID, status string, limit, offset int) ([]*trainerdomain.TrainerClient, error) {
 	if limit <= 0 {
 		limit = 50
@@ -149,4 +155,15 @@ func (r *TrainerClientRepository) ListTrainersByClient(ctx context.Context, clie
 		list = append(list, &tc)
 	}
 	return list, rows.Err()
+}
+
+func (r *TrainerClientRepository) Remove(ctx context.Context, trainerID, clientID uuid.UUID) error {
+	ct, err := r.pool.Exec(ctx, `DELETE FROM trainer_clients WHERE trainer_id = $1 AND client_id = $2`, trainerID, clientID)
+	if err != nil {
+		return err
+	}
+	if ct.RowsAffected() == 0 {
+		return trainerdomain.ErrTrainerClientNotFound
+	}
+	return nil
 }

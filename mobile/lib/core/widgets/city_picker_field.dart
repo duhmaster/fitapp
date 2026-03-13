@@ -130,9 +130,8 @@ class _CitySearchDialogState extends State<_CitySearchDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       title: const Text('Город'),
-      content: SizedBox(
-        width: 320,
-        height: 400,
+      content: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: 320, maxHeight: MediaQuery.sizeOf(context).height * 0.6),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,

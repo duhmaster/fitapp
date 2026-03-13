@@ -77,11 +77,13 @@ class WorkoutRepository {
   Future<Workout> createWorkout({
     String? templateId,
     String? programId,
+    String? trainerId,
     String? scheduledAt,
   }) async {
     final data = <String, dynamic>{};
     if (templateId != null) data['template_id'] = templateId;
     if (programId != null) data['program_id'] = programId;
+    if (trainerId != null) data['trainer_id'] = trainerId;
     if (scheduledAt != null) data['scheduled_at'] = scheduledAt;
     final res = await dio.post<Map<String, dynamic>>('/api/v1/me/workouts', data: data);
     return Workout.fromJson(res.data!);

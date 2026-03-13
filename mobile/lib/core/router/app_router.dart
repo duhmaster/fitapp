@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fitflow/features/auth/presentation/auth_state.dart';
@@ -13,7 +12,14 @@ import 'package:fitflow/features/progress/presentation/progress_screen.dart';
 import 'package:fitflow/features/progress/presentation/progress_workouts_screen.dart';
 import 'package:fitflow/features/progress/presentation/progress_exercises_screen.dart';
 import 'package:fitflow/features/shell/main_shell_screen.dart';
-import 'package:fitflow/features/trainer/trainer_screen.dart';
+import 'package:fitflow/features/trainer/my_trainers_screen.dart';
+import 'package:fitflow/features/trainer/trainer_profile_screen.dart';
+import 'package:fitflow/features/trainer/trainer_profile_edit_screen.dart';
+import 'package:fitflow/features/trainer/trainer_trainees_screen.dart';
+import 'package:fitflow/features/trainer/trainee_profile_screen.dart';
+import 'package:fitflow/features/trainer/trainee_progress_screen.dart';
+import 'package:fitflow/features/trainer/trainer_calendar_screen.dart';
+import 'package:fitflow/features/trainer/trainer_public_screen.dart';
 import 'package:fitflow/features/workouts/presentation/active_workout_screen.dart';
 import 'package:fitflow/features/workouts/presentation/workouts_list_screen.dart';
 import 'package:fitflow/features/home/home_screen.dart';
@@ -41,9 +47,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final isAuthRoute = state.matchedLocation == '/login' || state.matchedLocation == '/register';
       final isLoadingRoute = state.matchedLocation == '/loading';
       if (isLoadingRoute) return authNotifier.isLoggedIn ? '/home' : '/login';
+      if (!authNotifier.isLoggedIn && (state.matchedLocation.startsWith('/t/') || state.matchedLocation == '/t')) return null;
       if (!authNotifier.isLoggedIn && !isAuthRoute) return '/login';
       if (authNotifier.isLoggedIn && isAuthRoute) return '/home';
       if (state.matchedLocation == '/') return '/home';
+      //if (state.matchedLocation == '/trainer') return '/trainer/profile';
+      if (state.matchedLocation == '/trainer/calendar') return '/calendar';
       return null;
     },
     routes: [
@@ -102,14 +111,57 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               ),
               GoRoute(
                 path: 'workout/:id',
-                builder: (_, state) => ActiveWorkoutScreen(workoutId: state.pathParameters['id']!),
+                builder: (_, state) => ActiveWorkoutScreen(
+                  workoutId: state.pathParameters['id']!,
+                  readOnly: state.uri.queryParameters['readOnly'] == '1',
+                ),
+              ),
+              GoRoute(
+                path: 'trainer',
+                builder: (_, __) => const TrainerProfileScreen(),
+                //redirect: (_, state) => state.matchedLocation == '/trainer' ? '/trainer/profile' : null,
+                routes: [
+                  GoRoute(
+                    path: 'profile',
+                    builder: (_, __) => const TrainerProfileScreen(),
+                    routes: [
+                      GoRoute(path: 'edit', builder: (_, __) => const TrainerProfileEditScreen()),
+                    ],
+                  ),
+                  GoRoute(
+                    path: 'trainees',
+                    builder: (_, __) => const TrainerTraineesScreen(),
+                    routes: [
+                      GoRoute(
+                        path: ':clientId',
+                        builder: (_, state) => TraineeProfileScreen(
+                          clientId: state.pathParameters['clientId']!,
+                        ),
+                        routes: [
+                          GoRoute(
+                            path: 'progress',
+                            builder: (_, state) => TraineeProgressScreen(
+                              clientId: state.pathParameters['clientId']!,
+                              clientName: state.uri.queryParameters['name'],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  GoRoute(path: 'calendar', builder: (_, __) => const TrainerCalendarScreen()),
+                ],
               ),
             ],
           ),
           GoRoute(path: 'gym', builder: (_, __) => const GymScreen()),
-          GoRoute(path: 'trainer', builder: (_, __) => const TrainerScreen()),
+          GoRoute(path: 'my-trainers', builder: (_, __) => const MyTrainersScreen()),
           GoRoute(path: 'options', builder: (_, __) => const OptionsScreen()),
         ],
+      ),
+      GoRoute(
+        path: '/t/:userId',
+        builder: (_, state) => TrainerPublicScreen(userId: state.pathParameters['userId']!),
       ),
     ],
   );

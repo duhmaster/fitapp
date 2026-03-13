@@ -1,6 +1,8 @@
 package delivery
 
 import (
+	"context"
+	"io"
 	"net/http"
 	"strconv"
 	"time"
@@ -13,12 +15,87 @@ import (
 	"github.com/google/uuid"
 )
 
+// ClientProfileGym is a minimal gym info for client profile response.
+type ClientProfileGym = PublicProfileGym
+
+// ClientProfileMeasurement is a single body measurement in the client profile response.
+type ClientProfileMeasurement struct {
+	ID         string   `json:"id"`
+	RecordedAt string   `json:"recorded_at"`
+	WeightKg   float64  `json:"weight_kg"`
+	BodyFatPct *float64 `json:"body_fat_pct,omitempty"`
+	HeightCm   *float64 `json:"height_cm,omitempty"`
+}
+
 type Handler struct {
-	uc *usecase.TrainerUseCase
+	uc              *usecase.TrainerUseCase
+	profileResolver func(context.Context, uuid.UUID) (displayName, city, avatarURL string)
+	photoStore      interface {
+		Save(ctx context.Context, path string, r io.Reader, contentType string) (string, error)
+	}
+	getWorkoutCount func(context.Context, uuid.UUID) (int, error)
+	getGymsForUser  func(context.Context, uuid.UUID) ([]PublicProfileGym, error)
+
+	getLatestMetric      func(context.Context, uuid.UUID) (heightCm, weightKg *float64, err error)
+	getLatestBodyFat     func(context.Context, uuid.UUID) (*float64, error)
+	getBodyMeasurements  func(context.Context, uuid.UUID, int) ([]ClientProfileMeasurement, error)
+	getClientWorkouts    func(context.Context, uuid.UUID, int, int) ([]map[string]interface{}, error)
+
+	getClientExerciseIDs          func(context.Context, uuid.UUID) ([]string, error)
+	getClientExerciseVolumeHistory func(context.Context, uuid.UUID, uuid.UUID) ([]map[string]interface{}, error)
+}
+
+// PublicProfileGym is a minimal gym info for public trainer profile (avoids importing gym domain).
+type PublicProfileGym struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	City string `json:"city,omitempty"`
 }
 
 func NewHandler(uc *usecase.TrainerUseCase) *Handler {
 	return &Handler{uc: uc}
+}
+
+func (h *Handler) SetProfileResolver(fn func(context.Context, uuid.UUID) (displayName, city, avatarURL string)) {
+	h.profileResolver = fn
+}
+
+func (h *Handler) SetPublicProfileDeps(
+	getWorkoutCount func(context.Context, uuid.UUID) (int, error),
+	getGymsForUser func(context.Context, uuid.UUID) ([]PublicProfileGym, error),
+) {
+	h.getWorkoutCount = getWorkoutCount
+	h.getGymsForUser = getGymsForUser
+}
+
+func (h *Handler) SetPhotoStore(store interface {
+	Save(ctx context.Context, path string, r io.Reader, contentType string) (string, error)
+}) {
+	h.photoStore = store
+}
+
+func (h *Handler) SetClientProfileDeps(
+	getLatestMetric func(context.Context, uuid.UUID) (*float64, *float64, error),
+	getLatestBodyFat func(context.Context, uuid.UUID) (*float64, error),
+	getBodyMeasurements func(context.Context, uuid.UUID, int) ([]ClientProfileMeasurement, error),
+	getGymsForUser func(context.Context, uuid.UUID) ([]PublicProfileGym, error),
+	getClientWorkouts func(context.Context, uuid.UUID, int, int) ([]map[string]interface{}, error),
+) {
+	h.getLatestMetric = getLatestMetric
+	h.getLatestBodyFat = getLatestBodyFat
+	h.getBodyMeasurements = getBodyMeasurements
+	if getGymsForUser != nil {
+		h.getGymsForUser = getGymsForUser
+	}
+	h.getClientWorkouts = getClientWorkouts
+}
+
+func (h *Handler) SetClientProgressDeps(
+	getExerciseIDs func(context.Context, uuid.UUID) ([]string, error),
+	getExerciseVolumeHistory func(context.Context, uuid.UUID, uuid.UUID) ([]map[string]interface{}, error),
+) {
+	h.getClientExerciseIDs = getExerciseIDs
+	h.getClientExerciseVolumeHistory = getExerciseVolumeHistory
 }
 
 type TrainerClientResponse struct {
@@ -68,6 +145,256 @@ type UpdateProgramRequest struct {
 
 type AddCommentRequest struct {
 	Content string `json:"content" binding:"required"`
+}
+
+type TrainerProfileResponse struct {
+	AboutMe   string `json:"about_me"`
+	Contacts  string `json:"contacts"`
+	CreatedAt string `json:"created_at"`
+	UpdatedAt string `json:"updated_at"`
+}
+
+type TrainerPhotoResponse struct {
+	ID        string `json:"id"`
+	URL       string `json:"url"`
+	Position  int    `json:"position"`
+	CreatedAt string `json:"created_at"`
+}
+
+type UpdateTrainerProfileRequest struct {
+	AboutMe  string `json:"about_me"`
+	Contacts string `json:"contacts"`
+}
+
+type AddMyTrainerRequest struct {
+	TrainerID string `json:"trainer_id" binding:"required"`
+}
+
+type TrainerSearchItemResponse struct {
+	ID          string `json:"id"`
+	DisplayName string `json:"display_name"`
+	City        string `json:"city"`
+}
+
+func (h *Handler) GetMyTrainerProfile(c *gin.Context) {
+	user := getUser(c)
+	if user == nil {
+		return
+	}
+	p, err := h.uc.GetMyTrainerProfile(c.Request.Context(), user)
+	if err != nil {
+		if err == trainerdomain.ErrTrainerProfileNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "trainer profile not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, TrainerProfileResponse{
+		AboutMe:   p.AboutMe,
+		Contacts:  p.Contacts,
+		CreatedAt: p.CreatedAt.Format(time.RFC3339),
+		UpdatedAt: p.UpdatedAt.Format(time.RFC3339),
+	})
+}
+
+func (h *Handler) UpdateMyTrainerProfile(c *gin.Context) {
+	user := getUser(c)
+	if user == nil {
+		return
+	}
+	var req UpdateTrainerProfileRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	p, err := h.uc.UpdateMyTrainerProfile(c.Request.Context(), user, req.AboutMe, req.Contacts)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, TrainerProfileResponse{
+		AboutMe:   p.AboutMe,
+		Contacts:  p.Contacts,
+		CreatedAt: p.CreatedAt.Format(time.RFC3339),
+		UpdatedAt: p.UpdatedAt.Format(time.RFC3339),
+	})
+}
+
+func (h *Handler) ListMyTrainerPhotos(c *gin.Context) {
+	user := getUser(c)
+	if user == nil {
+		return
+	}
+	list, err := h.uc.ListMyTrainerPhotos(c.Request.Context(), user)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	out := make([]TrainerPhotoResponse, 0, len(list))
+	for _, ph := range list {
+		out = append(out, TrainerPhotoResponse{
+			ID:        ph.ID.String(),
+			URL:       ph.Path,
+			Position:  ph.Position,
+			CreatedAt: ph.CreatedAt.Format(time.RFC3339),
+		})
+	}
+	c.JSON(http.StatusOK, gin.H{"photos": out})
+}
+
+func (h *Handler) UploadTrainerPhoto(c *gin.Context) {
+	user := getUser(c)
+	if user == nil {
+		return
+	}
+	if h.photoStore == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "photo upload not configured"})
+		return
+	}
+	file, err := c.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "file required"})
+		return
+	}
+	if file.Size > 5*1024*1024 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "file too large (max 5MB)"})
+		return
+	}
+	ct := file.Header.Get("Content-Type")
+	if ct != "image/jpeg" && ct != "image/png" && ct != "image/webp" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid file type (jpeg, png, webp only)"})
+		return
+	}
+	f, err := file.Open()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to read file"})
+		return
+	}
+	defer f.Close()
+	path := "trainer_photos/" + user.ID.String() + "/" + uuid.New().String()
+	switch ct {
+	case "image/jpeg", "image/png":
+		path += ".jpg"
+	default:
+		path += ".webp"
+	}
+	url, err := h.photoStore.Save(c.Request.Context(), path, f, ct)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save photo"})
+		return
+	}
+	position := 0
+	if p := c.PostForm("position"); p != "" {
+		if n, e := strconv.Atoi(p); e == nil {
+			position = n
+		}
+	}
+	ph, err := h.uc.AddTrainerPhoto(c.Request.Context(), user, url, position)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusCreated, TrainerPhotoResponse{
+		ID:        ph.ID.String(),
+		URL:       ph.Path,
+		Position:  ph.Position,
+		CreatedAt: ph.CreatedAt.Format(time.RFC3339),
+	})
+}
+
+func (h *Handler) DeleteTrainerPhoto(c *gin.Context) {
+	user := getUser(c)
+	if user == nil {
+		return
+	}
+	photoID, ok := parseUUIDParam(c, "photo_id")
+	if !ok {
+		return
+	}
+	if err := h.uc.DeleteTrainerPhoto(c.Request.Context(), user, photoID); err != nil {
+		if err == trainerdomain.ErrTrainerPhotoNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
+func (h *Handler) SearchTrainers(c *gin.Context) {
+	q := c.Query("q")
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	ids, err := h.uc.SearchTrainerUserIDs(c.Request.Context(), q, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	out := make([]TrainerSearchItemResponse, 0, len(ids))
+	for _, id := range ids {
+		displayName, city := "", ""
+		if h.profileResolver != nil {
+			displayName, city, _ = h.profileResolver(c.Request.Context(), id)
+		}
+		out = append(out, TrainerSearchItemResponse{
+			ID:          id.String(),
+			DisplayName: displayName,
+			City:        city,
+		})
+	}
+	c.JSON(http.StatusOK, gin.H{"trainers": out})
+}
+
+func (h *Handler) AddMyTrainer(c *gin.Context) {
+	user := getUser(c)
+	if user == nil {
+		return
+	}
+	var req AddMyTrainerRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	trainerID, err := uuid.Parse(req.TrainerID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid trainer_id"})
+		return
+	}
+	tc, err := h.uc.AddMyTrainer(c.Request.Context(), user, trainerID)
+	if err != nil {
+		if err == trainerdomain.ErrTrainerProfileNotFound {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "trainer not found"})
+			return
+		}
+		if err == trainerdomain.ErrAlreadyClient {
+			c.JSON(http.StatusConflict, gin.H{"error": "already added"})
+			return
+		}
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusCreated, toTrainerClientResponse(tc))
+}
+
+func (h *Handler) RemoveMyTrainer(c *gin.Context) {
+	user := getUser(c)
+	if user == nil {
+		return
+	}
+	trainerID, ok := parseUUIDParam(c, "trainer_id")
+	if !ok {
+		return
+	}
+	if err := h.uc.RemoveMyTrainer(c.Request.Context(), user, trainerID); err != nil {
+		if err == trainerdomain.ErrTrainerClientNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "not linked"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.Status(http.StatusNoContent)
 }
 
 func (h *Handler) AddClient(c *gin.Context) {
@@ -142,6 +469,157 @@ func (h *Handler) SetClientStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, toTrainerClientResponse(tc))
 }
 
+func (h *Handler) RemoveClient(c *gin.Context) {
+	trainer := getUser(c)
+	if trainer == nil {
+		return
+	}
+	clientID, ok := parseUUIDParam(c, "client_id")
+	if !ok {
+		return
+	}
+	if err := h.uc.RemoveClient(c.Request.Context(), trainer, clientID); err != nil {
+		if err == trainerdomain.ErrTrainerClientNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
+func (h *Handler) GetClientProfile(c *gin.Context) {
+	trainer := getUser(c)
+	if trainer == nil {
+		return
+	}
+	clientID, ok := parseUUIDParam(c, "client_id")
+	if !ok {
+		return
+	}
+	ctx := c.Request.Context()
+
+	ok2, err := h.uc.IsClientOfTrainer(ctx, trainer.ID, clientID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if !ok2 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "client not found"})
+		return
+	}
+
+	out := map[string]interface{}{
+		"client_id": clientID.String(),
+	}
+
+	if h.profileResolver != nil {
+		dn, city, avatarURL := h.profileResolver(ctx, clientID)
+		out["display_name"] = dn
+		out["city"] = city
+		out["avatar_url"] = avatarURL
+	}
+
+	if h.getLatestMetric != nil {
+		heightCm, weightKg, _ := h.getLatestMetric(ctx, clientID)
+		if heightCm != nil {
+			out["height_cm"] = *heightCm
+		}
+		if weightKg != nil {
+			out["weight_kg"] = *weightKg
+		}
+	}
+
+	if h.getLatestBodyFat != nil {
+		bodyFat, _ := h.getLatestBodyFat(ctx, clientID)
+		if bodyFat != nil {
+			out["body_fat_pct"] = *bodyFat
+		}
+	}
+
+	if h.getBodyMeasurements != nil {
+		measurements, _ := h.getBodyMeasurements(ctx, clientID, 100)
+		out["measurements"] = measurements
+	}
+
+	if h.getGymsForUser != nil {
+		gyms, _ := h.getGymsForUser(ctx, clientID)
+		out["gyms"] = gyms
+	}
+
+	if h.getClientWorkouts != nil {
+		workouts, _ := h.getClientWorkouts(ctx, clientID, 200, 0)
+		out["workouts"] = workouts
+	}
+
+	c.JSON(http.StatusOK, out)
+}
+
+func (h *Handler) GetClientProgressExerciseIDs(c *gin.Context) {
+	trainer := getUser(c)
+	if trainer == nil {
+		return
+	}
+	clientID, ok := parseUUIDParam(c, "client_id")
+	if !ok {
+		return
+	}
+	ok2, err := h.uc.IsClientOfTrainer(c.Request.Context(), trainer.ID, clientID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if !ok2 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "client not found"})
+		return
+	}
+	if h.getClientExerciseIDs == nil {
+		c.JSON(http.StatusOK, gin.H{"exercise_ids": []string{}})
+		return
+	}
+	ids, err := h.getClientExerciseIDs(c.Request.Context(), clientID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"exercise_ids": ids})
+}
+
+func (h *Handler) GetClientExerciseVolumeHistory(c *gin.Context) {
+	trainer := getUser(c)
+	if trainer == nil {
+		return
+	}
+	clientID, ok := parseUUIDParam(c, "client_id")
+	if !ok {
+		return
+	}
+	exerciseID, ok := parseUUIDParam(c, "exercise_id")
+	if !ok {
+		return
+	}
+	ok2, err := h.uc.IsClientOfTrainer(c.Request.Context(), trainer.ID, clientID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if !ok2 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "client not found"})
+		return
+	}
+	if h.getClientExerciseVolumeHistory == nil {
+		c.JSON(http.StatusOK, gin.H{"history": []interface{}{}})
+		return
+	}
+	history, err := h.getClientExerciseVolumeHistory(c.Request.Context(), clientID, exerciseID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"history": history})
+}
+
 func (h *Handler) ListMyClients(c *gin.Context) {
 	trainer := getUser(c)
 	if trainer == nil {
@@ -158,9 +636,21 @@ func (h *Handler) ListMyClients(c *gin.Context) {
 		return
 	}
 
-	out := make([]TrainerClientResponse, 0, len(list))
+	out := make([]map[string]interface{}, 0, len(list))
 	for _, tc := range list {
-		out = append(out, toTrainerClientResponse(tc))
+		m := map[string]interface{}{
+			"id":         tc.ID.String(),
+			"trainer_id": tc.TrainerID.String(),
+			"client_id":  tc.ClientID.String(),
+			"status":     tc.Status,
+			"created_at": tc.CreatedAt.Format(time.RFC3339),
+		}
+		if h.profileResolver != nil {
+			dn, city, _ := h.profileResolver(c.Request.Context(), tc.ClientID)
+			m["display_name"] = dn
+			m["city"] = city
+		}
+		out = append(out, m)
 	}
 	c.JSON(http.StatusOK, gin.H{"clients": out})
 }
@@ -181,11 +671,107 @@ func (h *Handler) ListMyTrainers(c *gin.Context) {
 		return
 	}
 
-	out := make([]TrainerClientResponse, 0, len(list))
+	out := make([]map[string]interface{}, 0, len(list))
 	for _, tc := range list {
-		out = append(out, toTrainerClientResponse(tc))
+		m := map[string]interface{}{
+			"trainer_id": tc.TrainerID.String(),
+			"client_id":  tc.ClientID.String(),
+			"status":     tc.Status,
+			"created_at": tc.CreatedAt.Format(time.RFC3339),
+		}
+		if h.profileResolver != nil {
+			dn, city, _ := h.profileResolver(c.Request.Context(), tc.TrainerID)
+			m["display_name"] = dn
+			m["city"] = city
+		}
+		out = append(out, m)
 	}
 	c.JSON(http.StatusOK, gin.H{"trainers": out})
+}
+
+// TrainerPublicProfileResponse is the response for GET /trainers/:user_id (no auth).
+type TrainerPublicProfileResponse struct {
+	UserID        string                   `json:"user_id"`
+	DisplayName   string                   `json:"display_name"`
+	City          string                   `json:"city"`
+	AvatarURL     string                   `json:"avatar_url"`
+	AboutMe       string                   `json:"about_me"`
+	Contacts      string                   `json:"contacts"`
+	ProfileLink   string                   `json:"profile_link"`
+	Photos        []TrainerPhotoResponse   `json:"photos"`
+	TraineesCount int                      `json:"trainees_count"`
+	WorkoutsCount int                      `json:"workouts_count"`
+	Rating        *float64                 `json:"rating,omitempty"`
+	Gyms          []PublicProfileGym       `json:"gyms"`
+}
+
+func (h *Handler) GetTrainerPublic(c *gin.Context) {
+	userID, ok := parseUUIDParam(c, "user_id")
+	if !ok {
+		return
+	}
+	ctx := c.Request.Context()
+
+	profile, err := h.uc.GetTrainerProfileByUserID(ctx, userID)
+	if err != nil {
+		if err == trainerdomain.ErrTrainerProfileNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "trainer not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	displayName, city, avatarURL := "", "", ""
+	if h.profileResolver != nil {
+		displayName, city, avatarURL = h.profileResolver(ctx, userID)
+	}
+
+	photos, _ := h.uc.ListTrainerPhotosByUserID(ctx, userID)
+	photoResp := make([]TrainerPhotoResponse, 0, len(photos))
+	for _, ph := range photos {
+		photoResp = append(photoResp, TrainerPhotoResponse{
+			ID:        ph.ID.String(),
+			URL:       ph.Path,
+			Position:  ph.Position,
+			CreatedAt: ph.CreatedAt.Format(time.RFC3339),
+		})
+	}
+
+	traineesCount, _ := h.uc.CountTrainees(ctx, userID)
+	workoutsCount := 0
+	if h.getWorkoutCount != nil {
+		workoutsCount, _ = h.getWorkoutCount(ctx, userID)
+	}
+	var gyms []PublicProfileGym
+	if h.getGymsForUser != nil {
+		gyms, _ = h.getGymsForUser(ctx, userID)
+	}
+	if gyms == nil {
+		gyms = []PublicProfileGym{}
+	}
+
+	scheme := "https"
+	if c.GetHeader("X-Forwarded-Proto") == "http" || c.Request.URL.Scheme == "http" {
+		scheme = "http"
+	}
+	profileLink := scheme + "://" + c.Request.Host + "/t/" + userID.String()
+
+	resp := TrainerPublicProfileResponse{
+		UserID:        userID.String(),
+		DisplayName:   displayName,
+		City:          city,
+		AvatarURL:     avatarURL,
+		AboutMe:       profile.AboutMe,
+		Contacts:      profile.Contacts,
+		ProfileLink:   profileLink,
+		Photos:        photoResp,
+		TraineesCount: traineesCount,
+		WorkoutsCount: workoutsCount,
+		Rating:        nil,
+		Gyms:          gyms,
+	}
+	c.JSON(http.StatusOK, resp)
 }
 
 func (h *Handler) CreateProgram(c *gin.Context) {
@@ -385,7 +971,7 @@ func (h *Handler) AddComment(c *gin.Context) {
 }
 
 func (h *Handler) ListComments(c *gin.Context) {
-	trainerID, ok := parseUUIDParam(c, "trainer_id")
+	trainerID, ok := parseUUIDParam(c, "user_id")
 	if !ok {
 		return
 	}

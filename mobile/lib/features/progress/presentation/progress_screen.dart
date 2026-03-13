@@ -168,7 +168,7 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
           color: Theme.of(context).colorScheme.primary,
           barWidth: 2,
           dotData: FlDotData(show: values.length <= 20),
-          belowBarData: BarAreaData(show: true, color: Theme.of(context).colorScheme.primary.withOpacity(0.1)),
+          belowBarData: BarAreaData(show: true, color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)),
         ),
       ],
     );

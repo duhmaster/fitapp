@@ -140,7 +140,7 @@ class _ProgressWorkoutsScreenState extends ConsumerState<ProgressWorkoutsScreen>
       titlesData: FlTitlesData(show: false),
       borderData: FlBorderData(show: true),
       minX: 0,
-      maxX: (values.length - 1).clamp(0, 1).toDouble(),
+      maxX: (values.length - 1).clamp(1, double.infinity).toDouble(),
       minY: minY,
       maxY: maxY,
       lineBarsData: [
@@ -150,7 +150,7 @@ class _ProgressWorkoutsScreenState extends ConsumerState<ProgressWorkoutsScreen>
           color: Theme.of(context).colorScheme.primary,
           barWidth: 2,
           dotData: FlDotData(show: values.length <= 20),
-          belowBarData: BarAreaData(show: true, color: Theme.of(context).colorScheme.primary.withOpacity(0.1)),
+          belowBarData: BarAreaData(show: true, color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)),
         ),
       ],
     );

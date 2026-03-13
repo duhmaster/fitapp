@@ -91,6 +91,7 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
           ),
           ListTile(leading: const Icon(Icons.person), title: Text(tr('profile')), onTap: () => _drawerNavigate(context, () => _go(context, '/profile'))),
           ListTile(leading: const Icon(Icons.fitness_center), title: Text(tr('my_gyms')), onTap: () => _drawerNavigate(context, () => _push(context, '/gym'))),
+          ListTile(leading: const Icon(Icons.sports_martial_arts), title: const Text('Мои тренеры'), onTap: () => _drawerNavigate(context, () => _push(context, '/my-trainers'))),
           ExpansionTile(
             leading: const Icon(Icons.directions_run),
             title: Text(tr('my_workouts')),
@@ -105,7 +106,15 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
           if (_showHiddenMenuItems) ListTile(leading: const Icon(Icons.timer), title: Text(tr('timers')), onTap: () => _drawerNavigate(context, () => _push(context, '/timers'))),
           ListTile(leading: const Icon(Icons.show_chart), title: Text(tr('progress')), onTap: () => _drawerNavigate(context, () => _go(context, '/progress'))),
           if (_showHiddenMenuItems) ListTile(leading: const Icon(Icons.dynamic_feed), title: Text(tr('feed')), onTap: () => _drawerNavigate(context, () => _go(context, '/feed'))),
-          if (_showHiddenMenuItems) ListTile(leading: const Icon(Icons.sports_gymnastics), title: Text(tr('trainer')), onTap: () => _drawerNavigate(context, () => _push(context, '/trainer'))),
+          ExpansionTile(
+            leading: const Icon(Icons.sports_gymnastics),
+            title: Text(tr('trainer')),
+            children: [
+              ListTile(leading: const Icon(Icons.person, size: 20), title: const Text('Профиль'), onTap: () => _drawerNavigate(context, () => _push(context, '/trainer/profile'))),
+              ListTile(leading: const Icon(Icons.people, size: 20), title: const Text('Подопечные'), onTap: () => _drawerNavigate(context, () => _push(context, '/trainer/trainees'))),
+              ListTile(leading: const Icon(Icons.calendar_month, size: 20), title: Text(tr('calendar')), onTap: () => _drawerNavigate(context, () => _push(context, '/calendar'))),
+            ],
+          ),
           ListTile(leading: const Icon(Icons.help_outline), title: Text(tr('help')), onTap: () => _drawerNavigate(context, () => _push(context, '/help'))),
           ListTile(leading: const Icon(Icons.settings), title: Text(tr('options')), onTap: () => _drawerNavigate(context, () => _push(context, '/options'))),
         ],

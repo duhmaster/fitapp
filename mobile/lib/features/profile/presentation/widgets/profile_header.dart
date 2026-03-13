@@ -85,11 +85,14 @@ class ProfileHeader extends ConsumerWidget {
             children: [
               Icon(Icons.location_on_outlined, size: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
               const SizedBox(width: 4),
-              Text(
-                city!,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+              Flexible(
+                child: Text(
+                  city!,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),

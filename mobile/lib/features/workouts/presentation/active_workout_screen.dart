@@ -10,8 +10,9 @@ import 'package:fitflow/features/workouts/presentation/workouts_provider.dart';
 import 'package:fitflow/features/templates/template_edit_screen.dart';
 
 class ActiveWorkoutScreen extends ConsumerStatefulWidget {
-  const ActiveWorkoutScreen({super.key, required this.workoutId});
+  const ActiveWorkoutScreen({super.key, required this.workoutId, this.readOnly = false});
   final String workoutId;
+  final bool readOnly;
 
   @override
   ConsumerState<ActiveWorkoutScreen> createState() => _ActiveWorkoutScreenState();
@@ -74,12 +75,14 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
   }
 
   Widget _buildWithoutTemplate(BuildContext context, String Function(String) tr, WorkoutDetail detail) {
+    final title = detail.templateName ??
+        (widget.readOnly ? tr('workout_detail') : tr('active_workout'));
     return Column(
       children: [
         AppBar(
-          title: Text(detail.templateName ?? tr('active_workout')),
+          title: Text(title),
           actions: [
-            if (!detail.workout.isCompleted)
+            if (!widget.readOnly && !detail.workout.isCompleted)
               TextButton(
                 onPressed: _finishing ? null : () => _finishWorkout(tr),
                 child: _finishing
@@ -88,17 +91,77 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
               ),
           ],
         ),
-        Expanded(
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Text(
-                detail.exercises.isEmpty ? tr('no_exercises_in_workout') : tr('tap_edit_to_update'),
-                textAlign: TextAlign.center,
+        if (detail.exercises.isEmpty)
+          Expanded(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(tr('no_exercises_in_workout'), textAlign: TextAlign.center),
+              ),
+            ),
+          )
+        else
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    _formatWorkoutDate(detail.workout),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text('${tr('volume_completed')}: ${detail.volumeKg.toStringAsFixed(0)} kg'),
+                  const SizedBox(height: 16),
+                  ...detail.exercises.map((ex) {
+                    final logsForEx = detail.logs.where((l) => l.exerciseId == ex.exerciseId).toList()
+                      ..sort((a, b) => a.setNumber.compareTo(b.setNumber));
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              ex.exerciseId.length > 8 ? ex.exerciseId.substring(0, 8) : ex.exerciseId,
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                            if (logsForEx.isEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8),
+                                child: Text(tr('not_started'),
+                                    style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                              )
+                            else
+                              ...logsForEx.map((log) {
+                                final isCompleted = (log.reps ?? 0) > 0;
+                                return ListTile(
+                                  dense: true,
+                                  contentPadding: EdgeInsets.zero,
+                                  leading: Icon(
+                                    isCompleted ? Icons.check_circle : Icons.cancel,
+                                    color: isCompleted ? Colors.green : Colors.red,
+                                    size: 20,
+                                  ),
+                                  title: Text('${tr('set_number')} ${log.setNumber}'),
+                                  trailing: Text(
+                                    '${log.weightKg?.toStringAsFixed(0) ?? "—"} kg × ${log.reps ?? "—"}',
+                                  ),
+                                );
+                              }),
+                          ],
+                        ),
+                      ),
+                    );
+                  }),
+                ],
               ),
             ),
           ),
-        ),
       ],
     );
   }
@@ -144,7 +207,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
         AppBar(
           title: Text(template.name),
           actions: [
-            if (!detail.workout.isCompleted)
+            if (!widget.readOnly && !detail.workout.isCompleted)
               TextButton(
                 onPressed: _finishing ? null : () => _finishWorkout(tr),
                 child: _finishing
@@ -279,29 +342,31 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                   ),
                 ] else if (nextSetToLog >= setCount && setCount > 0) ...[
                   Text(tr('exercise_completed'), style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(height: 12),
-                  if (_currentExerciseIndex < planned.length - 1)
-                    FilledButton(
-                      onPressed: () => setState(() {
-                        _currentExerciseIndex++;
-                        _currentSetIndex = 0;
-                        _weightController.clear();
-                        _repsController.clear();
-                        _lastPrefilledKey = '';
-                      }),
-                      child: Text(tr('continue_workout')),
-                    )
-                  else
-                    FilledButton(
-                      onPressed: _finishing ? null : () => _finishWorkout(tr),
-                      child: Text(tr('finish_workout')),
-                    ),
+                  if (!widget.readOnly) ...[
+                    const SizedBox(height: 12),
+                    if (_currentExerciseIndex < planned.length - 1)
+                      FilledButton(
+                        onPressed: () => setState(() {
+                          _currentExerciseIndex++;
+                          _currentSetIndex = 0;
+                          _weightController.clear();
+                          _repsController.clear();
+                          _lastPrefilledKey = '';
+                        }),
+                        child: Text(tr('continue_workout')),
+                      )
+                    else
+                      FilledButton(
+                        onPressed: _finishing ? null : () => _finishWorkout(tr),
+                        child: Text(tr('finish_workout')),
+                      ),
+                  ],
                 ],
               ],
             ),
           ),
         ),
-        if (showSetPanel)
+        if (showSetPanel && !widget.readOnly)
           Material(
             elevation: 8,
             child: SafeArea(

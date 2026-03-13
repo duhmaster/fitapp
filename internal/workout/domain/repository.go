@@ -20,9 +20,11 @@ type ExerciseFilters struct {
 }
 
 type WorkoutRepository interface {
-	Create(ctx context.Context, userID uuid.UUID, templateID *uuid.UUID, programID *uuid.UUID, scheduledAt *time.Time) (*Workout, error)
+	Create(ctx context.Context, userID uuid.UUID, trainerID *uuid.UUID, templateID *uuid.UUID, programID *uuid.UUID, scheduledAt *time.Time) (*Workout, error)
 	GetByID(ctx context.Context, id uuid.UUID) (*Workout, error)
 	ListByUserID(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*Workout, error)
+	ListByTrainerID(ctx context.Context, trainerID uuid.UUID, limit, offset int) ([]*Workout, error)
+	CountByTrainerID(ctx context.Context, trainerID uuid.UUID) (int, error)
 	Start(ctx context.Context, id uuid.UUID, at time.Time) (*Workout, error)
 	Finish(ctx context.Context, id uuid.UUID, at time.Time) (*Workout, error)
 	Delete(ctx context.Context, id uuid.UUID) error

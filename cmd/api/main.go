@@ -160,8 +160,148 @@ func run() error {
 	trainerClientRepo := trainerrepository.NewTrainerClientRepository(db)
 	trainingProgramRepo := trainerrepository.NewTrainingProgramRepository(db)
 	trainerCommentRepo := trainerrepository.NewTrainerCommentRepository(db)
-	trainerUC := trainerusecase.NewTrainerUseCase(trainerClientRepo, trainingProgramRepo, trainerCommentRepo)
+	trainerProfileRepo := trainerrepository.NewTrainerProfileRepository(db)
+	trainerPhotoRepo := trainerrepository.NewTrainerPhotoRepository(db)
+	trainerUC := trainerusecase.NewTrainerUseCase(trainerClientRepo, trainingProgramRepo, trainerCommentRepo, trainerProfileRepo, trainerPhotoRepo)
+	workoutUC.SetTrainerChecker(trainerUC)
 	trainerHandler := trainerdelivery.NewHandler(trainerUC)
+	trainerHandler.SetProfileResolver(func(ctx context.Context, userID uuid.UUID) (displayName, city, avatarURL string) {
+		p, err := profileRepo.GetByUserID(ctx, userID)
+		if err != nil || p == nil {
+			return "", "", ""
+		}
+		return p.DisplayName, p.City, p.AvatarURL
+	})
+	trainerHandler.SetPublicProfileDeps(
+		func(ctx context.Context, trainerID uuid.UUID) (int, error) { return workoutUC.CountByTrainerID(ctx, trainerID) },
+		func(ctx context.Context, userID uuid.UUID) ([]trainerdelivery.PublicProfileGym, error) {
+			gyms, err := gymUC.ListGymsByUserID(ctx, userID)
+			if err != nil {
+				return nil, err
+			}
+			out := make([]trainerdelivery.PublicProfileGym, 0, len(gyms))
+			for _, g := range gyms {
+				out = append(out, trainerdelivery.PublicProfileGym{ID: g.ID.String(), Name: g.Name, City: g.City})
+			}
+			return out, nil
+		},
+	)
+	trainerHandler.SetPhotoStore(store)
+	trainerHandler.SetClientProfileDeps(
+		func(ctx context.Context, userID uuid.UUID) (*float64, *float64, error) {
+			m, err := metricRepo.GetLatestByUserID(ctx, userID)
+			if err != nil || m == nil {
+				return nil, nil, err
+			}
+			return m.HeightCm, m.WeightKg, nil
+		},
+		func(ctx context.Context, userID uuid.UUID) (*float64, error) {
+			list, err := bodyFatRepo.ListByUserID(ctx, userID, 1, 0)
+			if err != nil || len(list) == 0 {
+				return nil, err
+			}
+			return &list[0].BodyFatPct, nil
+		},
+		func(ctx context.Context, userID uuid.UUID, limit int) ([]trainerdelivery.ClientProfileMeasurement, error) {
+			list, err := bodyMeasurementRepo.ListByUserID(ctx, userID, limit)
+			if err != nil {
+				return nil, err
+			}
+			out := make([]trainerdelivery.ClientProfileMeasurement, 0, len(list))
+			for _, m := range list {
+				out = append(out, trainerdelivery.ClientProfileMeasurement{
+					ID:         m.ID.String(),
+					RecordedAt: m.RecordedAt.Format(time.RFC3339),
+					WeightKg:   m.WeightKg,
+					BodyFatPct: m.BodyFatPct,
+					HeightCm:   m.HeightCm,
+				})
+			}
+			return out, nil
+		},
+		func(ctx context.Context, userID uuid.UUID) ([]trainerdelivery.PublicProfileGym, error) {
+			gyms, err := gymUC.ListGymsByUserID(ctx, userID)
+			if err != nil {
+				return nil, err
+			}
+			out := make([]trainerdelivery.PublicProfileGym, 0, len(gyms))
+			for _, g := range gyms {
+				out = append(out, trainerdelivery.PublicProfileGym{ID: g.ID.String(), Name: g.Name, City: g.City})
+			}
+			return out, nil
+		},
+		func(ctx context.Context, userID uuid.UUID, limit, offset int) ([]map[string]interface{}, error) {
+			list, err := workoutRepo.ListByUserID(ctx, userID, limit, offset)
+			if err != nil {
+				return nil, err
+			}
+			out := make([]map[string]interface{}, 0, len(list))
+			for _, w := range list {
+				m := map[string]interface{}{
+					"id":         w.ID.String(),
+					"user_id":    w.UserID.String(),
+					"created_at": w.CreatedAt.Format(time.RFC3339),
+				}
+				if w.TemplateID != nil {
+					m["template_id"] = w.TemplateID.String()
+				}
+				if w.ProgramID != nil {
+					m["program_id"] = w.ProgramID.String()
+				}
+				if w.TrainerID != nil {
+					m["trainer_id"] = w.TrainerID.String()
+				}
+				if w.ScheduledAt != nil {
+					m["scheduled_at"] = w.ScheduledAt.Format(time.RFC3339)
+				}
+				if w.StartedAt != nil {
+					m["started_at"] = w.StartedAt.Format(time.RFC3339)
+				}
+				if w.FinishedAt != nil {
+					m["finished_at"] = w.FinishedAt.Format(time.RFC3339)
+				}
+				logs, _ := exerciseLogRepo.ListByWorkoutID(ctx, w.ID)
+				var volume float64
+				for _, l := range logs {
+					if l.Reps != nil && l.WeightKg != nil && *l.Reps > 0 {
+						volume += float64(*l.Reps) * *l.WeightKg
+					}
+				}
+				m["volume_kg"] = volume
+				out = append(out, m)
+			}
+			return out, nil
+		},
+	)
+
+	trainerHandler.SetClientProgressDeps(
+		func(ctx context.Context, userID uuid.UUID) ([]string, error) {
+			ids, err := exerciseLogRepo.ListDistinctExerciseIDsForUser(ctx, userID)
+			if err != nil {
+				return nil, err
+			}
+			out := make([]string, 0, len(ids))
+			for _, id := range ids {
+				out = append(out, id.String())
+			}
+			return out, nil
+		},
+		func(ctx context.Context, userID, exerciseID uuid.UUID) ([]map[string]interface{}, error) {
+			entries, err := exerciseLogRepo.ListVolumeHistoryByExerciseForUser(ctx, userID, exerciseID)
+			if err != nil {
+				return nil, err
+			}
+			out := make([]map[string]interface{}, 0, len(entries))
+			for _, e := range entries {
+				out = append(out, map[string]interface{}{
+					"workout_id":   e.WorkoutID.String(),
+					"workout_date": e.WorkoutDate.Format(time.RFC3339),
+					"volume_kg":    e.VolumeKg,
+				})
+			}
+			return out, nil
+		},
+	)
 
 	// Notification module
 	notificationRepo := notificationrepository.NewNotificationRepository(db)

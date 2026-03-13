@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fitflow/core/locale/locale_provider.dart';
 import 'package:fitflow/features/gym/data/gym_repository.dart';
+import 'package:fitflow/features/trainer/data/trainer_repository.dart';
 import 'package:fitflow/features/workouts/data/workout_repository.dart';
 import 'package:fitflow/features/workouts/presentation/workouts_provider.dart';
 import 'package:fitflow/features/templates/templates_provider.dart';
@@ -21,6 +22,9 @@ Future<void> showTemplatePickerDialog(
   selectedDate = DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
 
   Gym? selectedGym;
+  MyTrainerItem? selectedTrainer;
+  if (!context.mounted) return;
+  final myTrainers = await ref.read(trainerRepositoryProvider).listMyTrainers();
   if (!context.mounted) return;
   await showDialog<void>(
     context: context,
@@ -30,9 +34,8 @@ Future<void> showTemplatePickerDialog(
         builder: (context, setState) {
           return AlertDialog(
             title: Text(tr('start_from_template')),
-            content: SizedBox(
-              width: 400,
-              height: maxHeight,
+            content: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: 400, maxHeight: maxHeight),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -89,6 +92,39 @@ Future<void> showTemplatePickerDialog(
                       ),
                     ),
                   ),
+                  if (myTrainers.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    Text('Тренер', style: Theme.of(context).textTheme.labelLarge),
+                    const SizedBox(height: 4),
+                    InkWell(
+                      onTap: () async {
+                        final t = await _showTrainerPicker(ctx, ref, myTrainers);
+                        if (t != null) setState(() => selectedTrainer = t);
+                      },
+                      child: InputDecorator(
+                        decoration: InputDecoration(
+                          border: const OutlineInputBorder(),
+                          suffixIcon: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (selectedTrainer != null)
+                                IconButton(
+                                  icon: const Icon(Icons.clear, size: 20),
+                                  onPressed: () => setState(() => selectedTrainer = null),
+                                ),
+                              const Icon(Icons.sports_gymnastics),
+                            ],
+                          ),
+                        ),
+                        child: Text(
+                          selectedTrainer != null
+                              ? '${selectedTrainer!.city ?? ''} — ${selectedTrainer!.displayName ?? selectedTrainer!.trainerId}'
+                              : tr('gym_optional'),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 16),
                   Text(tr('template'), style: Theme.of(context).textTheme.labelLarge),
                   const SizedBox(height: 4),
@@ -105,7 +141,7 @@ Future<void> showTemplatePickerDialog(
                             return ListTile(
                               title: Text(t.name, overflow: TextOverflow.ellipsis),
                               subtitle: Text('${tr('exercises_count')}: ${t.exercisesCount}'),
-                              onTap: () => _onTemplateSelected(ctx, ref, context, t, selectedDate),
+                              onTap: () => _onTemplateSelected(ctx, ref, context, t, selectedDate, selectedTrainer),
                             );
                           },
                         );
@@ -201,12 +237,37 @@ String _formatDate(DateTime d) {
   return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 }
 
+Future<MyTrainerItem?> _showTrainerPicker(BuildContext context, WidgetRef ref, List<MyTrainerItem> trainers) async {
+  return showDialog<MyTrainerItem>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Тренер'),
+      content: SizedBox(
+        width: 320,
+        child: ListView.builder(
+          shrinkWrap: true,
+          itemCount: trainers.length,
+          itemBuilder: (_, i) {
+            final t = trainers[i];
+            final line = (t.city?.isNotEmpty == true ? '${t.city} — ' : '') + (t.displayName ?? t.trainerId);
+            return ListTile(title: Text(line), onTap: () => Navigator.pop(ctx, t));
+          },
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx), child: Text(ref.read(trProvider)('cancel'))),
+      ],
+    ),
+  );
+}
+
 Future<void> _onTemplateSelected(
   BuildContext dialogContext,
   WidgetRef ref,
   BuildContext context,
   WorkoutTemplate t,
   DateTime selectedDate,
+  MyTrainerItem? selectedTrainer,
 ) async {
   Navigator.of(dialogContext).pop();
   final repo = ref.read(workoutRepositoryProvider);
@@ -218,7 +279,11 @@ Future<void> _onTemplateSelected(
     if (isToday) {
       w = await repo.startWorkoutFromTemplate(t.id);
     } else {
-      w = await repo.createWorkout(templateId: t.id, scheduledAt: scheduledStr);
+      w = await repo.createWorkout(
+        templateId: t.id,
+        scheduledAt: scheduledStr,
+        trainerId: selectedTrainer?.trainerId,
+      );
     }
     ref.invalidate(workoutsListProvider);
     ref.invalidate(templatesListProvider);

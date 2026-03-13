@@ -59,6 +59,7 @@ type WorkoutResponse struct {
 	TemplateID  *string  `json:"template_id,omitempty"`
 	ProgramID   *string  `json:"program_id,omitempty"`
 	UserID      string   `json:"user_id"`
+	TrainerID   *string  `json:"trainer_id,omitempty"`
 	ScheduledAt *string  `json:"scheduled_at,omitempty"`
 	StartedAt   *string  `json:"started_at,omitempty"`
 	FinishedAt  *string  `json:"finished_at,omitempty"`
@@ -90,6 +91,7 @@ type ExerciseLogResponse struct {
 type CreateWorkoutRequest struct {
 	TemplateID  *string `json:"template_id"`
 	ProgramID   *string `json:"program_id"`
+	TrainerID   *string `json:"trainer_id"`
 	ScheduledAt *string `json:"scheduled_at"`
 }
 
@@ -228,6 +230,15 @@ func (h *Handler) CreateWorkout(c *gin.Context) {
 		}
 		programID = &id
 	}
+	var trainerID *uuid.UUID
+	if req.TrainerID != nil && *req.TrainerID != "" {
+		id, err := uuid.Parse(*req.TrainerID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid trainer_id"})
+			return
+		}
+		trainerID = &id
+	}
 
 	var scheduledAt *time.Time
 	if req.ScheduledAt != nil && *req.ScheduledAt != "" {
@@ -239,12 +250,31 @@ func (h *Handler) CreateWorkout(c *gin.Context) {
 		scheduledAt = &t
 	}
 
-	w, err := h.uc.CreateWorkout(c.Request.Context(), user, templateID, programID, scheduledAt)
+	w, err := h.uc.CreateWorkout(c.Request.Context(), user, trainerID, templateID, programID, scheduledAt)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	c.JSON(http.StatusCreated, toWorkoutResponse(w))
+}
+
+func (h *Handler) ListMyTrainerWorkouts(c *gin.Context) {
+	user := getUser(c)
+	if user == nil {
+		return
+	}
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+	list, err := h.uc.ListWorkoutsByTrainerID(c.Request.Context(), user.ID, limit, offset)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list workouts"})
+		return
+	}
+	out := make([]WorkoutResponse, 0, len(list))
+	for _, w := range list {
+		out = append(out, toWorkoutResponse(w))
+	}
+	c.JSON(http.StatusOK, gin.H{"workouts": out})
 }
 
 func (h *Handler) ListMyWorkouts(c *gin.Context) {
@@ -1024,7 +1054,7 @@ func toProgramResponse(p *workoutdomain.Program) ProgramResponse {
 }
 
 func toWorkoutResponse(w *workoutdomain.Workout) WorkoutResponse {
-	var tid, pid, scheduledAt, startedAt, finishedAt *string
+	var tid, pid, trainerID, scheduledAt, startedAt, finishedAt *string
 	if w.TemplateID != nil {
 		s := w.TemplateID.String()
 		tid = &s
@@ -1032,6 +1062,10 @@ func toWorkoutResponse(w *workoutdomain.Workout) WorkoutResponse {
 	if w.ProgramID != nil {
 		s := w.ProgramID.String()
 		pid = &s
+	}
+	if w.TrainerID != nil {
+		s := w.TrainerID.String()
+		trainerID = &s
 	}
 	if w.ScheduledAt != nil {
 		s := formatTimePtr(w.ScheduledAt)
@@ -1050,6 +1084,7 @@ func toWorkoutResponse(w *workoutdomain.Workout) WorkoutResponse {
 		TemplateID:  tid,
 		ProgramID:   pid,
 		UserID:      w.UserID.String(),
+		TrainerID:   trainerID,
 		ScheduledAt: scheduledAt,
 		StartedAt:   startedAt,
 		FinishedAt:  finishedAt,

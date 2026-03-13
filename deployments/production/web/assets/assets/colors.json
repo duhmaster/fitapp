@@ -1,0 +1,17 @@
+{
+  "maintheme": {
+    "primaryBackground": "#F9F9F9",
+    "textPrimary": "#1A1A1A",
+    "accentPrimary": "#FF6F3C",
+    "accentSecondary": "#378AFF",
+    "success": "#2FCB7E",
+    "neutralLight": "#E5E5E5"
+  },
+  "darktheme": {
+    "bgDark": "#0F0F0F",
+    "textLight": "#FFFFFF",
+    "accentLime": "#A8FF37",
+    "alert": "#FF3E3E",
+    "neutralGray": "#333333"
+  }
+}

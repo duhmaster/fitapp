@@ -61,11 +61,11 @@ class _BarbellPainter extends CustomPainter {
     );
     // Left weight
     canvas.drawCircle(Offset(leftCenter, centerY), endRadius, paint);
-    canvas.drawCircle(Offset(leftCenter, centerY), endRadius * 0.5, paint..color = barbellColor.withOpacity(0.3));
+    canvas.drawCircle(Offset(leftCenter, centerY), endRadius * 0.5, paint..color = barbellColor.withValues(alpha: 0.3));
     // Right weight
     paint.color = barbellColor;
     canvas.drawCircle(Offset(rightCenter, centerY), endRadius, paint);
-    canvas.drawCircle(Offset(rightCenter, centerY), endRadius * 0.5, paint..color = barbellColor.withOpacity(0.3));
+    canvas.drawCircle(Offset(rightCenter, centerY), endRadius * 0.5, paint..color = barbellColor.withValues(alpha: 0.3));
   }
 
   @override

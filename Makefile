@@ -6,7 +6,7 @@ MIGRATIONS_PATH = ./migrations
 # Override with: make migrate-up DSN="postgres://..."
 DSN ?= postgres://fitflow:fitflow@localhost:5432/fitflow?sslmode=disable
 
-.PHONY: build build-version test run clean lint migrate-up migrate-down migrate-version docker-up docker-down docker-build openapi-sync
+.PHONY: build build-version test run clean lint migrate-up migrate-down migrate-version docker-up docker-down docker-build build-web openapi-sync
 
 build:
 	go build -o $(BINARY_NAME) ./cmd/api
@@ -50,6 +50,9 @@ docker-down:
 
 docker-logs:
 	docker compose -f deployments/docker/docker-compose.yml logs -f api
+
+build-web:
+	./scripts/production/build-web.sh
 
 # Copy canonical OpenAPI spec from internal to docs (keep in sync)
 openapi-sync:

@@ -104,6 +104,11 @@ func (s *Server) RegisterRoutes(cfg *RoutesConfig) {
 			}
 		}
 
+		// Public trainer profile (no auth) — GET /api/v1/trainers/:user_id
+		if cfg.TrainerHandler != nil {
+			v1.GET("/trainers/:user_id", cfg.TrainerHandler.GetTrainerPublic)
+		}
+
 		if len(cfg.JWTSecret) > 0 && cfg.AuthHandler != nil {
 			protected := v1.Group("")
 			protected.Use(middleware.JWTAuth(cfg.JWTSecret))
@@ -209,10 +214,23 @@ func (s *Server) RegisterRoutes(cfg *RoutesConfig) {
 				}
 
 				if cfg.TrainerHandler != nil {
+					protected.GET("/me/trainer/profile", cfg.TrainerHandler.GetMyTrainerProfile)
+					protected.PUT("/me/trainer/profile", cfg.TrainerHandler.UpdateMyTrainerProfile)
+					protected.GET("/me/trainer/photos", cfg.TrainerHandler.ListMyTrainerPhotos)
+					protected.POST("/me/trainer/photos", cfg.TrainerHandler.UploadTrainerPhoto)
+					protected.DELETE("/me/trainer/photos/:photo_id", cfg.TrainerHandler.DeleteTrainerPhoto)
 					protected.POST("/me/trainer/clients", cfg.TrainerHandler.AddClient)
 					protected.PATCH("/me/trainer/clients/:client_id/status", cfg.TrainerHandler.SetClientStatus)
 					protected.GET("/me/trainer/clients", cfg.TrainerHandler.ListMyClients)
+					protected.DELETE("/me/trainer/clients/:client_id", cfg.TrainerHandler.RemoveClient)
+				protected.GET("/me/trainer/clients/:client_id/profile", cfg.TrainerHandler.GetClientProfile)
+				protected.GET("/me/trainer/clients/:client_id/progress/exercise-ids", cfg.TrainerHandler.GetClientProgressExerciseIDs)
+				protected.GET("/me/trainer/clients/:client_id/progress/exercises/:exercise_id/volume-history", cfg.TrainerHandler.GetClientExerciseVolumeHistory)
 					protected.GET("/me/trainers", cfg.TrainerHandler.ListMyTrainers)
+					protected.POST("/me/trainers", cfg.TrainerHandler.AddMyTrainer)
+					protected.DELETE("/me/trainers/:trainer_id", cfg.TrainerHandler.RemoveMyTrainer)
+					protected.GET("/trainers", cfg.TrainerHandler.SearchTrainers)
+					protected.GET("/me/trainer/workouts", cfg.WorkoutHandler.ListMyTrainerWorkouts)
 					protected.POST("/me/trainer/programs", cfg.TrainerHandler.CreateProgram)
 					protected.GET("/me/trainer/programs", cfg.TrainerHandler.ListMyPrograms)
 					protected.GET("/me/programs", cfg.TrainerHandler.ListClientPrograms)
@@ -220,7 +238,7 @@ func (s *Server) RegisterRoutes(cfg *RoutesConfig) {
 					protected.PATCH("/me/trainer/programs/:program_id", cfg.TrainerHandler.UpdateProgram)
 					protected.DELETE("/me/trainer/programs/:program_id", cfg.TrainerHandler.DeleteProgram)
 					protected.POST("/me/trainer/clients/:client_id/comments", cfg.TrainerHandler.AddComment)
-					protected.GET("/trainers/:trainer_id/clients/:client_id/comments", cfg.TrainerHandler.ListComments)
+					protected.GET("/trainers/:user_id/clients/:client_id/comments", cfg.TrainerHandler.ListComments)
 				}
 
 				if cfg.NotificationHandler != nil {

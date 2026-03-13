@@ -53,7 +53,7 @@ class _LoadingSkeletonState extends State<LoadingSkeleton>
             color: Theme.of(context)
                 .colorScheme
                 .surfaceContainerHighest
-                .withOpacity(_animation.value),
+                .withValues(alpha: _animation.value),
           ),
         );
       },
