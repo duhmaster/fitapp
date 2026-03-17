@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fitflow/core/network/api_client.dart';
+import 'package:fitflow/features/workouts/domain/workout_models.dart';
 
 final trainerRepositoryProvider = Provider<TrainerRepository>((ref) {
   return TrainerRepository(dio: ref.watch(apiClientProvider));
@@ -390,6 +391,28 @@ class TrainerRepository {
     );
     final list = res.data?['history'] as List<dynamic>? ?? [];
     return list.map((e) => ClientExerciseVolumeEntry.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  /// GET /me/trainer/clients/:client_id/templates — list trainee's workout templates.
+  Future<List<WorkoutTemplate>> getClientTemplates(String clientId, {int limit = 50, int offset = 0}) async {
+    final res = await dio.get<Map<String, dynamic>>(
+      '/api/v1/me/trainer/clients/$clientId/templates',
+      queryParameters: {'limit': limit, 'offset': offset},
+    );
+    final list = res.data?['templates'] as List<dynamic>? ?? [];
+    return list.map((e) => WorkoutTemplate.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  /// POST /me/trainer/clients/:client_id/templates — create workout template for trainee.
+  /// Returns the created template id.
+  Future<String> createClientTemplate(String clientId, {required String name, bool useRestTimer = false, int restSeconds = 60}) async {
+    final res = await dio.post<Map<String, dynamic>>(
+      '/api/v1/me/trainer/clients/$clientId/templates',
+      data: {'name': name, 'use_rest_timer': useRestTimer, 'rest_seconds': restSeconds},
+    );
+    final id = res.data?['id'] as String?;
+    if (id == null || id.isEmpty) throw StateError('No template id in response');
+    return id;
   }
 
   /// GET /api/v1/trainers/:user_id — public, no auth.

@@ -5,6 +5,7 @@ import 'package:fitflow/core/locale/locale_provider.dart';
 import 'package:fitflow/features/calendar/calendar_provider.dart';
 import 'package:fitflow/features/calendar/calendar_workout_item.dart';
 import 'package:fitflow/features/workouts/data/workout_repository.dart';
+import 'package:fitflow/features/trainer/data/trainer_repository.dart';
 import 'package:fitflow/features/workouts/domain/workout_models.dart';
 import 'package:fitflow/features/workouts/presentation/workouts_provider.dart';
 import 'package:fitflow/features/workouts/presentation/widgets/template_picker_dialog.dart';
@@ -123,6 +124,42 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           ref.invalidate(workoutsListProvider);
           if (mounted) setState(() {});
         },
+        onCreateForTrainee: () async {
+          Navigator.of(ctx).pop();
+          final trainees = await ref.read(trainerRepositoryProvider).listMyTrainees();
+          if (!mounted) return;
+          if (trainees.isEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Нет подопечных')));
+            return;
+          }
+          final picked = await showDialog<TraineeItem>(
+            context: context,
+            builder: (c) => AlertDialog(
+              title: Text(tr('create_workout')),
+              content: SizedBox(
+                width: 320,
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: trainees.length,
+                  itemBuilder: (_, i) {
+                    final t = trainees[i];
+                    final name = t.displayName ?? t.clientId;
+                    return ListTile(title: Text(name), onTap: () => Navigator.of(c).pop(t));
+                  },
+                ),
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.of(c).pop(), child: Text(tr('cancel'))),
+              ],
+            ),
+          );
+          if (picked != null && mounted) {
+            await showCreateWorkoutForClientDialog(context, ref, clientId: picked.clientId, initialDate: date);
+          }
+          ref.invalidate(workoutsCalendarCombinedProvider);
+          ref.invalidate(workoutsCalendarProvider);
+          if (mounted) setState(() {});
+        },
         onDelete: (item) async {
           if (!item.isOwn) return;
           try {
@@ -142,7 +179,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         },
         onTapWorkout: (item) {
           Navigator.of(ctx).pop();
-          GoRouter.of(context).push('/workout/${item.workout.id}');
+          final suffix = item.isOwn ? '' : '?readOnly=1';
+          GoRouter.of(context).push('/workout/${item.workout.id}$suffix');
         },
       ),
     );
@@ -282,6 +320,14 @@ class _MonthView extends StatelessWidget {
   }
 }
 
+String _formatWorkoutDateAndTime(Workout w) {
+  final str = w.scheduledAt ?? w.startedAt ?? w.createdAt;
+  if (str == null || str.isEmpty) return '';
+  final dt = DateTime.tryParse(str)?.toLocal();
+  if (dt == null) return str;
+  return '${dt.day.toString().padLeft(2, '0')}.${dt.month.toString().padLeft(2, '0')}.${dt.year} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+}
+
 class _ListView extends ConsumerWidget {
   const _ListView({required this.items});
 
@@ -298,6 +344,12 @@ class _ListView extends ConsumerWidget {
     }
     final dt = DateTime.tryParse(w.createdAt);
     return dt ?? DateTime.now();
+  }
+
+  static DateTime? _workoutDateTime(Workout w) {
+    final str = w.scheduledAt ?? w.startedAt ?? w.createdAt;
+    if (str == null || str.isEmpty) return null;
+    return DateTime.tryParse(str)?.toLocal();
   }
 
   @override
@@ -321,7 +373,10 @@ class _ListView extends ConsumerWidget {
         final item = upcoming[i];
         final w = item.workout;
         final d = _workoutDate(w);
-        final dateStr = '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+        final dt = _workoutDateTime(w);
+        final dateStr = dt != null
+            ? '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}'
+            : '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
         final title = formatCalendarWorkoutTitle(item, tr('workout'));
         return Card(
           margin: const EdgeInsets.only(bottom: 8),
@@ -343,7 +398,10 @@ class _ListView extends ConsumerWidget {
               ],
             ),
             trailing: Icon(w.isActive ? Icons.play_circle : Icons.fitness_center),
-            onTap: () => context.push('/workout/${w.id}'),
+            onTap: () {
+              final suffix = item.isOwn ? '' : '?readOnly=1';
+              context.push('/workout/${w.id}$suffix');
+            },
           ),
         );
       },
@@ -357,6 +415,7 @@ class _DayDialog extends StatelessWidget {
     required this.date,
     required this.items,
     required this.onCreate,
+    this.onCreateForTrainee,
     required this.onDelete,
     required this.onTapWorkout,
   });
@@ -365,6 +424,7 @@ class _DayDialog extends StatelessWidget {
   final DateTime date;
   final List<CalendarWorkoutItem> items;
   final VoidCallback onCreate;
+  final VoidCallback? onCreateForTrainee;
   final ValueChanged<CalendarWorkoutItem> onDelete;
   final ValueChanged<CalendarWorkoutItem> onTapWorkout;
 
@@ -389,9 +449,19 @@ class _DayDialog extends StatelessWidget {
                       color: item.isOwn ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.secondary,
                     ),
                     title: Text(title, maxLines: 2, overflow: TextOverflow.ellipsis),
-                    subtitle: Text(
-                      item.statusLabel,
-                      style: TextStyle(color: Color(item.statusColorValue), fontSize: 12),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _formatWorkoutDateAndTime(item.workout),
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                        Text(
+                          item.statusLabel,
+                          style: TextStyle(color: Color(item.statusColorValue), fontSize: 12),
+                        ),
+                      ],
                     ),
                     trailing: item.isOwn
                         ? IconButton(
@@ -409,6 +479,12 @@ class _DayDialog extends StatelessWidget {
           onPressed: () => Navigator.of(context).pop(),
           child: Text(tr('cancel')),
         ),
+        if (onCreateForTrainee != null)
+          FilledButton.tonalIcon(
+            icon: const Icon(Icons.people),
+            label: const Text('Подопечному'),
+            onPressed: onCreateForTrainee,
+          ),
         FilledButton.icon(
           icon: const Icon(Icons.add),
           label: Text(tr('create_workout')),

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	authdomain "github.com/fitflow/fitflow/internal/auth/domain"
+	gymdomain "github.com/fitflow/fitflow/internal/gym/domain"
 	trainerdomain "github.com/fitflow/fitflow/internal/trainer/domain"
 	"github.com/google/uuid"
 )
@@ -15,6 +16,7 @@ type TrainerUseCase struct {
 	comments  trainerdomain.TrainerCommentRepository
 	profile   trainerdomain.TrainerProfileRepository
 	photos    trainerdomain.TrainerPhotoRepository
+	userGyms  gymdomain.UserGymRepository
 }
 
 func NewTrainerUseCase(
@@ -23,13 +25,15 @@ func NewTrainerUseCase(
 	comments trainerdomain.TrainerCommentRepository,
 	profile trainerdomain.TrainerProfileRepository,
 	photos trainerdomain.TrainerPhotoRepository,
+	userGyms gymdomain.UserGymRepository,
 ) *TrainerUseCase {
 	return &TrainerUseCase{
 		clients:  clients,
 		programs: programs,
 		comments: comments,
-		profile:   profile,
-		photos:    photos,
+		profile:  profile,
+		photos:   photos,
+		userGyms: userGyms,
 	}
 }
 

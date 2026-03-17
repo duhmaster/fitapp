@@ -95,15 +95,17 @@ class _WorkoutsListScreenState extends ConsumerState<WorkoutsListScreen> {
   }
 
   String _formatWorkoutDate(Workout w, String localeCode) {
-    final str = w.startedAt ?? w.createdAt;
+    final str = w.scheduledAt ?? w.startedAt ?? w.createdAt;
     if (str == null || str.isEmpty) return '';
-    final dt = DateTime.tryParse(str);
+    final dt = DateTime.tryParse(str)?.toLocal();
     if (dt == null) return str;
     final locale = localeCode.replaceAll('-', '_');
     try {
-      return DateFormat.yMMMd(locale.isNotEmpty ? locale : 'en').format(dt);
+      final dateFormat = DateFormat.yMMMd(locale.isNotEmpty ? locale : 'en');
+      final timeFormat = DateFormat.Hm(locale.isNotEmpty ? locale : 'en');
+      return '${dateFormat.format(dt)} ${timeFormat.format(dt)}';
     } catch (_) {
-      return DateFormat.yMMMd('en').format(dt);
+      return '${DateFormat.yMMMd('en').format(dt)} ${DateFormat.Hm('en').format(dt)}';
     }
   }
 

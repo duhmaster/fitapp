@@ -79,13 +79,33 @@ class WorkoutRepository {
     String? programId,
     String? trainerId,
     String? scheduledAt,
+    String? gymId,
   }) async {
     final data = <String, dynamic>{};
     if (templateId != null) data['template_id'] = templateId;
     if (programId != null) data['program_id'] = programId;
     if (trainerId != null) data['trainer_id'] = trainerId;
     if (scheduledAt != null) data['scheduled_at'] = scheduledAt;
+    if (gymId != null) data['gym_id'] = gymId;
     final res = await dio.post<Map<String, dynamic>>('/api/v1/me/workouts', data: data);
+    return Workout.fromJson(res.data!);
+  }
+
+  /// Trainer creates a workout for a client. POST /api/v1/me/trainer/clients/:client_id/workouts
+  Future<Workout> createWorkoutForClient({
+    required String clientId,
+    String? templateId,
+    String? scheduledAt,
+    String? gymId,
+  }) async {
+    final data = <String, dynamic>{};
+    if (templateId != null) data['template_id'] = templateId;
+    if (scheduledAt != null) data['scheduled_at'] = scheduledAt;
+    if (gymId != null) data['gym_id'] = gymId;
+    final res = await dio.post<Map<String, dynamic>>(
+      '/api/v1/me/trainer/clients/$clientId/workouts',
+      data: data,
+    );
     return Workout.fromJson(res.data!);
   }
 

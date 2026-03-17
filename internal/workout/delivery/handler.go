@@ -60,6 +60,7 @@ type WorkoutResponse struct {
 	ProgramID   *string  `json:"program_id,omitempty"`
 	UserID      string   `json:"user_id"`
 	TrainerID   *string  `json:"trainer_id,omitempty"`
+	GymID       *string  `json:"gym_id,omitempty"`
 	ScheduledAt *string  `json:"scheduled_at,omitempty"`
 	StartedAt   *string  `json:"started_at,omitempty"`
 	FinishedAt  *string  `json:"finished_at,omitempty"`
@@ -93,6 +94,7 @@ type CreateWorkoutRequest struct {
 	ProgramID   *string `json:"program_id"`
 	TrainerID   *string `json:"trainer_id"`
 	ScheduledAt *string `json:"scheduled_at"`
+	GymID       *string `json:"gym_id"`
 }
 
 type CreateProgramRequest struct {
@@ -240,6 +242,16 @@ func (h *Handler) CreateWorkout(c *gin.Context) {
 		trainerID = &id
 	}
 
+	var gymID *uuid.UUID
+	if req.GymID != nil && *req.GymID != "" {
+		id, err := uuid.Parse(*req.GymID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid gym_id"})
+			return
+		}
+		gymID = &id
+	}
+
 	var scheduledAt *time.Time
 	if req.ScheduledAt != nil && *req.ScheduledAt != "" {
 		t, err := time.Parse(time.RFC3339, *req.ScheduledAt)
@@ -250,7 +262,7 @@ func (h *Handler) CreateWorkout(c *gin.Context) {
 		scheduledAt = &t
 	}
 
-	w, err := h.uc.CreateWorkout(c.Request.Context(), user, trainerID, templateID, programID, scheduledAt)
+	w, err := h.uc.CreateWorkout(c.Request.Context(), user, trainerID, templateID, programID, scheduledAt, gymID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -1054,7 +1066,7 @@ func toProgramResponse(p *workoutdomain.Program) ProgramResponse {
 }
 
 func toWorkoutResponse(w *workoutdomain.Workout) WorkoutResponse {
-	var tid, pid, trainerID, scheduledAt, startedAt, finishedAt *string
+	var tid, pid, trainerID, gymID, scheduledAt, startedAt, finishedAt *string
 	if w.TemplateID != nil {
 		s := w.TemplateID.String()
 		tid = &s
@@ -1066,6 +1078,10 @@ func toWorkoutResponse(w *workoutdomain.Workout) WorkoutResponse {
 	if w.TrainerID != nil {
 		s := w.TrainerID.String()
 		trainerID = &s
+	}
+	if w.GymID != nil {
+		s := w.GymID.String()
+		gymID = &s
 	}
 	if w.ScheduledAt != nil {
 		s := formatTimePtr(w.ScheduledAt)
@@ -1085,6 +1101,7 @@ func toWorkoutResponse(w *workoutdomain.Workout) WorkoutResponse {
 		ProgramID:   pid,
 		UserID:      w.UserID.String(),
 		TrainerID:   trainerID,
+		GymID:       gymID,
 		ScheduledAt: scheduledAt,
 		StartedAt:   startedAt,
 		FinishedAt:  finishedAt,

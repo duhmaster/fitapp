@@ -1410,8 +1410,11 @@ file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/profile/pre
 file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/profile/presentation/widgets/edit_profile_form.dart
 file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/profile/presentation/widgets/profile_header.dart
 file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/profile/presentation/widgets/profile_stats_card.dart
+file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/progress/data/progress_repository.dart
+file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/progress/domain/progress_models.dart
 file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/progress/presentation/progress_exercises_screen.dart
 file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/progress/presentation/progress_menu_screen.dart
+file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/progress/presentation/progress_provider.dart
 file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/progress/presentation/progress_screen.dart
 file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/progress/presentation/progress_workouts_screen.dart
 file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/shell/main_shell_screen.dart

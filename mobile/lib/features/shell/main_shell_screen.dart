@@ -147,8 +147,9 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
               icon: const Icon(Icons.logout),
               onPressed: () async {
                 await ref.read(logoutProvider)();
+                invalidateUserScopedProviders(ref as Ref);
                 ref.read(authRedirectNotifierProvider).setLoggedIn(false);
-                if (context.mounted) _router.go('/login');
+                if (context.mounted) context.go('/login');
               },
             ),
           ],
@@ -179,8 +180,9 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
             icon: const Icon(Icons.logout),
             onPressed: () async {
               await ref.read(logoutProvider)();
+              invalidateUserScopedProviders(ref as Ref);
               ref.read(authRedirectNotifierProvider).setLoggedIn(false);
-              if (context.mounted) _router.go('/login');
+              if (context.mounted) context.go('/login');
             },
           ),
         ],

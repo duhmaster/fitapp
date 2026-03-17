@@ -655,11 +655,11 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
   }
 
   String _formatWorkoutDate(Workout w) {
-    final str = w.startedAt ?? w.createdAt;
+    final str = w.scheduledAt ?? w.startedAt ?? w.createdAt;
     if (str.isEmpty) return '';
-    final dt = DateTime.tryParse(str);
+    final dt = DateTime.tryParse(str)?.toLocal();
     if (dt == null) return str;
-    return '${dt.day.toString().padLeft(2, '0')}.${dt.month.toString().padLeft(2, '0')}.${dt.year}';
+    return '${dt.day.toString().padLeft(2, '0')}.${dt.month.toString().padLeft(2, '0')}.${dt.year} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
   }
 }
 

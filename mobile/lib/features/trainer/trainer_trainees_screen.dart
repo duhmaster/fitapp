@@ -4,7 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:fitflow/core/locale/locale_provider.dart';
 import 'package:fitflow/features/trainer/data/trainer_repository.dart';
 
-final _traineesListProvider = FutureProvider<List<TraineeItem>>((ref) {
+/// User-scoped: invalidate on logout.
+final traineesListProvider = FutureProvider<List<TraineeItem>>((ref) {
   return ref.watch(trainerRepositoryProvider).listMyTrainees();
 });
 
@@ -15,7 +16,7 @@ class TrainerTraineesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tr = ref.watch(trProvider);
-    final async = ref.watch(_traineesListProvider);
+    final async = ref.watch(traineesListProvider);
     return Scaffold(
       appBar: AppBar(title: const Text('Подопечные')),
       body: async.when(
@@ -83,7 +84,7 @@ Future<void> _confirmRemoveTrainee(
   if (ok != true || !context.mounted) return;
   try {
     await ref.read(trainerRepositoryProvider).removeTrainee(clientId);
-    ref.invalidate(_traineesListProvider);
+    ref.invalidate(traineesListProvider);
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('saved'))));
     }

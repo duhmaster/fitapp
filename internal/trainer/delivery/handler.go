@@ -11,6 +11,8 @@ import (
 	"github.com/fitflow/fitflow/internal/delivery/middleware"
 	trainerdomain "github.com/fitflow/fitflow/internal/trainer/domain"
 	"github.com/fitflow/fitflow/internal/trainer/usecase"
+	workoutdomain "github.com/fitflow/fitflow/internal/workout/domain"
+	workoutusecase "github.com/fitflow/fitflow/internal/workout/usecase"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -43,6 +45,8 @@ type Handler struct {
 
 	getClientExerciseIDs          func(context.Context, uuid.UUID) ([]string, error)
 	getClientExerciseVolumeHistory func(context.Context, uuid.UUID, uuid.UUID) ([]map[string]interface{}, error)
+
+	workoutUC *workoutusecase.WorkoutUseCase
 }
 
 // PublicProfileGym is a minimal gym info for public trainer profile (avoids importing gym domain).
@@ -96,6 +100,10 @@ func (h *Handler) SetClientProgressDeps(
 ) {
 	h.getClientExerciseIDs = getExerciseIDs
 	h.getClientExerciseVolumeHistory = getExerciseVolumeHistory
+}
+
+func (h *Handler) SetWorkoutUseCase(uc *workoutusecase.WorkoutUseCase) {
+	h.workoutUC = uc
 }
 
 type TrainerClientResponse struct {
@@ -618,6 +626,203 @@ func (h *Handler) GetClientExerciseVolumeHistory(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"history": history})
+}
+
+type createClientTemplateRequest struct {
+	Name         string `json:"name" binding:"required"`
+	UseRestTimer *bool  `json:"use_rest_timer"`
+	RestSeconds  *int   `json:"rest_seconds"`
+}
+
+type createClientWorkoutRequest struct {
+	TemplateID  *string `json:"template_id"`
+	ScheduledAt *string `json:"scheduled_at"`
+	GymID       *string `json:"gym_id"`
+}
+
+func (h *Handler) CreateClientTemplate(c *gin.Context) {
+	trainer := getUser(c)
+	if trainer == nil {
+		return
+	}
+	clientID, ok := parseUUIDParam(c, "client_id")
+	if !ok {
+		return
+	}
+	if h.workoutUC == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "workout service unavailable"})
+		return
+	}
+	var req createClientTemplateRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	useRestTimer := false
+	if req.UseRestTimer != nil {
+		useRestTimer = *req.UseRestTimer
+	}
+	restSeconds := 60
+	if req.RestSeconds != nil {
+		restSeconds = *req.RestSeconds
+	}
+	if restSeconds < 1 {
+		restSeconds = 1
+	}
+	if restSeconds > 600 {
+		restSeconds = 600
+	}
+	t, err := h.workoutUC.CreateTemplateForClient(c.Request.Context(), trainer, clientID, req.Name, useRestTimer, restSeconds)
+	if err != nil {
+		if err == workoutdomain.ErrTemplateForbidden {
+			c.JSON(http.StatusForbidden, gin.H{"error": "not your client"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusCreated, gin.H{
+		"id":            t.ID.String(),
+		"name":          t.Name,
+		"created_at":    t.CreatedAt.Format(time.RFC3339),
+		"use_rest_timer": t.UseRestTimer,
+		"rest_seconds":  t.RestSeconds,
+	})
+}
+
+func (h *Handler) ListClientTemplates(c *gin.Context) {
+	trainer := getUser(c)
+	if trainer == nil {
+		return
+	}
+	clientID, ok := parseUUIDParam(c, "client_id")
+	if !ok {
+		return
+	}
+	if h.workoutUC == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "workout service unavailable"})
+		return
+	}
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
+	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+	list, err := h.workoutUC.ListTemplatesForClient(c.Request.Context(), trainer, clientID, limit, offset)
+	if err != nil {
+		if err == workoutdomain.ErrTemplateForbidden {
+			c.JSON(http.StatusForbidden, gin.H{"error": "not your client"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	out := make([]map[string]interface{}, 0, len(list))
+	for _, t := range list {
+		count, _ := h.workoutUC.CountTemplateExercises(c.Request.Context(), trainer, t.ID)
+		out = append(out, map[string]interface{}{
+			"id":              t.ID.String(),
+			"name":            t.Name,
+			"exercises_count": count,
+			"created_at":      t.CreatedAt.Format(time.RFC3339),
+		})
+	}
+	c.JSON(http.StatusOK, gin.H{"templates": out})
+}
+
+func (h *Handler) CreateClientWorkout(c *gin.Context) {
+	trainer := getUser(c)
+	if trainer == nil {
+		return
+	}
+	clientID, ok := parseUUIDParam(c, "client_id")
+	if !ok {
+		return
+	}
+	if h.workoutUC == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "workout service unavailable"})
+		return
+	}
+	var req createClientWorkoutRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	var templateID *uuid.UUID
+	if req.TemplateID != nil && *req.TemplateID != "" {
+		id, err := uuid.Parse(*req.TemplateID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid template_id"})
+			return
+		}
+		templateID = &id
+	}
+	var scheduledAt *time.Time
+	if req.ScheduledAt != nil && *req.ScheduledAt != "" {
+		t, err := time.Parse(time.RFC3339, *req.ScheduledAt)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid scheduled_at"})
+			return
+		}
+		scheduledAt = &t
+	}
+	var gymID *uuid.UUID
+	if req.GymID != nil && *req.GymID != "" {
+		id, err := uuid.Parse(*req.GymID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid gym_id"})
+			return
+		}
+		gymID = &id
+	}
+
+	w, err := h.workoutUC.CreateWorkoutForClient(c.Request.Context(), trainer, clientID, templateID, scheduledAt, gymID)
+	if err != nil {
+		if err.Error() == "client not found or access denied" {
+			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	// Если указан зал, убеждаемся, что он привязан к подопечному.
+	if gymID != nil {
+		_ = h.uc.AddGymToClientIfMissing(c.Request.Context(), trainer, clientID, *gymID)
+	}
+	c.JSON(http.StatusCreated, toClientWorkoutResponse(w))
+}
+
+func toClientWorkoutResponse(w *workoutdomain.Workout) gin.H {
+	resp := gin.H{
+		"id":         w.ID.String(),
+		"user_id":    w.UserID.String(),
+		"scheduled_at": nil,
+		"started_at":  nil,
+		"finished_at": nil,
+		"created_at":  w.CreatedAt.Format(time.RFC3339),
+	}
+	if w.TemplateID != nil {
+		resp["template_id"] = w.TemplateID.String()
+	} else {
+		resp["template_id"] = nil
+	}
+	if w.ProgramID != nil {
+		resp["program_id"] = w.ProgramID.String()
+	} else {
+		resp["program_id"] = nil
+	}
+	if w.TrainerID != nil {
+		resp["trainer_id"] = w.TrainerID.String()
+	} else {
+		resp["trainer_id"] = nil
+	}
+	if w.ScheduledAt != nil {
+		resp["scheduled_at"] = w.ScheduledAt.Format(time.RFC3339)
+	}
+	if w.StartedAt != nil {
+		resp["started_at"] = w.StartedAt.Format(time.RFC3339)
+	}
+	if w.FinishedAt != nil {
+		resp["finished_at"] = w.FinishedAt.Format(time.RFC3339)
+	}
+	return resp
 }
 
 func (h *Handler) ListMyClients(c *gin.Context) {

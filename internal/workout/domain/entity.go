@@ -72,6 +72,7 @@ type Workout struct {
 	ProgramID   *uuid.UUID
 	UserID      uuid.UUID
 	TrainerID   *uuid.UUID
+	GymID       *uuid.UUID
 	ScheduledAt *time.Time
 	StartedAt   *time.Time
 	FinishedAt  *time.Time

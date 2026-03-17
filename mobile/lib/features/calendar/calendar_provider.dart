@@ -33,6 +33,21 @@ final workoutsCalendarCombinedProvider = FutureProvider<List<CalendarWorkoutItem
     }
   }
 
+  // Подгружаем шаблоны подопечных, чтобы в календаре видеть их названия.
+  // Шаблоны подопечных имеют свои template_id, которых нет в templatesListProvider текущего пользователя.
+  for (final t in trainees) {
+    try {
+      final list = await trainerRepo.getClientTemplates(t.clientId, limit: 200);
+      for (final tpl in list) {
+        if (tpl.id.isNotEmpty && tpl.name.isNotEmpty) {
+          templateNames[tpl.id] = tpl.name;
+        }
+      }
+    } catch (_) {
+      // ignore: if we can't load templates for a client, just show fallback title
+    }
+  }
+
   final result = <CalendarWorkoutItem>[];
   for (final w in myWorkouts) {
     result.add(CalendarWorkoutItem(

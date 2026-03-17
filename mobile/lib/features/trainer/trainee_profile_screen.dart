@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fitflow/core/locale/locale_provider.dart';
 import 'package:fitflow/features/trainer/data/trainer_repository.dart';
+import 'package:fitflow/features/workouts/domain/workout_models.dart';
+import 'package:fitflow/features/workouts/presentation/widgets/template_picker_dialog.dart';
 import 'dart:math' as math;
 
 const _pageSize = 10;
@@ -10,6 +12,11 @@ const _pageSize = 10;
 final _clientProfileProvider =
     FutureProvider.family<ClientProfileData, String>((ref, clientId) {
   return ref.watch(trainerRepositoryProvider).getClientProfile(clientId);
+});
+
+final _clientTemplatesProvider =
+    FutureProvider.family<List<WorkoutTemplate>, String>((ref, clientId) {
+  return ref.watch(trainerRepositoryProvider).getClientTemplates(clientId);
 });
 
 class TraineeProfileScreen extends ConsumerWidget {
@@ -24,16 +31,36 @@ class TraineeProfileScreen extends ConsumerWidget {
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('${tr('error_label')}: $e')),
-        data: (data) => _ProfileTabs(data: data, tr: tr),
+        data: (data) => _ProfileTabs(
+          data: data,
+          tr: tr,
+          clientId: data.clientId,
+          onCreateTemplate: () => _showCreateTemplateDialog(context, ref, data.clientId),
+          onCreateWorkout: () => showCreateWorkoutForClientDialog(
+          context,
+          ref,
+          clientId: data.clientId,
+          onSuccess: () => ref.invalidate(_clientProfileProvider(data.clientId)),
+        ),
+        ),
       ),
     );
   }
 }
 
 class _ProfileTabs extends StatefulWidget {
-  const _ProfileTabs({required this.data, required this.tr});
+  const _ProfileTabs({
+    required this.data,
+    required this.tr,
+    required this.clientId,
+    this.onCreateTemplate,
+    this.onCreateWorkout,
+  });
   final ClientProfileData data;
   final String Function(String) tr;
+  final String clientId;
+  final VoidCallback? onCreateTemplate;
+  final VoidCallback? onCreateWorkout;
 
   @override
   State<_ProfileTabs> createState() => _ProfileTabsState();
@@ -47,7 +74,7 @@ class _ProfileTabsState extends State<_ProfileTabs> with SingleTickerProviderSta
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) => _measureHeader());
   }
 
@@ -99,16 +126,43 @@ class _ProfileTabsState extends State<_ProfileTabs> with SingleTickerProviderSta
                         _buildGymsSection(context, data),
                       ],
                       const SizedBox(height: 12),
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton.icon(
-                          icon: const Icon(Icons.show_chart),
-                          label: Text(tr('progress')),
-                          onPressed: () {
-                            final encodedName = Uri.encodeQueryComponent(name);
-                            context.push('/trainer/trainees/${data.clientId}/progress?name=$encodedName');
-                          },
-                        ),
+                      Column(
+                        children: [
+                          Row(
+                            children: [
+                              if (widget.onCreateTemplate != null)
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    icon: const Icon(Icons.add_box_outlined),
+                                    label: const Text('Создать шаблон'),
+                                    onPressed: widget.onCreateTemplate,
+                                  ),
+                                ),
+                              if (widget.onCreateTemplate != null && widget.onCreateWorkout != null)
+                                const SizedBox(width: 8),
+                              if (widget.onCreateWorkout != null)
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    icon: const Icon(Icons.fitness_center),
+                                    label: Text(tr('create_workout')),
+                                    onPressed: widget.onCreateWorkout,
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              icon: const Icon(Icons.show_chart),
+                              label: Text(tr('progress')),
+                              onPressed: () {
+                                final encodedName = Uri.encodeQueryComponent(name);
+                                context.push('/trainer/trainees/${data.clientId}/progress?name=$encodedName');
+                              },
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 8),
                     ],
@@ -119,9 +173,11 @@ class _ProfileTabsState extends State<_ProfileTabs> with SingleTickerProviderSta
           ),
           bottom: TabBar(
             controller: _tabController,
+            isScrollable: true,
             tabs: [
               Tab(text: 'Тренировки (${data.workouts.length})'),
               Tab(text: 'Измерения (${data.measurements.length})'),
+              const Tab(text: 'Шаблоны'),
             ],
           ),
         ),
@@ -131,6 +187,7 @@ class _ProfileTabsState extends State<_ProfileTabs> with SingleTickerProviderSta
         children: [
           _WorkoutsTab(workouts: data.workouts, tr: tr),
           _MeasurementsTab(measurements: data.measurements, tr: tr),
+          _TemplatesTab(clientId: data.clientId, tr: tr, onCreateTemplate: widget.onCreateTemplate),
         ],
       ),
     );
@@ -302,9 +359,9 @@ class _WorkoutsTabState extends State<_WorkoutsTab> with AutomaticKeepAliveClien
   static String _workoutDateStr(ClientProfileWorkout w) {
     final raw = w.scheduledAt ?? w.startedAt ?? w.createdAt;
     if (raw.isEmpty) return '';
-    final dt = DateTime.tryParse(raw);
+    final dt = DateTime.tryParse(raw)?.toLocal();
     if (dt == null) return '';
-    return '${dt.day.toString().padLeft(2, '0')}.${dt.month.toString().padLeft(2, '0')}.${dt.year}';
+    return '${dt.day.toString().padLeft(2, '0')}.${dt.month.toString().padLeft(2, '0')}.${dt.year} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
   }
 }
 
@@ -394,6 +451,83 @@ class _MeasurementsTabState extends State<_MeasurementsTab> with AutomaticKeepAl
   }
 }
 
+// --------------- Templates tab ---------------
+
+class _TemplatesTab extends ConsumerStatefulWidget {
+  const _TemplatesTab({
+    required this.clientId,
+    required this.tr,
+    this.onCreateTemplate,
+  });
+  final String clientId;
+  final String Function(String) tr;
+  final VoidCallback? onCreateTemplate;
+
+  @override
+  ConsumerState<_TemplatesTab> createState() => _TemplatesTabState();
+}
+
+class _TemplatesTabState extends ConsumerState<_TemplatesTab> with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    final async = ref.watch(_clientTemplatesProvider(widget.clientId));
+    return async.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Center(child: Text('${widget.tr('error_label')}: $e')),
+      data: (templates) {
+        return Column(
+          children: [
+            if (widget.onCreateTemplate != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    icon: const Icon(Icons.add),
+                    label: const Text('Создать шаблон'),
+                    onPressed: widget.onCreateTemplate,
+                  ),
+                ),
+              ),
+            Expanded(
+              child: templates.isEmpty
+                  ? Center(
+                      child: Text(
+                        'Нет шаблонов',
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                      itemCount: templates.length,
+                      itemBuilder: (context, i) {
+                        final t = templates[i];
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 6),
+                          child: ListTile(
+                            leading: const Icon(Icons.fitness_center),
+                            title: Text(t.name),
+                            subtitle: Text('${t.exercisesCount} упр.'),
+                            trailing: const Icon(Icons.chevron_right),
+                            onTap: () => context.push('/templates/${t.id}/edit'),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
 class _MeasurementChip extends StatelessWidget {
   const _MeasurementChip({required this.label, required this.value});
   final String label;
@@ -430,6 +564,66 @@ class _StatItem extends StatelessWidget {
         const SizedBox(height: 2),
         Text(label, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
       ],
+    );
+  }
+}
+
+Future<void> _showCreateTemplateDialog(BuildContext context, WidgetRef ref, String clientId) async {
+  final tr = ref.read(trProvider);
+  final nameController = TextEditingController();
+  final formKey = GlobalKey<FormState>();
+
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Создать шаблон тренировки'),
+      content: Form(
+        key: formKey,
+        child: TextFormField(
+          controller: nameController,
+          decoration: InputDecoration(
+            labelText: tr('template'),
+            hintText: tr('template'),
+            border: const OutlineInputBorder(),
+          ),
+          textCapitalization: TextCapitalization.sentences,
+          validator: (v) => (v == null || v.trim().isEmpty) ? tr('error_label') : null,
+          onFieldSubmitted: (_) => Navigator.of(ctx).pop(true),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(ctx).pop(false),
+          child: Text(tr('cancel')),
+        ),
+        FilledButton(
+          onPressed: () {
+            if (formKey.currentState?.validate() ?? false) {
+              Navigator.of(ctx).pop(true);
+            }
+          },
+          child: Text(tr('save')),
+        ),
+      ],
+    ),
+  );
+
+  if (ok != true || !context.mounted) return;
+
+  final name = nameController.text.trim();
+  try {
+    final templateId = await ref.read(trainerRepositoryProvider).createClientTemplate(
+      clientId,
+      name: name,
+    );
+    if (!context.mounted) return;
+    ref.invalidate(_clientProfileProvider(clientId));
+    ref.invalidate(_clientTemplatesProvider(clientId));
+    context.push('/templates/$templateId/edit');
+  } catch (e) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('${tr('error_label')}: $e')),
     );
   }
 }

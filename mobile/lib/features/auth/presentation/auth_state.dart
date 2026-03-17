@@ -2,6 +2,18 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fitflow/features/auth/data/auth_repository.dart';
 import 'package:fitflow/features/auth/domain/auth_models.dart';
+import 'package:fitflow/features/calendar/calendar_provider.dart';
+import 'package:fitflow/features/gym/gym_screen.dart';
+import 'package:fitflow/features/profile/presentation/profile_provider.dart';
+import 'package:fitflow/features/progress/presentation/progress_exercises_screen.dart';
+import 'package:fitflow/features/progress/presentation/progress_provider.dart';
+import 'package:fitflow/features/templates/templates_provider.dart';
+import 'package:fitflow/features/trainer/my_trainers_screen.dart';
+import 'package:fitflow/features/trainer/trainer_providers.dart';
+import 'package:fitflow/features/trainer/trainer_trainees_screen.dart';
+import 'package:fitflow/features/workouts/presentation/workouts_provider.dart';
+import 'package:fitflow/core/locale/locale_provider.dart';
+import 'package:fitflow/core/theme/theme_provider.dart';
 
 /// Notifier used by GoRouter refreshListenable so redirect re-runs when auth is known.
 /// Avoids blocking the first frame on isLoggedIn() (e.g. SharedPreferences).
@@ -55,3 +67,31 @@ final registerProvider = Provider<Future<AuthResponse> Function(RegisterRequest)
 final logoutProvider = Provider<Future<void> Function()>((ref) {
   return () => ref.read(authRepositoryProvider).logout();
 });
+
+/// Invalidates all user-scoped providers so cached data from the previous user is not shown.
+void invalidateUserScopedProviders(Ref ref) {
+  ref.invalidate(isLoggedInProvider);
+  ref.invalidate(workoutsListProvider);
+  ref.invalidate(workoutsCalendarProvider);
+  ref.invalidate(exercisesListProvider);
+  ref.invalidate(workoutDetailProvider);
+  ref.invalidate(currentUserProvider);
+  ref.invalidate(profileProvider);
+  ref.invalidate(profilePageDataProvider);
+  ref.invalidate(bodyMeasurementsProvider);
+  ref.invalidate(templatesListProvider);
+  ref.invalidate(workoutsCalendarCombinedProvider);
+  ref.invalidate(weightHistoryProvider);
+  ref.invalidate(bodyFatHistoryProvider);
+  ref.invalidate(progressExerciseIdsProvider);
+  ref.invalidate(exerciseVolumeHistoryProvider);
+  ref.invalidate(trainerProfileProvider);
+  ref.invalidate(isTrainerProvider);
+  ref.invalidate(myTrainerPublicProfileProvider);
+  ref.invalidate(myTrainersListProvider);
+  ref.invalidate(traineesListProvider);
+  ref.invalidate(myGymsProvider);
+  ref.invalidate(mePreferencesInitProvider);
+  ref.invalidate(selectedLocaleCodeInitProvider);
+  ref.invalidate(localeStringsProvider);
+}

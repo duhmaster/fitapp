@@ -162,7 +162,7 @@ func run() error {
 	trainerCommentRepo := trainerrepository.NewTrainerCommentRepository(db)
 	trainerProfileRepo := trainerrepository.NewTrainerProfileRepository(db)
 	trainerPhotoRepo := trainerrepository.NewTrainerPhotoRepository(db)
-	trainerUC := trainerusecase.NewTrainerUseCase(trainerClientRepo, trainingProgramRepo, trainerCommentRepo, trainerProfileRepo, trainerPhotoRepo)
+	trainerUC := trainerusecase.NewTrainerUseCase(trainerClientRepo, trainingProgramRepo, trainerCommentRepo, trainerProfileRepo, trainerPhotoRepo, userGymRepo)
 	workoutUC.SetTrainerChecker(trainerUC)
 	trainerHandler := trainerdelivery.NewHandler(trainerUC)
 	trainerHandler.SetProfileResolver(func(ctx context.Context, userID uuid.UUID) (displayName, city, avatarURL string) {
@@ -302,6 +302,7 @@ func run() error {
 			return out, nil
 		},
 	)
+	trainerHandler.SetWorkoutUseCase(workoutUC)
 
 	// Notification module
 	notificationRepo := notificationrepository.NewNotificationRepository(db)

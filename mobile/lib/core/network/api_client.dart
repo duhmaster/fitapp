@@ -40,7 +40,8 @@ final apiClientProvider = Provider<Dio>((ref) {
             return handler.resolve(response);
           } catch (_) {}
         }
-        await tokenStorage.clearTokens();
+        await tokenStorage.clearAllAppStorage();
+        invalidateUserScopedProviders(ref);
         ref.read(authRedirectNotifierProvider).setLoggedIn(false);
         return handler.next(unauthEx);
       }

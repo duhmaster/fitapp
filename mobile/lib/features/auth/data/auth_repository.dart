@@ -62,7 +62,7 @@ class AuthRepository {
   }
 
   Future<void> logout() async {
-    await tokenStorage.clearTokens();
+    await tokenStorage.clearAllAppStorage();
   }
 
   Future<bool> isLoggedIn() async {

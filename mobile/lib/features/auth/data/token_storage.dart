@@ -32,4 +32,13 @@ class TokenStorage {
     await prefs.remove(_keyAccessToken);
     await prefs.remove(_keyRefreshToken);
   }
+
+  /// Clears all app-local data (tokens, locale cache, selected locale) so the next user sees a clean state.
+  Future<void> clearAllAppStorage() async {
+    final prefs = await SharedPreferences.getInstance();
+    final keys = prefs.getKeys().where((k) => k.startsWith('fitflow_')).toList();
+    for (final k in keys) {
+      await prefs.remove(k);
+    }
+  }
 }

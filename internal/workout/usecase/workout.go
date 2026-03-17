@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	authdomain "github.com/fitflow/fitflow/internal/auth/domain"
@@ -71,8 +72,36 @@ func (uc *WorkoutUseCase) ListExercises(ctx context.Context, limit, offset int, 
 	return uc.exercises.List(ctx, limit, offset, filters)
 }
 
-func (uc *WorkoutUseCase) CreateWorkout(ctx context.Context, user *authdomain.User, trainerID *uuid.UUID, templateID *uuid.UUID, programID *uuid.UUID, scheduledAt *time.Time) (*workoutdomain.Workout, error) {
-	w, err := uc.workouts.Create(ctx, user.ID, trainerID, templateID, programID, scheduledAt)
+func (uc *WorkoutUseCase) CreateWorkout(ctx context.Context, user *authdomain.User, trainerID *uuid.UUID, templateID *uuid.UUID, programID *uuid.UUID, scheduledAt *time.Time, gymID *uuid.UUID) (*workoutdomain.Workout, error) {
+	w, err := uc.workouts.Create(ctx, user.ID, trainerID, templateID, programID, scheduledAt, gymID)
+	if err != nil {
+		return nil, err
+	}
+	if templateID != nil {
+		tes, err := uc.templateExercises.ListByTemplateID(ctx, *templateID)
+		if err != nil {
+			return nil, err
+		}
+		for _, te := range tes {
+			if _, err := uc.woExercises.Create(ctx, w.ID, te.ExerciseID, nil, nil, nil, te.ExerciseOrder); err != nil {
+				return nil, err
+			}
+		}
+	}
+	return w, nil
+}
+
+// CreateWorkoutForClient creates a workout for a client; trainer must be the client's trainer.
+func (uc *WorkoutUseCase) CreateWorkoutForClient(ctx context.Context, trainer *authdomain.User, clientID uuid.UUID, templateID *uuid.UUID, scheduledAt *time.Time, gymID *uuid.UUID) (*workoutdomain.Workout, error) {
+	if uc.trainerChecker == nil {
+		return nil, errors.New("trainer checker not configured")
+	}
+	ok, err := uc.trainerChecker.IsClientOfTrainer(ctx, trainer.ID, clientID)
+	if err != nil || !ok {
+		return nil, errors.New("client not found or access denied")
+	}
+	trainerID := trainer.ID
+	w, err := uc.workouts.Create(ctx, clientID, &trainerID, templateID, nil, scheduledAt, gymID)
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +139,7 @@ func (uc *WorkoutUseCase) StartWorkoutFromProgram(ctx context.Context, user *aut
 	if _, err := uc.programs.GetByID(ctx, programID); err != nil {
 		return nil, err
 	}
-	w, err := uc.workouts.Create(ctx, user.ID, nil, nil, &programID, scheduledAt)
+	w, err := uc.workouts.Create(ctx, user.ID, nil, nil, &programID, scheduledAt, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -277,6 +306,30 @@ func (uc *WorkoutUseCase) CreateTemplate(ctx context.Context, user *authdomain.U
 	return uc.templates.Create(ctx, name, user.ID, useRestTimer, restSeconds)
 }
 
+// CreateTemplateForClient creates a workout template for a trainee. Caller must be the client's trainer.
+func (uc *WorkoutUseCase) CreateTemplateForClient(ctx context.Context, trainer *authdomain.User, clientID uuid.UUID, name string, useRestTimer bool, restSeconds int) (*workoutdomain.WorkoutTemplate, error) {
+	if uc.trainerChecker == nil {
+		return nil, workoutdomain.ErrTemplateForbidden
+	}
+	ok, err := uc.trainerChecker.IsClientOfTrainer(ctx, trainer.ID, clientID)
+	if err != nil || !ok {
+		return nil, workoutdomain.ErrTemplateForbidden
+	}
+	return uc.templates.Create(ctx, name, clientID, useRestTimer, restSeconds)
+}
+
+// ListTemplatesForClient returns a trainee's templates. Caller must be the client's trainer.
+func (uc *WorkoutUseCase) ListTemplatesForClient(ctx context.Context, trainer *authdomain.User, clientID uuid.UUID, limit, offset int) ([]*workoutdomain.WorkoutTemplate, error) {
+	if uc.trainerChecker == nil {
+		return nil, workoutdomain.ErrTemplateForbidden
+	}
+	ok, err := uc.trainerChecker.IsClientOfTrainer(ctx, trainer.ID, clientID)
+	if err != nil || !ok {
+		return nil, workoutdomain.ErrTemplateForbidden
+	}
+	return uc.templates.ListByUserID(ctx, clientID, limit, offset)
+}
+
 func (uc *WorkoutUseCase) UpdateTemplate(ctx context.Context, user *authdomain.User, templateID uuid.UUID, name string, useRestTimer bool, restSeconds int) (*workoutdomain.WorkoutTemplate, error) {
 	if _, err := uc.GetTemplate(ctx, user, templateID); err != nil {
 		return nil, err
@@ -347,7 +400,7 @@ func (uc *WorkoutUseCase) StartWorkoutFromTemplate(ctx context.Context, user *au
 	if err != nil {
 		return nil, err
 	}
-	w, err := uc.workouts.Create(ctx, user.ID, nil, &t.ID, nil, scheduledAt)
+	w, err := uc.workouts.Create(ctx, user.ID, nil, &t.ID, nil, scheduledAt, nil)
 	if err != nil {
 		return nil, err
 	}
