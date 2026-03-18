@@ -1418,6 +1418,9 @@ file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/progress/pr
 file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/progress/presentation/progress_screen.dart
 file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/progress/presentation/progress_workouts_screen.dart
 file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/shell/main_shell_screen.dart
+file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/system_messages/data/system_messages_repository.dart
+file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/system_messages/domain/system_message.dart
+file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/system_messages/presentation/system_messages_screen.dart
 file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/templates/exercise_picker_screen.dart
 file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/templates/template_edit_screen.dart
 file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/templates/templates_provider.dart

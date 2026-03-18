@@ -165,8 +165,8 @@ class _WorkoutsListScreenState extends ConsumerState<WorkoutsListScreen> {
                 return EmptyStateWidget(
                   message: _searchQuery.isNotEmpty || _filter != 'all' ? tr('no_workouts_match') : tr('no_workouts_yet'),
                   icon: Icons.fitness_center,
-                  actionLabel: list.isEmpty ? tr('create_workout') : null,
-                  onAction: list.isEmpty ? _createWorkout : null,
+                  actionLabel: null,
+                  onAction: null,
                 );
               }
               return RefreshIndicator(

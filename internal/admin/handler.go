@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	authdomain "github.com/fitflow/fitflow/internal/auth/domain"
+	systemmessagedomain "github.com/fitflow/fitflow/internal/systemmessage/domain"
 	workoutdomain "github.com/fitflow/fitflow/internal/workout/domain"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -756,4 +757,115 @@ func (h *Handler) BlogPostsDelete(c *gin.Context) {
 		return
 	}
 	c.Redirect(http.StatusFound, "/admin/entities/blog_posts?flash=Deleted")
+}
+
+// --- System messages
+func (h *Handler) SystemMessagesList(c *gin.Context) {
+	page, limit, offset := pageLimit(c)
+	list, err := h.Deps.SystemMessagesList(c.Request.Context(), limit, offset)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+	rows := make([]ListRow, 0, len(list))
+	for _, m := range list {
+		active := "no"
+		if m.IsActive {
+			active = "yes"
+		}
+		body := m.Body
+		if len(body) > 80 {
+			body = body[:80] + "…"
+		}
+		rows = append(rows, ListRow{ID: m.ID.String(), Cells: []string{m.Title, active, m.CreatedAt.Format("2006-01-02"), body}})
+	}
+	data := h.listData("System messages", "/admin/entities/system_messages", "/admin/entities/system_messages/new", "/admin/entities/system_messages", "/admin/entities/system_messages/delete", []string{"Title", "Active", "Created", "Body"}, rows, "", true, page, limit, len(list))
+	h.renderOK(c, listHTML, gin.H{"ShowBar": true, "Title": data.Title, "Headers": data.Headers, "Rows": data.Rows, "ListPath": data.ListPath, "NewPath": data.NewPath, "EditPath": data.EditPath, "DeletePath": data.DeletePath, "AllowDelete": data.AllowDelete, "SearchQ": data.SearchQ, "HasPrev": data.HasPrev, "HasNext": data.HasNext, "PrevURL": data.PrevURL, "NextURL": data.NextURL})
+}
+
+func (h *Handler) SystemMessagesNew(c *gin.Context) {
+	fields := `<label>Title</label><input type="text" name="title" required>
+<label>Body</label><textarea name="body" required></textarea>
+<label style="display:block; margin-top:8px;"><input type="checkbox" name="is_active" value="1" checked> Active</label>`
+	h.renderOK(c, formHTML, gin.H{"ShowBar": true, "Title": "New system message", "Action": "/admin/entities/system_messages/create", "FieldsHTML": template.HTML(fields), "SubmitLabel": "Create", "CancelURL": "/admin/entities/system_messages"})
+}
+
+func (h *Handler) SystemMessagesCreate(c *gin.Context) {
+	title := strings.TrimSpace(c.PostForm("title"))
+	body := strings.TrimSpace(c.PostForm("body"))
+	isActive := c.PostForm("is_active") == "1"
+	if title == "" || body == "" {
+		c.String(http.StatusBadRequest, "title and body required")
+		return
+	}
+	_, err := h.Deps.SystemMessagesCreate(c.Request.Context(), title, body, isActive)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+	c.Redirect(http.StatusFound, "/admin/entities/system_messages?flash=Created")
+}
+
+func (h *Handler) SystemMessagesEdit(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.String(http.StatusBadRequest, "invalid id")
+		return
+	}
+	m, err := h.Deps.SystemMessagesGet(c.Request.Context(), id)
+	if err != nil {
+		c.String(http.StatusNotFound, err.Error())
+		return
+	}
+	checked := ""
+	if m.IsActive {
+		checked = " checked"
+	}
+	fields := `<label>Title</label><input type="text" name="title" value="` + template.HTMLEscaper(m.Title) + `" required>
+<label>Body</label><textarea name="body" required>` + template.HTMLEscaper(m.Body) + `</textarea>
+<label style="display:block; margin-top:8px;"><input type="checkbox" name="is_active" value="1"` + checked + `> Active</label>
+<input type="hidden" name="id" value="` + m.ID.String() + `">`
+	h.renderOK(c, formHTML, gin.H{"ShowBar": true, "Title": "Edit system message", "Action": "/admin/entities/system_messages/update", "FieldsHTML": template.HTML(fields), "SubmitLabel": "Save", "CancelURL": "/admin/entities/system_messages"})
+}
+
+func (h *Handler) SystemMessagesUpdate(c *gin.Context) {
+	id, err := uuid.Parse(c.PostForm("id"))
+	if err != nil {
+		c.String(http.StatusBadRequest, "invalid id")
+		return
+	}
+	title := strings.TrimSpace(c.PostForm("title"))
+	body := strings.TrimSpace(c.PostForm("body"))
+	isActive := c.PostForm("is_active") == "1"
+	if title == "" || body == "" {
+		c.String(http.StatusBadRequest, "title and body required")
+		return
+	}
+	_, err = h.Deps.SystemMessagesUpdate(c.Request.Context(), id, title, body, isActive)
+	if err != nil {
+		if err == systemmessagedomain.ErrSystemMessageNotFound {
+			c.String(http.StatusNotFound, err.Error())
+			return
+		}
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+	c.Redirect(http.StatusFound, "/admin/entities/system_messages?flash=Updated")
+}
+
+func (h *Handler) SystemMessagesDelete(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.String(http.StatusBadRequest, "invalid id")
+		return
+	}
+	if err := h.Deps.SystemMessagesDelete(c.Request.Context(), id); err != nil {
+		if err == systemmessagedomain.ErrSystemMessageNotFound {
+			c.String(http.StatusNotFound, err.Error())
+			return
+		}
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+	c.Redirect(http.StatusFound, "/admin/entities/system_messages?flash=Deleted")
 }

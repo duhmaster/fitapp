@@ -74,5 +74,9 @@
   "email_required": "Введите email",
   "enter_valid_email": "Введите корректный email",
   "this_field_required": "Обязательное поле",
-  "at_least_6_chars": "Минимум 6 символов"
+  "at_least_6_chars": "Минимум 6 символов",
+  "system_messages": "Сообщения",
+  "no_system_messages": "Нет сообщений",
+  "no_system_messages_subtitle": "Сейчас нет актуальных системных сообщений.",
+  "error_label": "Ошибка"
 }

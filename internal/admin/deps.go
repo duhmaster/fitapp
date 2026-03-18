@@ -6,6 +6,7 @@ import (
 	authdomain "github.com/fitflow/fitflow/internal/auth/domain"
 	blogdomain "github.com/fitflow/fitflow/internal/blog/domain"
 	gymdomain "github.com/fitflow/fitflow/internal/gym/domain"
+	systemmessagedomain "github.com/fitflow/fitflow/internal/systemmessage/domain"
 	workoutdomain "github.com/fitflow/fitflow/internal/workout/domain"
 	"github.com/google/uuid"
 )
@@ -52,4 +53,10 @@ type Deps struct {
 	BlogPostsCreate func(ctx context.Context, userID uuid.UUID, title string, content *string) (*blogdomain.BlogPost, error)
 	BlogPostsUpdate func(ctx context.Context, id uuid.UUID, title string, content *string) (*blogdomain.BlogPost, error)
 	BlogPostsDelete func(ctx context.Context, id uuid.UUID) error
+
+	SystemMessagesList   func(ctx context.Context, limit, offset int) ([]*systemmessagedomain.SystemMessage, error)
+	SystemMessagesGet    func(ctx context.Context, id uuid.UUID) (*systemmessagedomain.SystemMessage, error)
+	SystemMessagesCreate func(ctx context.Context, title, body string, isActive bool) (*systemmessagedomain.SystemMessage, error)
+	SystemMessagesUpdate func(ctx context.Context, id uuid.UUID, title, body string, isActive bool) (*systemmessagedomain.SystemMessage, error)
+	SystemMessagesDelete func(ctx context.Context, id uuid.UUID) error
 }

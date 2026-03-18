@@ -27,6 +27,7 @@ import 'package:fitflow/features/exercises/exercises_screen.dart';
 import 'package:fitflow/features/templates/templates_screen.dart';
 import 'package:fitflow/features/templates/template_edit_screen.dart';
 import 'package:fitflow/features/templates/exercise_picker_screen.dart';
+import 'package:fitflow/features/system_messages/presentation/system_messages_screen.dart';
 import 'package:fitflow/features/calendar/calendar_screen.dart';
 import 'package:fitflow/features/current_workout/current_workout_screen.dart';
 import 'package:fitflow/features/timers/timers_screen.dart';
@@ -99,6 +100,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 ],
               ),
               GoRoute(path: 'feed', builder: (_, __) => const FeedScreen()),
+              GoRoute(path: 'system-messages', builder: (_, __) => const SystemMessagesScreen()),
               GoRoute(
                 path: 'help',
                 builder: (_, __) => const HelpScreen(),

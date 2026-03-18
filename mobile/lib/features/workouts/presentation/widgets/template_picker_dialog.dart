@@ -149,6 +149,23 @@ Future<void> showTemplatePickerDialog(
                   ],
                   const SizedBox(height: 16),
                   Text(tr('template'), style: Theme.of(context).textTheme.labelLarge),
+                  const SizedBox(height: 6),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: InkWell(
+                      onTap: () {
+                        Navigator.of(ctx).pop();
+                        context.push('/templates');
+                      },
+                      child: Text(
+                        'Чтобы изменить или добавить шаблоны перейдите на страницу «${tr('workout_templates')}»',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).colorScheme.primary,
+                              decoration: TextDecoration.underline,
+                            ),
+                      ),
+                    ),
+                  ),
                   const SizedBox(height: 4),
                   Expanded(
                     child: templatesAsync.when(
@@ -455,6 +472,23 @@ Future<void> showCreateWorkoutForClientDialog(
                   ],
                   const SizedBox(height: 16),
                   Text(tr('template'), style: Theme.of(context).textTheme.labelLarge),
+                  const SizedBox(height: 6),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: InkWell(
+                      onTap: () {
+                        Navigator.of(ctx).pop();
+                        context.push('/templates');
+                      },
+                      child: Text(
+                        'Чтобы изменить или добавить шаблоны перейдите на страницу «${tr('workout_templates')}»',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).colorScheme.primary,
+                              decoration: TextDecoration.underline,
+                            ),
+                      ),
+                    ),
+                  ),
                   const SizedBox(height: 4),
                   Expanded(
                     child: templates.isEmpty

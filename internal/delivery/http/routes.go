@@ -15,6 +15,7 @@ import (
 	progressdelivery "github.com/fitflow/fitflow/internal/progress/delivery"
 	socialdelivery "github.com/fitflow/fitflow/internal/social/delivery"
 	notificationdelivery "github.com/fitflow/fitflow/internal/notification/delivery"
+	systemmessagedelivery "github.com/fitflow/fitflow/internal/systemmessage/delivery"
 	trainerdelivery "github.com/fitflow/fitflow/internal/trainer/delivery"
 	userdelivery "github.com/fitflow/fitflow/internal/user/delivery"
 	workoutdelivery "github.com/fitflow/fitflow/internal/workout/delivery"
@@ -36,6 +37,7 @@ type RoutesConfig struct {
 	BlogHandler     *blogdelivery.Handler
 	TrainerHandler     *trainerdelivery.Handler
 	NotificationHandler *notificationdelivery.Handler
+	SystemMessageHandler *systemmessagedelivery.Handler
 	AdminHandler        *admin.Handler
 	JWTSecret           []byte
 	UploadsPath         string       // local path for serving uploads (e.g. ./uploads)
@@ -249,6 +251,11 @@ func (s *Server) RegisterRoutes(cfg *RoutesConfig) {
 					protected.GET("/me/notifications/:notification_id", cfg.NotificationHandler.Get)
 					protected.PATCH("/me/notifications/:notification_id/read", cfg.NotificationHandler.MarkRead)
 					protected.PATCH("/me/notifications/read-all", cfg.NotificationHandler.MarkAllRead)
+				}
+
+				if cfg.SystemMessageHandler != nil {
+					protected.GET("/me/system-messages", cfg.SystemMessageHandler.ListActive)
+					protected.GET("/me/system-messages/count", cfg.SystemMessageHandler.CountActive)
 				}
 			}
 

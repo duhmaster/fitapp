@@ -67,5 +67,13 @@ func RegisterRoutes(g *gin.RouterGroup, h *Handler) {
 		admin.GET("/entities/blog_posts/:id", h.BlogPostsEdit)
 		admin.POST("/entities/blog_posts/update", h.BlogPostsUpdate)
 		admin.POST("/entities/blog_posts/delete/:id", h.BlogPostsDelete)
+
+		// System messages
+		admin.GET("/entities/system_messages", h.SystemMessagesList)
+		admin.GET("/entities/system_messages/new", h.SystemMessagesNew)
+		admin.POST("/entities/system_messages/create", h.SystemMessagesCreate)
+		admin.GET("/entities/system_messages/:id", h.SystemMessagesEdit)
+		admin.POST("/entities/system_messages/update", h.SystemMessagesUpdate)
+		admin.POST("/entities/system_messages/delete/:id", h.SystemMessagesDelete)
 	}
 }

@@ -7,6 +7,7 @@ import 'package:fitflow/core/router/app_router.dart';
 import 'package:fitflow/features/workouts/presentation/widgets/template_picker_dialog.dart';
 import 'package:fitflow/core/widgets/barbell_logo.dart';
 import 'package:fitflow/features/auth/presentation/auth_state.dart';
+import 'package:fitflow/features/system_messages/presentation/system_messages_screen.dart';
 
 class MainShellScreen extends ConsumerStatefulWidget {
   const MainShellScreen({super.key, required this.child, required this.location});
@@ -72,6 +73,7 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
     final tr = ref.watch(trProvider);
     final index = _selectedIndex(widget.location);
     final isWide = context.isWide;
+    final countAsync = ref.watch(activeSystemMessagesCountProvider);
 
     final drawer = Drawer(
       child: ListView(
@@ -144,6 +146,11 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
           ),
           actions: [
             IconButton(
+              tooltip: tr('system_messages'),
+              icon: _BellWithBadge(countAsync: countAsync),
+              onPressed: () => _push(context, '/system-messages'),
+            ),
+            IconButton(
               icon: const Icon(Icons.logout),
               onPressed: () async {
                 await ref.read(logoutProvider)();
@@ -176,6 +183,11 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
           ],
         ),
         actions: [
+          IconButton(
+            tooltip: tr('system_messages'),
+            icon: _BellWithBadge(countAsync: countAsync),
+            onPressed: () => _push(context, '/system-messages'),
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
@@ -211,6 +223,42 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _BellWithBadge extends StatelessWidget {
+  const _BellWithBadge({required this.countAsync});
+
+  final AsyncValue<int> countAsync;
+
+  @override
+  Widget build(BuildContext context) {
+    final count = countAsync.valueOrNull ?? 0;
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        const Icon(Icons.notifications_none),
+        if (count > 0)
+          Positioned(
+            right: -6,
+            top: -6,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.error,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                count > 99 ? '99+' : '$count',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onError,
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

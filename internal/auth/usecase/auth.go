@@ -18,6 +18,7 @@ type AuthUseCase struct {
 	jwtSecret        []byte
 	accessExpiry     time.Duration
 	refreshExpiry    time.Duration
+	defaultTemplates *DefaultTemplatesDeps
 }
 
 // NewAuthUseCase creates a new AuthUseCase.
@@ -26,6 +27,7 @@ func NewAuthUseCase(
 	refreshTokenRepo domain.RefreshTokenRepository,
 	jwtSecret []byte,
 	accessExpiry, refreshExpiry time.Duration,
+	defaultTemplates *DefaultTemplatesDeps,
 ) *AuthUseCase {
 	return &AuthUseCase{
 		userRepo:         userRepo,
@@ -33,7 +35,12 @@ func NewAuthUseCase(
 		jwtSecret:        jwtSecret,
 		accessExpiry:     accessExpiry,
 		refreshExpiry:    refreshExpiry,
+		defaultTemplates: defaultTemplates,
 	}
+}
+
+func (uc *AuthUseCase) SetDefaultTemplatesDeps(d *DefaultTemplatesDeps) {
+	uc.defaultTemplates = d
 }
 
 // RegisterInput for user registration.
@@ -80,6 +87,15 @@ func (uc *AuthUseCase) Register(ctx context.Context, in RegisterInput) (*Registe
 		Role:      rec.Role,
 		CreatedAt: rec.CreatedAt,
 	}
+
+	// Default preferences for new users.
+	// Keep in sync with UI theme/locale options.
+	if err := uc.userRepo.UpdatePreferences(ctx, user.ID, "main", "ru"); err != nil {
+		return nil, err
+	}
+
+	// Best-effort: create default workout templates for new users.
+	_ = uc.ensureDefaultTemplates(ctx, user.ID)
 
 	toks, err := uc.issueTokens(ctx, user)
 	if err != nil {

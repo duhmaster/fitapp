@@ -42,6 +42,7 @@ const (
     <a href="/admin/entities/programs">Programs</a>
     <a href="/admin/entities/tags">Tags</a>
     <a href="/admin/entities/blog_posts">Blog posts</a>
+    <a href="/admin/entities/system_messages">System messages</a>
     <form action="/admin/logout" method="post" style="margin-left:auto;">
       <button type="submit" class="btn btn-sm">Logout</button>
     </form>
@@ -76,6 +77,7 @@ const (
   <p><a href="/admin/entities/programs">Programs</a> – list, CRUD</p>
   <p><a href="/admin/entities/tags">Tags</a> – list, create, delete</p>
   <p><a href="/admin/entities/blog_posts">Blog posts</a> – list, CRUD</p>
+  <p><a href="/admin/entities/system_messages">System messages</a> – list, CRUD</p>
 </div>
 {{end}}`
 

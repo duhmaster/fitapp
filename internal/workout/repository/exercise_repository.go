@@ -83,6 +83,19 @@ func (r *ExerciseRepository) GetByID(ctx context.Context, id uuid.UUID) (*workou
 	return r.scanExercise(row)
 }
 
+func (r *ExerciseRepository) GetByName(ctx context.Context, name string) (*workoutdomain.Exercise, error) {
+	query := `
+		SELECT id, name, muscle_group, COALESCE(equipment, '{}'), COALESCE(tags, '{}'), description,
+		       COALESCE(instruction, '{}'), COALESCE(muscle_loads, '{}'::jsonb), formula, difficulty_level,
+		       COALESCE(is_base, false), COALESCE(is_popular, false), COALESCE(is_free, true), created_at
+		FROM exercises
+		WHERE LOWER(name) = LOWER($1)
+		LIMIT 1
+	`
+	row := r.pool.QueryRow(ctx, query, name)
+	return r.scanExercise(row)
+}
+
 func (r *ExerciseRepository) scanExercises(rows pgx.Rows) ([]*workoutdomain.Exercise, error) {
 	var list []*workoutdomain.Exercise
 	for rows.Next() {

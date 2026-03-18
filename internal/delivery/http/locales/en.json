@@ -74,5 +74,9 @@
   "email_required": "Email is required",
   "enter_valid_email": "Enter a valid email",
   "this_field_required": "This field is required",
-  "at_least_6_chars": "At least 6 characters"
+  "at_least_6_chars": "At least 6 characters",
+  "system_messages": "Messages",
+  "no_system_messages": "No messages",
+  "no_system_messages_subtitle": "There are no active system messages right now.",
+  "error_label": "Error"
 }

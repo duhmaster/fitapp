@@ -10,6 +10,8 @@ import (
 type ExerciseRepository interface {
 	List(ctx context.Context, limit, offset int, filters *ExerciseFilters) ([]*Exercise, error)
 	GetByID(ctx context.Context, id uuid.UUID) (*Exercise, error)
+	// GetByName returns one exercise by name (case-insensitive exact match).
+	GetByName(ctx context.Context, name string) (*Exercise, error)
 }
 
 // ExerciseFilters holds optional filters for listing exercises.

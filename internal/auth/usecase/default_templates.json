@@ -1,0 +1,29 @@
+{
+  "templates": [
+    {
+      "name": "Грудь/Трицепс",
+      "exercises": [
+        { "name": "Жим гантелей лёжа", "sets": [ { "weight_kg": 15, "reps": 10 }, { "weight_kg": 15, "reps": 10 }, { "weight_kg": 15, "reps": 10 } ] },
+        { "name": "Жим штанги лёжа", "sets": [ { "weight_kg": 50, "reps": 10 }, { "weight_kg": 50, "reps": 10 }, { "weight_kg": 50, "reps": 10 } ] },
+        { "name": "Разгибание на верхнем блоке", "sets": [ { "weight_kg": 15, "reps": 10 }, { "weight_kg": 15, "reps": 10 }, { "weight_kg": 15, "reps": 10 } ] }
+      ]
+    },
+    {
+      "name": "Спина/Бицепс",
+      "exercises": [
+        { "name": "Становая тяга", "sets": [ { "weight_kg": 50, "reps": 10 }, { "weight_kg": 50, "reps": 10 }, { "weight_kg": 50, "reps": 10 } ] },
+        { "name": "Тяга верхнего блока прямыми руками", "sets": [ { "weight_kg": 30, "reps": 10 }, { "weight_kg": 30, "reps": 10 }, { "weight_kg": 30, "reps": 10 } ] },
+        { "name": "Сгибание гантелей молот", "sets": [ { "weight_kg": 10, "reps": 10 }, { "weight_kg": 10, "reps": 10 }, { "weight_kg": 10, "reps": 10 } ] }
+      ]
+    },
+    {
+      "name": "Ноги/плечи",
+      "exercises": [
+        { "name": "Приседания со штангой", "sets": [ { "weight_kg": 40, "reps": 10 }, { "weight_kg": 40, "reps": 10 }, { "weight_kg": 40, "reps": 10 } ] },
+        { "name": "Жим ногами", "sets": [ { "weight_kg": 50, "reps": 10 }, { "weight_kg": 50, "reps": 10 }, { "weight_kg": 50, "reps": 10 } ] },
+        { "name": "Подъем гантелей перед собой", "sets": [ { "weight_kg": 5, "reps": 10 }, { "weight_kg": 5, "reps": 10 }, { "weight_kg": 5, "reps": 10 } ] }
+      ]
+    }
+  ]
+}
+

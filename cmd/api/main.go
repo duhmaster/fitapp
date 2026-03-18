@@ -39,6 +39,10 @@ import (
 	notificationdelivery "github.com/fitflow/fitflow/internal/notification/delivery"
 	notificationrepository "github.com/fitflow/fitflow/internal/notification/repository"
 	notificationusecase "github.com/fitflow/fitflow/internal/notification/usecase"
+	systemmessagedomain "github.com/fitflow/fitflow/internal/systemmessage/domain"
+	systemmessagedelivery "github.com/fitflow/fitflow/internal/systemmessage/delivery"
+	systemmessagerepository "github.com/fitflow/fitflow/internal/systemmessage/repository"
+	systemmessageusecase "github.com/fitflow/fitflow/internal/systemmessage/usecase"
 	trainerdelivery "github.com/fitflow/fitflow/internal/trainer/delivery"
 	trainerrepository "github.com/fitflow/fitflow/internal/trainer/repository"
 	trainerusecase "github.com/fitflow/fitflow/internal/trainer/usecase"
@@ -94,6 +98,7 @@ func run() error {
 		[]byte(cfg.JWTSecret),
 		cfg.JWTAccessExpiry,
 		cfg.JWTRefreshExpiry,
+		nil,
 	)
 	authHandler := authdelivery.NewHandler(authUC)
 
@@ -131,6 +136,14 @@ func run() error {
 	templateSetRepo := workoutrepository.NewTemplateExerciseSetRepository(db)
 	workoutUC := workoutusecase.NewWorkoutUseCase(exerciseRepo, workoutRepo, workoutExerciseRepo, exerciseLogRepo, programRepo, programExerciseRepo, templateRepo, templateExerciseRepo, templateSetRepo)
 	workoutHandler := workoutdelivery.NewHandler(workoutUC)
+
+	// Default workout templates for newly registered users
+	authUC.SetDefaultTemplatesDeps(&authusecase.DefaultTemplatesDeps{
+		Exercises:         exerciseRepo,
+		Templates:         templateRepo,
+		TemplateExercises: templateExerciseRepo,
+		TemplateSets:      templateSetRepo,
+	})
 
 	// Progress module
 	weightRepo := progressrepository.NewWeightTrackingRepository(db)
@@ -309,6 +322,11 @@ func run() error {
 	notificationUC := notificationusecase.NewNotificationUseCase(notificationRepo)
 	notificationHandler := notificationdelivery.NewHandler(notificationUC)
 
+	// System messages module
+	systemMessageRepo := systemmessagerepository.New(db)
+	systemMessageUC := systemmessageusecase.New(systemMessageRepo)
+	systemMessageHandler := systemmessagedelivery.NewHandler(systemMessageUC)
+
 	// Admin panel (only if credentials set)
 	var adminHandler *admin.Handler
 	if cfg.AdminPassword != "" {
@@ -349,6 +367,13 @@ func run() error {
 			BlogPostsCreate: blogPostRepo.Create,
 			BlogPostsUpdate: blogPostRepo.Update,
 			BlogPostsDelete: blogPostRepo.SoftDelete,
+			SystemMessagesList: func(ctx context.Context, limit, offset int) ([]*systemmessagedomain.SystemMessage, error) {
+				return systemMessageRepo.List(ctx, false, limit, offset)
+			},
+			SystemMessagesGet: systemMessageRepo.GetByID,
+			SystemMessagesCreate: systemMessageRepo.Create,
+			SystemMessagesUpdate: systemMessageRepo.Update,
+			SystemMessagesDelete: systemMessageRepo.Delete,
 		}
 		adminHandler = admin.NewHandler(adminDeps)
 	}
@@ -369,6 +394,7 @@ func run() error {
 		BlogHandler:       blogHandler,
 		TrainerHandler:    trainerHandler,
 		NotificationHandler: notificationHandler,
+		SystemMessageHandler: systemMessageHandler,
 		AdminHandler:      adminHandler,
 		JWTSecret:         []byte(cfg.JWTSecret),
 		UploadsPath:       cfg.StoragePath,

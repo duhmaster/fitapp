@@ -19,6 +19,7 @@ func TestAuthUseCase_Login_UserNotFound(t *testing.T) {
 		[]byte("test-secret"),
 		15*time.Minute,
 		24*time.Hour,
+		nil,
 	)
 
 	_, err := uc.Login(context.Background(), LoginInput{
@@ -46,6 +47,7 @@ func TestAuthUseCase_Login_InvalidPassword(t *testing.T) {
 		[]byte("test-secret"),
 		15*time.Minute,
 		24*time.Hour,
+		nil,
 	)
 
 	_, err := uc.Login(context.Background(), LoginInput{
@@ -82,6 +84,18 @@ func (m *mockUserRepo) GetByID(ctx context.Context, id uuid.UUID) (*domain.UserR
 		return m.getByID(ctx, id)
 	}
 	return nil, domain.ErrUserNotFound
+}
+
+func (m *mockUserRepo) UpdatePreferences(ctx context.Context, userID uuid.UUID, theme, locale string) error {
+	return nil
+}
+
+func (m *mockUserRepo) List(ctx context.Context, limit, offset int, search string) ([]*domain.UserRecord, error) {
+	return []*domain.UserRecord{}, nil
+}
+
+func (m *mockUserRepo) UpdateRole(ctx context.Context, userID uuid.UUID, role domain.Role) error {
+	return nil
 }
 
 type mockRefreshTokenRepo struct {
