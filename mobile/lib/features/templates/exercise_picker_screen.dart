@@ -7,10 +7,10 @@ import 'package:fitflow/features/templates/templates_screen.dart';
 import 'package:fitflow/features/workouts/data/workout_repository.dart';
 import 'package:fitflow/features/workouts/domain/workout_models.dart';
 
-/// Load all exercises for client-side search (case-insensitive, max 30 shown).
+/// Load all exercises for client-side search (case-insensitive).
 final exercisesAllForPickerProvider = FutureProvider<List<Exercise>>((ref) async {
   final repo = ref.watch(workoutRepositoryProvider);
-  return repo.listExercises(limit: 1000, offset: 0);
+  return repo.listExercises(limit: 2000, offset: 0);
 });
 
 class ExercisePickerScreen extends ConsumerStatefulWidget {
@@ -23,8 +23,6 @@ class ExercisePickerScreen extends ConsumerStatefulWidget {
 
 class _ExercisePickerScreenState extends ConsumerState<ExercisePickerScreen> {
   String _search = '';
-
-  static const int _maxResults = 30;
 
   @override
   Widget build(BuildContext context) {
@@ -60,10 +58,9 @@ class _ExercisePickerScreenState extends ConsumerState<ExercisePickerScreen> {
               data: (allExercises) {
                 final query = _search.trim().toLowerCase();
                 final filtered = query.isEmpty
-                    ? allExercises.take(_maxResults).toList()
+                    ? allExercises
                     : allExercises
                         .where((e) => e.name.toLowerCase().contains(query))
-                        .take(_maxResults)
                         .toList();
                 if (filtered.isEmpty) {
                   return Center(child: Text(tr('no_exercises_found')));

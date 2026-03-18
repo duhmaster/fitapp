@@ -24,8 +24,8 @@ func (r *ExerciseRepository) List(ctx context.Context, limit, offset int, filter
 	if limit <= 0 {
 		limit = 50
 	}
-	if limit > 100 {
-		limit = 100
+	if limit > 2000 {
+		limit = 2000
 	}
 	if offset < 0 {
 		offset = 0
