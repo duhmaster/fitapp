@@ -130,8 +130,20 @@ prepare_web() {
   sudo mkdir -p "$web_dir"
   if command -v flutter &>/dev/null; then
     log "Сборка Flutter web..."
-    ( cd "$PROJECT_ROOT/mobile" && flutter build web )
+    # HTML renderer avoids downloading huge CanvasKit (~tens of MB).
+    ( cd "$PROJECT_ROOT/mobile" && flutter build web --release --web-renderer html )
     sudo cp -r "$PROJECT_ROOT/mobile/build/web/"* "$web_dir/"
+    # Ensure pre-compressed variants exist for slow connections (nginx will serve *.gz via gzip_static)
+    sudo gzip -k -f -9 "$web_dir/main.dart.js" 2>/dev/null || true
+    sudo gzip -k -f -9 "$web_dir/flutter.js" 2>/dev/null || true
+    sudo gzip -k -f -9 "$web_dir/flutter_bootstrap.js" 2>/dev/null || true
+    sudo gzip -k -f -9 "$web_dir/index.html" 2>/dev/null || true
+    sudo gzip -k -f -9 "$web_dir/flutter_service_worker.js" 2>/dev/null || true
+    sudo gzip -k -f -9 "$web_dir/manifest.json" 2>/dev/null || true
+    sudo gzip -k -f -9 "$web_dir/version.json" 2>/dev/null || true
+
+    # If something still produced canvaskit, drop it for html renderer deploy.
+    sudo rm -rf "$web_dir/canvaskit" 2>/dev/null || true
     log "Flutter web скопирован в $web_dir"
   else
     if [[ ! -f "$web_dir/index.html" ]]; then
@@ -238,13 +250,52 @@ server {
 }
 
 server {
-    listen 443 ssl http2;
-    server_name gymmore.ru;
+    listen 443 ssl;
+    http2 on;
+    server_name gymmore.ru www.gymmore.ru;
     ssl_certificate     /etc/letsencrypt/live/gymmore.ru/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/gymmore.ru/privkey.pem;
     ssl_protocols TLSv1.2 TLSv1.3;
     root /var/www/html;
     index index.html;
+
+    gzip on;
+    gzip_static on;
+    gzip_vary on;
+    gzip_proxied any;
+    gzip_comp_level 6;
+    gzip_min_length 1024;
+    gzip_types
+        text/plain
+        text/css
+        text/javascript
+        application/javascript
+        application/json
+        application/wasm
+        application/xml
+        image/svg+xml;
+
+    location = /index.html {
+        add_header Cache-Control "no-cache";
+        try_files $uri =404;
+    }
+    location = /flutter_service_worker.js {
+        add_header Cache-Control "no-cache";
+        try_files $uri =404;
+    }
+    location ^~ /assets/ {
+        add_header Cache-Control "public, max-age=31536000, immutable";
+        try_files $uri =404;
+    }
+    location ^~ /canvaskit/ {
+        add_header Cache-Control "public, max-age=31536000, immutable";
+        try_files $uri =404;
+    }
+    location = /main.dart.js {
+        add_header Cache-Control "public, max-age=0, must-revalidate";
+        try_files $uri =404;
+    }
+
     location / {
         limit_req zone=web_limit burst=20 nodelay;
         try_files $uri $uri/ /index.html;
@@ -254,7 +305,8 @@ server {
 }
 
 server {
-    listen 443 ssl http2;
+    listen 443 ssl;
+    http2 on;
     server_name api.gymmore.ru;
     ssl_certificate     /etc/letsencrypt/live/gymmore.ru/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/gymmore.ru/privkey.pem;
@@ -280,7 +332,8 @@ server {
 }
 
 server {
-    listen 443 ssl http2;
+    listen 443 ssl;
+    http2 on;
     server_name adm.gymmore.ru;
     ssl_certificate     /etc/letsencrypt/live/gymmore.ru/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/gymmore.ru/privkey.pem;
