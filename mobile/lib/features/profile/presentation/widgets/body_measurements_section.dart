@@ -102,13 +102,13 @@ class _BodyMeasurementsTable extends ConsumerWidget {
         child: Text(tr('no_measurements_yet'), style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
       );
     }
-    final screenWidth = MediaQuery.of(context).size.width;
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: ConstrainedBox(
-        constraints: BoxConstraints(minWidth: screenWidth),
+        constraints: const BoxConstraints(),
         child: DataTable(
-          columnSpacing: 12,
+          columnSpacing: 8,
+          horizontalMargin: 8,
           columns: [
             DataColumn(label: Text(tr('date'))),
             DataColumn(label: Text(tr('weight_kg'))),
@@ -127,8 +127,18 @@ class _BodyMeasurementsTable extends ConsumerWidget {
               DataCell(Text(m.weightKg.toStringAsFixed(1))),
               DataCell(Text(m.bodyFatPct?.toStringAsFixed(1) ?? '—')),
               DataCell(Text(interp.leanMassPct.toStringAsFixed(1))),
-              DataCell(ConstrainedBox(constraints: const BoxConstraints(minWidth: 180, maxWidth: 280), child: Text(interp.ffmiText, style: const TextStyle(fontSize: 12)))),
-              DataCell(ConstrainedBox(constraints: const BoxConstraints(minWidth: 180, maxWidth: 280), child: Text(interp.bmiText, style: const TextStyle(fontSize: 12)))),
+              DataCell(
+                ConstrainedBox(
+                  constraints: const BoxConstraints(minWidth: 120, maxWidth: 170),
+                  child: Text(interp.ffmiText, style: const TextStyle(fontSize: 11)),
+                ),
+              ),
+              DataCell(
+                ConstrainedBox(
+                  constraints: const BoxConstraints(minWidth: 120, maxWidth: 170),
+                  child: Text(interp.bmiText, style: const TextStyle(fontSize: 11)),
+                ),
+              ),
               DataCell(Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -145,9 +155,8 @@ class _BodyMeasurementsTable extends ConsumerWidget {
             ],
           );
         }).toList(),
-        ),
       ),
-    );
+    ));
   }
 
   static String _formatDate(DateTime d) {
