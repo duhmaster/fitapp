@@ -55,9 +55,8 @@ class _TraineeProgressScreenState extends ConsumerState<TraineeProgressScreen>
   @override
   Widget build(BuildContext context) {
     final tr = ref.watch(trProvider);
-    final title = widget.clientName != null
-        ? 'Прогресс — ${widget.clientName}'
-        : tr('progress');
+    final progressLabel = tr('progress');
+    final title = widget.clientName != null ? '$progressLabel — ${widget.clientName}' : progressLabel;
     return Scaffold(
       appBar: AppBar(
         title: Text(title),
@@ -67,7 +66,7 @@ class _TraineeProgressScreenState extends ConsumerState<TraineeProgressScreen>
           tabs: [
             Tab(text: tr('progress_measurements')),
             Tab(text: tr('progress_workouts')),
-            Tab(text: tr('progress_exercises')),
+            Tab(text: tr('statistics_exercises')),
           ],
         ),
       ),

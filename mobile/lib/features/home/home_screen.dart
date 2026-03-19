@@ -21,10 +21,13 @@ class HomeScreen extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
-              await ref.read(logoutProvider)();
-              invalidateUserScopedProviders(ref as Ref);
               ref.read(authRedirectNotifierProvider).setLoggedIn(false);
               if (context.mounted) context.go('/login');
+              try {
+                await ref.read(logoutProvider)();
+              } finally {
+                invalidateUserScopedProviders(ref as Ref);
+              }
             },
           ),
         ],

@@ -20,8 +20,7 @@ class MainShellScreen extends ConsumerStatefulWidget {
 }
 
 class _MainShellScreenState extends ConsumerState<MainShellScreen> {
-  /// Пункты меню «Тренер», «Зал», «Лента», «Таймеры» — скрыты, не удалены.
-  static const bool _showHiddenMenuItems = false;
+  bool _trainerMode = false;
 
   int _selectedIndex(String location) {
     final path = location.split('?').first;
@@ -91,32 +90,111 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
               ],
             ),
           ),
-          ListTile(leading: const Icon(Icons.person), title: Text(tr('profile')), onTap: () => _drawerNavigate(context, () => _go(context, '/profile'))),
-          ListTile(leading: const Icon(Icons.fitness_center), title: Text(tr('my_gyms')), onTap: () => _drawerNavigate(context, () => _push(context, '/gym'))),
-          ListTile(leading: const Icon(Icons.sports_martial_arts), title: const Text('Мои тренеры'), onTap: () => _drawerNavigate(context, () => _push(context, '/my-trainers'))),
-          ExpansionTile(
-            leading: const Icon(Icons.directions_run),
-            title: Text(tr('my_workouts')),
-            children: [
-              ListTile(leading: const Icon(Icons.play_circle, size: 20), title: Text(tr('current_workout')), onTap: () => _drawerNavigate(context, () => _push(context, '/current-workout'))),
-              ListTile(leading: const Icon(Icons.calendar_month, size: 20), title: Text(tr('calendar')), onTap: () => _drawerNavigate(context, () => _push(context, '/calendar'))),
-              ListTile(leading: const Icon(Icons.list_alt, size: 20), title: Text(tr('workout_templates')), onTap: () => _drawerNavigate(context, () => _push(context, '/templates'))),
-              ListTile(leading: const Icon(Icons.fitness_center, size: 20), title: Text(tr('exercises_base')), onTap: () => _drawerNavigate(context, () => _go(context, '/exercises'))),
-              ListTile(leading: const Icon(Icons.format_list_bulleted, size: 20), title: Text(tr('all_workouts')), onTap: () => _drawerNavigate(context, () => _go(context, '/home'))),
-            ],
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+            child: SegmentedButton<bool>(
+              segments: [
+                ButtonSegment<bool>(
+                  value: false,
+                  icon: const Icon(Icons.directions_run),
+                  label: Text(tr('mode_my_workouts')),
+                ),
+                ButtonSegment<bool>(
+                  value: true,
+                  icon: const Icon(Icons.sports_gymnastics),
+                  label: Text(tr('mode_i_am_trainer')),
+                ),
+              ],
+              selected: {_trainerMode},
+              onSelectionChanged: (s) => setState(() => _trainerMode = s.first),
+              style: ButtonStyle(
+                backgroundColor: MaterialStateProperty.resolveWith<Color?>((states) {
+                  final scheme = Theme.of(context).colorScheme;
+                  if (states.contains(MaterialState.selected)) return scheme.primaryContainer;
+                  return scheme.surfaceContainerHighest;
+                }),
+                foregroundColor: MaterialStateProperty.resolveWith<Color?>((states) {
+                  final scheme = Theme.of(context).colorScheme;
+                  if (states.contains(MaterialState.selected)) return scheme.onPrimaryContainer;
+                  return scheme.onSurfaceVariant;
+                }),
+                overlayColor: MaterialStateProperty.resolveWith<Color?>((states) {
+                  final scheme = Theme.of(context).colorScheme;
+                  if (states.contains(MaterialState.selected)) return scheme.primary.withOpacity(0.12);
+                  return scheme.onSurface.withOpacity(0.08);
+                }),
+              ),
+            ),
           ),
-          if (_showHiddenMenuItems) ListTile(leading: const Icon(Icons.timer), title: Text(tr('timers')), onTap: () => _drawerNavigate(context, () => _push(context, '/timers'))),
-          ListTile(leading: const Icon(Icons.show_chart), title: Text(tr('progress')), onTap: () => _drawerNavigate(context, () => _go(context, '/progress'))),
-          if (_showHiddenMenuItems) ListTile(leading: const Icon(Icons.dynamic_feed), title: Text(tr('feed')), onTap: () => _drawerNavigate(context, () => _go(context, '/feed'))),
-          ExpansionTile(
-            leading: const Icon(Icons.sports_gymnastics),
-            title: Text(tr('trainer')),
-            children: [
-              ListTile(leading: const Icon(Icons.person, size: 20), title: const Text('Профиль'), onTap: () => _drawerNavigate(context, () => _push(context, '/trainer/profile'))),
-              ListTile(leading: const Icon(Icons.people, size: 20), title: const Text('Подопечные'), onTap: () => _drawerNavigate(context, () => _push(context, '/trainer/trainees'))),
-              ListTile(leading: const Icon(Icons.calendar_month, size: 20), title: Text(tr('calendar')), onTap: () => _drawerNavigate(context, () => _push(context, '/calendar'))),
-            ],
-          ),
+          if (!_trainerMode) ...[
+            ListTile(
+              leading: const Icon(Icons.person),
+              title: Text(tr('profile')),
+              onTap: () => _drawerNavigate(context, () => _go(context, '/profile')),
+            ),
+            ListTile(
+              leading: const Icon(Icons.calendar_month),
+              title: Text(tr('calendar')),
+              onTap: () => _drawerNavigate(context, () => _push(context, '/calendar')),
+            ),
+            ListTile(
+              leading: const Icon(Icons.format_list_bulleted),
+              title: Text(tr('all_workouts')),
+              onTap: () => _drawerNavigate(context, () => _go(context, '/home')),
+            ),
+            ExpansionTile(
+              leading: const Icon(Icons.tune),
+              title: Text(tr('workout_settings')),
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.fitness_center, size: 20),
+                  title: Text(tr('my_gyms')),
+                  onTap: () => _drawerNavigate(context, () => _push(context, '/gym')),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.sports_martial_arts, size: 20),
+                  title: Text(tr('my_trainers')),
+                  onTap: () => _drawerNavigate(context, () => _push(context, '/my-trainers')),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.list_alt, size: 20),
+                  title: Text(tr('workout_templates')),
+                  onTap: () => _drawerNavigate(context, () => _push(context, '/templates')),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.fitness_center, size: 20),
+                  title: Text(tr('exercises_base')),
+                  onTap: () => _drawerNavigate(context, () => _go(context, '/exercises')),
+                ),
+              ],
+            ),
+            ListTile(
+              leading: const Icon(Icons.show_chart),
+              title: Text(tr('statistics')),
+              onTap: () => _drawerNavigate(context, () => _go(context, '/progress')),
+            ),
+          ] else ...[
+            ListTile(
+              leading: const Icon(Icons.person),
+              title: Text(tr('trainer_profile')),
+              onTap: () => _drawerNavigate(context, () => _push(context, '/trainer/profile')),
+            ),
+            ListTile(
+              leading: const Icon(Icons.people),
+              title: Text(tr('trainees')),
+              onTap: () => _drawerNavigate(context, () => _push(context, '/trainer/trainees')),
+            ),
+            ListTile(
+              leading: const Icon(Icons.calendar_month),
+              title: Text(tr('calendar')),
+              onTap: () => _drawerNavigate(context, () => _push(context, '/calendar')),
+            ),
+            ListTile(
+              leading: const Icon(Icons.fitness_center),
+              title: Text(tr('my_gyms')),
+              onTap: () => _drawerNavigate(context, () => _push(context, '/gym')),
+            ),
+          ],
           ListTile(leading: const Icon(Icons.help_outline), title: Text(tr('help')), onTap: () => _drawerNavigate(context, () => _push(context, '/help'))),
           ListTile(leading: const Icon(Icons.settings), title: Text(tr('options')), onTap: () => _drawerNavigate(context, () => _push(context, '/options'))),
         ],
@@ -153,10 +231,13 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
             IconButton(
               icon: const Icon(Icons.logout),
               onPressed: () async {
-                await ref.read(logoutProvider)();
-                invalidateUserScopedProviders(ref as Ref);
                 ref.read(authRedirectNotifierProvider).setLoggedIn(false);
                 if (context.mounted) context.go('/login');
+                try {
+                  await ref.read(logoutProvider)();
+                } finally {
+                  invalidateUserScopedProviders(ref as Ref);
+                }
               },
             ),
           ],
@@ -191,10 +272,13 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
-              await ref.read(logoutProvider)();
-              invalidateUserScopedProviders(ref as Ref);
               ref.read(authRedirectNotifierProvider).setLoggedIn(false);
               if (context.mounted) context.go('/login');
+              try {
+                await ref.read(logoutProvider)();
+              } finally {
+                invalidateUserScopedProviders(ref as Ref);
+              }
             },
           ),
         ],

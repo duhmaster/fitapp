@@ -29,7 +29,7 @@ class ProgressMenuScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
           _MenuTile(
-            title: tr('progress_exercises'),
+            title: tr('statistics_exercises'),
             subtitle: tr('progress_exercises_subtitle'),
             icon: Icons.fitness_center,
             onTap: () => context.push('/progress/exercises'),

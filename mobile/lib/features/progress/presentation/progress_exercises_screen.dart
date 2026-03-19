@@ -32,7 +32,7 @@ class _ProgressExercisesScreenState extends ConsumerState<ProgressExercisesScree
     final exercisesAsync = ref.watch(exercisesListProvider);
 
     return Scaffold(
-      appBar: AppBar(title: Text(tr('progress_exercises'))),
+      appBar: AppBar(title: Text(tr('statistics_exercises'))),
       body: idsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => ErrorStateWidget(
