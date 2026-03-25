@@ -4,6 +4,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"os/signal"
@@ -39,6 +40,12 @@ import (
 	notificationdelivery "github.com/fitflow/fitflow/internal/notification/delivery"
 	notificationrepository "github.com/fitflow/fitflow/internal/notification/repository"
 	notificationusecase "github.com/fitflow/fitflow/internal/notification/usecase"
+	grouptrainingdelivery "github.com/fitflow/fitflow/internal/grouptraining/delivery"
+	grouptrainingrepository "github.com/fitflow/fitflow/internal/grouptraining/repository"
+	grouptrainingusecase "github.com/fitflow/fitflow/internal/grouptraining/usecase"
+	photodelivery "github.com/fitflow/fitflow/internal/photo/delivery"
+	photorepository "github.com/fitflow/fitflow/internal/photo/repository"
+	photousecase "github.com/fitflow/fitflow/internal/photo/usecase"
 	systemmessagedomain "github.com/fitflow/fitflow/internal/systemmessage/domain"
 	systemmessagedelivery "github.com/fitflow/fitflow/internal/systemmessage/delivery"
 	systemmessagerepository "github.com/fitflow/fitflow/internal/systemmessage/repository"
@@ -108,6 +115,29 @@ func run() error {
 		store = storage.NewFilesystemStore(cfg.StoragePath, cfg.StorageBaseURL)
 	}
 
+	// S3 store (for production photo uploads)
+	var s3Store *storage.S3Store
+	if cfg.S3Endpoint != "" && cfg.S3AccessKey != "" && cfg.S3SecretKey != "" {
+		s3, err := storage.NewS3Store(storage.S3Config{
+			Endpoint:  cfg.S3Endpoint,
+			AccessKey: cfg.S3AccessKey,
+			SecretKey: cfg.S3SecretKey,
+			Bucket:    cfg.S3Bucket,
+			Region:    cfg.S3Region,
+			PublicURL: cfg.S3PublicURL,
+			UseSSL:    cfg.S3UseSSL,
+		})
+		if err != nil {
+			return fmt.Errorf("s3 store: %w", err)
+		}
+		s3Store = s3
+	}
+
+	// Photo module
+	bucketRepo := photorepository.NewBucketRepository(db)
+	photoRepo := photorepository.NewPhotoRepository(db)
+	photoUC := photousecase.NewPhotoUseCase(photoRepo, bucketRepo, s3Store, store)
+
 	// User module
 	profileRepo := userrepository.NewProfileRepository(db)
 	metricRepo := userrepository.NewMetricRepository(db)
@@ -151,6 +181,14 @@ func run() error {
 	healthMetricRepo := progressrepository.NewHealthMetricRepository(db)
 	progressUC := progressusecase.NewProgressUseCase(weightRepo, bodyFatRepo, healthMetricRepo)
 	progressHandler := progressdelivery.NewHandler(progressUC)
+
+	// Group training module
+	groupTypeRepo := grouptrainingrepository.NewGroupTrainingTypeRepository(db)
+	groupTemplateRepo := grouptrainingrepository.NewGroupTrainingTemplateRepository(db)
+	groupTrainingRepo := grouptrainingrepository.NewGroupTrainingRepository(db)
+	groupRegistrationRepo := grouptrainingrepository.NewGroupTrainingRegistrationRepository(db)
+	groupTrainingUC := grouptrainingusecase.NewGroupTrainingUseCase(groupTypeRepo, groupTemplateRepo, groupTrainingRepo, groupRegistrationRepo, authUserRepo)
+	groupTrainingHandler := grouptrainingdelivery.NewHandler(groupTrainingUC)
 
 	// Social module
 	followRepo := socialrepository.NewFollowRepository(db)
@@ -374,6 +412,21 @@ func run() error {
 			SystemMessagesCreate: systemMessageRepo.Create,
 			SystemMessagesUpdate: systemMessageRepo.Update,
 			SystemMessagesDelete: systemMessageRepo.Delete,
+			BucketsList:   bucketRepo.List,
+			BucketsGet:    bucketRepo.GetByID,
+			BucketsCreate: bucketRepo.Create,
+			BucketsUpdate: bucketRepo.Update,
+			BucketsDelete: bucketRepo.Delete,
+			PhotosList: photoRepo.List,
+			PhotosGet:  photoUC.GetByID,
+			PhotosUpload: func(ctx context.Context, bucketName string, r io.Reader, contentType string) (uuid.UUID, string, error) {
+				res, err := photoUC.Upload(ctx, bucketName, "admin", r, contentType, nil)
+				if err != nil {
+					return uuid.Nil, "", err
+				}
+				return res.PhotoID, res.URL, nil
+			},
+			PhotosDelete: photoUC.Delete,
 		}
 		adminHandler = admin.NewHandler(adminDeps)
 	}
@@ -395,6 +448,8 @@ func run() error {
 		TrainerHandler:    trainerHandler,
 		NotificationHandler: notificationHandler,
 		SystemMessageHandler: systemMessageHandler,
+		GroupTrainingHandler: groupTrainingHandler,
+		PhotoHandler:      photodelivery.NewHandler(photoUC),
 		AdminHandler:      adminHandler,
 		JWTSecret:         []byte(cfg.JWTSecret),
 		UploadsPath:       cfg.StoragePath,

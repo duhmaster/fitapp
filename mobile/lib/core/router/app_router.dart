@@ -20,6 +20,11 @@ import 'package:fitflow/features/trainer/trainee_profile_screen.dart';
 import 'package:fitflow/features/trainer/trainee_progress_screen.dart';
 import 'package:fitflow/features/trainer/trainer_calendar_screen.dart';
 import 'package:fitflow/features/trainer/trainer_public_screen.dart';
+import 'package:fitflow/features/group_trainings/presentation/trainer_group_training_templates_screen.dart';
+import 'package:fitflow/features/group_trainings/presentation/trainer_group_training_template_edit_screen.dart';
+import 'package:fitflow/features/group_trainings/presentation/trainer_group_trainings_screen.dart';
+import 'package:fitflow/features/group_trainings/presentation/trainer_group_training_detail_screen.dart';
+import 'package:fitflow/features/group_trainings/presentation/trainer_group_training_edit_screen.dart';
 import 'package:fitflow/features/workouts/presentation/active_workout_screen.dart';
 import 'package:fitflow/features/workouts/presentation/workouts_list_screen.dart';
 import 'package:fitflow/features/home/home_screen.dart';
@@ -33,6 +38,10 @@ import 'package:fitflow/features/current_workout/current_workout_screen.dart';
 import 'package:fitflow/features/timers/timers_screen.dart';
 import 'package:fitflow/features/help/help_screen.dart';
 import 'package:fitflow/features/help/help_topic_screen.dart';
+import 'package:fitflow/features/group_trainings/presentation/my_group_trainings_screen.dart';
+import 'package:fitflow/features/group_trainings/presentation/group_training_detail_screen.dart';
+import 'package:fitflow/features/group_trainings/presentation/group_training_public_screen.dart';
+import 'package:fitflow/features/group_trainings/presentation/available_group_trainings_screen.dart';
 import 'package:fitflow/core/widgets/loading_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -48,7 +57,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final isAuthRoute = state.matchedLocation == '/login' || state.matchedLocation == '/register';
       final isLoadingRoute = state.matchedLocation == '/loading';
       if (isLoadingRoute) return authNotifier.isLoggedIn ? '/home' : '/login';
-      if (!authNotifier.isLoggedIn && (state.matchedLocation.startsWith('/t/') || state.matchedLocation == '/t')) return null;
+      if (!authNotifier.isLoggedIn &&
+          (state.matchedLocation.startsWith('/t/') ||
+              state.matchedLocation == '/t' ||
+              state.matchedLocation.startsWith('/g/') ||
+              state.matchedLocation == '/g')) {
+        return null;
+      }
       if (!authNotifier.isLoggedIn && !isAuthRoute) return '/login';
       if (authNotifier.isLoggedIn && isAuthRoute) return '/home';
       if (state.matchedLocation == '/') return '/home';
@@ -101,6 +116,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               ),
               GoRoute(path: 'feed', builder: (_, __) => const FeedScreen()),
               GoRoute(path: 'system-messages', builder: (_, __) => const SystemMessagesScreen()),
+              GoRoute(path: 'group-trainings', builder: (_, __) => const MyGroupTrainingsScreen()),
+              // Статический путь должен быть выше :trainingId, иначе "available" попадёт в параметр.
+              GoRoute(
+                path: 'group-trainings/available',
+                builder: (_, __) => const AvailableGroupTrainingsScreen(),
+              ),
+              GoRoute(
+                path: 'group-trainings/:trainingId',
+                builder: (_, state) => GroupTrainingDetailScreen(trainingId: state.pathParameters['trainingId']!),
+              ),
               GoRoute(
                 path: 'help',
                 builder: (_, __) => const HelpScreen(),
@@ -152,6 +177,32 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     ],
                   ),
                   GoRoute(path: 'calendar', builder: (_, __) => const TrainerCalendarScreen()),
+                  GoRoute(
+                    path: 'group-training-templates',
+                    builder: (_, __) => const TrainerGroupTrainingTemplatesScreen(),
+                    routes: [
+                      GoRoute(path: 'new', builder: (_, __) => const TrainerGroupTrainingTemplateEditScreen(templateIdOrNull: null)),
+                      GoRoute(
+                        path: ':templateId',
+                        builder: (_, state) => TrainerGroupTrainingTemplateEditScreen(templateIdOrNull: state.pathParameters['templateId']!),
+                      ),
+                    ],
+                  ),
+                  GoRoute(
+                    path: 'group-trainings',
+                    builder: (_, __) => const TrainerGroupTrainingsScreen(),
+                    routes: [
+                      GoRoute(path: 'new', builder: (_, __) => const TrainerGroupTrainingEditScreen(trainingIdOrNull: null)),
+                      GoRoute(
+                        path: ':trainingId',
+                        builder: (_, state) => TrainerGroupTrainingDetailScreen(trainingId: state.pathParameters['trainingId']!),
+                      ),
+                      GoRoute(
+                        path: ':trainingId/edit',
+                        builder: (_, state) => TrainerGroupTrainingEditScreen(trainingIdOrNull: state.pathParameters['trainingId']!),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ],
@@ -164,6 +215,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/t/:userId',
         builder: (_, state) => TrainerPublicScreen(userId: state.pathParameters['userId']!),
+      ),
+      GoRoute(
+        path: '/g/:trainingId',
+        builder: (_, state) => GroupTrainingPublicScreen(trainingId: state.pathParameters['trainingId']!),
       ),
     ],
   );

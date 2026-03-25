@@ -19,6 +19,8 @@ import (
 	trainerdelivery "github.com/fitflow/fitflow/internal/trainer/delivery"
 	userdelivery "github.com/fitflow/fitflow/internal/user/delivery"
 	workoutdelivery "github.com/fitflow/fitflow/internal/workout/delivery"
+	grouptrainingdelivery "github.com/fitflow/fitflow/internal/grouptraining/delivery"
+	photodelivery "github.com/fitflow/fitflow/internal/photo/delivery"
 	"github.com/fitflow/fitflow/internal/delivery/middleware"
 	"github.com/gin-gonic/gin"
 )
@@ -38,7 +40,9 @@ type RoutesConfig struct {
 	TrainerHandler     *trainerdelivery.Handler
 	NotificationHandler *notificationdelivery.Handler
 	SystemMessageHandler *systemmessagedelivery.Handler
-	AdminHandler        *admin.Handler
+	GroupTrainingHandler  *grouptrainingdelivery.Handler
+	PhotoHandler         *photodelivery.Handler
+	AdminHandler         *admin.Handler
 	JWTSecret           []byte
 	UploadsPath         string       // local path for serving uploads (e.g. ./uploads)
 	GeoClient           *geo.Client  // 2GIS proxy for cities/organizations (optional)
@@ -109,6 +113,11 @@ func (s *Server) RegisterRoutes(cfg *RoutesConfig) {
 		// Public trainer profile (no auth) — GET /api/v1/trainers/:user_id
 		if cfg.TrainerHandler != nil {
 			v1.GET("/trainers/:user_id", cfg.TrainerHandler.GetTrainerPublic)
+		}
+
+		// Public group training landing (no auth) — GET /api/v1/group-trainings/:training_id
+		if cfg.GroupTrainingHandler != nil {
+			v1.GET("/group-trainings/:training_id", cfg.GroupTrainingHandler.GetPublicGroupTraining)
 		}
 
 		if len(cfg.JWTSecret) > 0 && cfg.AuthHandler != nil {
@@ -256,6 +265,36 @@ func (s *Server) RegisterRoutes(cfg *RoutesConfig) {
 				if cfg.SystemMessageHandler != nil {
 					protected.GET("/me/system-messages", cfg.SystemMessageHandler.ListActive)
 					protected.GET("/me/system-messages/count", cfg.SystemMessageHandler.CountActive)
+				}
+
+				if cfg.PhotoHandler != nil {
+					protected.POST("/me/photos/upload", cfg.PhotoHandler.Upload)
+				}
+
+				// Group trainings
+				if cfg.GroupTrainingHandler != nil {
+					protected.GET("/me/group-training-types", cfg.GroupTrainingHandler.ListTypes)
+
+					// Trainer templates
+					protected.GET("/me/trainer/group-training-templates", cfg.GroupTrainingHandler.ListTrainerTemplates)
+					protected.POST("/me/trainer/group-training-templates", cfg.GroupTrainingHandler.CreateTrainerTemplate)
+					protected.GET("/me/trainer/group-training-templates/:template_id", cfg.GroupTrainingHandler.GetTrainerTemplate)
+					protected.PUT("/me/trainer/group-training-templates/:template_id", cfg.GroupTrainingHandler.UpdateTrainerTemplate)
+					protected.DELETE("/me/trainer/group-training-templates/:template_id", cfg.GroupTrainingHandler.SoftDeleteTrainerTemplate)
+
+					// Trainer trainings
+					protected.GET("/me/trainer/group-trainings", cfg.GroupTrainingHandler.ListTrainerTrainings)
+					protected.POST("/me/trainer/group-trainings", cfg.GroupTrainingHandler.CreateTrainerTraining)
+					protected.PUT("/me/trainer/group-trainings/:training_id", cfg.GroupTrainingHandler.UpdateTrainerTraining)
+					protected.GET("/me/trainer/group-trainings/:training_id", cfg.GroupTrainingHandler.GetTrainerTraining)
+					protected.DELETE("/me/trainer/group-trainings/:training_id", cfg.GroupTrainingHandler.DeleteTrainerTraining)
+
+					// User trainings
+					protected.GET("/me/group-trainings/available", cfg.GroupTrainingHandler.ListAvailableForUser)
+					protected.GET("/me/group-trainings", cfg.GroupTrainingHandler.ListUserTrainings)
+					protected.GET("/me/group-trainings/:training_id", cfg.GroupTrainingHandler.GetUserTraining)
+					protected.POST("/me/group-trainings/:training_id/register", cfg.GroupTrainingHandler.RegisterForTraining)
+					protected.DELETE("/me/group-trainings/:training_id/register", cfg.GroupTrainingHandler.UnregisterFromTraining)
 				}
 			}
 

@@ -22,6 +22,11 @@ class MainShellScreen extends ConsumerStatefulWidget {
 class _MainShellScreenState extends ConsumerState<MainShellScreen> {
   bool _trainerMode = false;
 
+  void _closeDrawerIfOpen(BuildContext context) {
+    final scaffold = Scaffold.maybeOf(context);
+    if (scaffold?.isDrawerOpen ?? false) scaffold?.closeDrawer();
+  }
+
   int _selectedIndex(String location) {
     final path = location.split('?').first;
     if (path == '/calendar' || path.startsWith('/calendar/')) return 6;
@@ -38,8 +43,9 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
   void _push(BuildContext context, String path) => _router.push(path);
 
   void _drawerNavigate(BuildContext context, VoidCallback navigate) {
-    navigate();
+    // Close drawer first so `pop()` doesn't accidentally pop the newly pushed route.
     Navigator.of(context).pop();
+    Future.microtask(navigate);
   }
 
   void _onItemTapped(BuildContext context, int index) {
@@ -173,6 +179,11 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
               title: Text(tr('statistics')),
               onTap: () => _drawerNavigate(context, () => _go(context, '/progress')),
             ),
+            ListTile(
+              leading: const Icon(Icons.groups),
+              title: Text(tr('group_trainings')),
+              onTap: () => _drawerNavigate(context, () => _go(context, '/group-trainings')),
+            ),
           ] else ...[
             ListTile(
               leading: const Icon(Icons.person),
@@ -183,6 +194,16 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
               leading: const Icon(Icons.people),
               title: Text(tr('trainees')),
               onTap: () => _drawerNavigate(context, () => _push(context, '/trainer/trainees')),
+            ),
+            ListTile(
+              leading: const Icon(Icons.category),
+              title: Text(tr('group_training_templates')),
+              onTap: () => _drawerNavigate(context, () => _push(context, '/trainer/group-training-templates')),
+            ),
+            ListTile(
+              leading: const Icon(Icons.groups),
+              title: Text(tr('group_trainings')),
+              onTap: () => _drawerNavigate(context, () => _push(context, '/trainer/group-trainings')),
             ),
             ListTile(
               leading: const Icon(Icons.calendar_month),
@@ -226,11 +247,15 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
             IconButton(
               tooltip: tr('system_messages'),
               icon: _BellWithBadge(countAsync: countAsync),
-              onPressed: () => _push(context, '/system-messages'),
+            onPressed: () {
+              _closeDrawerIfOpen(context);
+              _push(context, '/system-messages');
+            },
             ),
             IconButton(
               icon: const Icon(Icons.logout),
               onPressed: () async {
+              _closeDrawerIfOpen(context);
                 ref.read(authRedirectNotifierProvider).setLoggedIn(false);
                 if (context.mounted) context.go('/login');
                 try {
@@ -267,11 +292,15 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
           IconButton(
             tooltip: tr('system_messages'),
             icon: _BellWithBadge(countAsync: countAsync),
-            onPressed: () => _push(context, '/system-messages'),
+            onPressed: () {
+              _closeDrawerIfOpen(context);
+              _push(context, '/system-messages');
+            },
           ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
+              _closeDrawerIfOpen(context);
               ref.read(authRedirectNotifierProvider).setLoggedIn(false);
               if (context.mounted) context.go('/login');
               try {

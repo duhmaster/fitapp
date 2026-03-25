@@ -2,10 +2,12 @@ package admin
 
 import (
 	"context"
+	"io"
 
 	authdomain "github.com/fitflow/fitflow/internal/auth/domain"
 	blogdomain "github.com/fitflow/fitflow/internal/blog/domain"
 	gymdomain "github.com/fitflow/fitflow/internal/gym/domain"
+	photodomain "github.com/fitflow/fitflow/internal/photo/domain"
 	systemmessagedomain "github.com/fitflow/fitflow/internal/systemmessage/domain"
 	workoutdomain "github.com/fitflow/fitflow/internal/workout/domain"
 	"github.com/google/uuid"
@@ -59,4 +61,15 @@ type Deps struct {
 	SystemMessagesCreate func(ctx context.Context, title, body string, isActive bool) (*systemmessagedomain.SystemMessage, error)
 	SystemMessagesUpdate func(ctx context.Context, id uuid.UUID, title, body string, isActive bool) (*systemmessagedomain.SystemMessage, error)
 	SystemMessagesDelete func(ctx context.Context, id uuid.UUID) error
+
+	BucketsList   func(ctx context.Context) ([]*photodomain.Bucket, error)
+	BucketsGet    func(ctx context.Context, id uuid.UUID) (*photodomain.Bucket, error)
+	BucketsCreate func(ctx context.Context, name, endpoint, region, publicURL string) (*photodomain.Bucket, error)
+	BucketsUpdate func(ctx context.Context, id uuid.UUID, name, endpoint, region, publicURL string) (*photodomain.Bucket, error)
+	BucketsDelete func(ctx context.Context, id uuid.UUID) error
+
+	PhotosList   func(ctx context.Context, limit, offset int) ([]*photodomain.Photo, error)
+	PhotosGet    func(ctx context.Context, id uuid.UUID) (*photodomain.Photo, error)
+	PhotosUpload func(ctx context.Context, bucketName string, r io.Reader, contentType string) (photoID uuid.UUID, url string, err error)
+	PhotosDelete func(ctx context.Context, id uuid.UUID) error
 }

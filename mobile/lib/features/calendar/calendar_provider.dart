@@ -5,11 +5,14 @@ import 'package:fitflow/features/trainer/data/trainer_repository.dart';
 import 'package:fitflow/features/workouts/data/workout_repository.dart';
 import 'package:fitflow/features/workouts/domain/workout_models.dart';
 import 'package:fitflow/features/templates/templates_provider.dart';
+import 'package:fitflow/features/group_trainings/data/group_trainings_repository.dart';
+import 'package:fitflow/features/group_trainings/domain/group_training_models.dart';
 
 /// Объединённый список для календаря: свои тренировки + тренировки подопечных.
 final workoutsCalendarCombinedProvider = FutureProvider<List<CalendarWorkoutItem>>((ref) async {
   final workoutRepo = ref.watch(workoutRepositoryProvider);
   final trainerRepo = ref.watch(trainerRepositoryProvider);
+  final groupTrainingsRepo = ref.watch(groupTrainingsRepositoryProvider);
   final me = await ref.watch(currentUserProvider.future);
   final templatesAsync = ref.watch(templatesListProvider);
   final templateNames = <String, String>{};
@@ -62,6 +65,40 @@ final workoutsCalendarCombinedProvider = FutureProvider<List<CalendarWorkoutItem
       isOwn: w.userId == me.id,
       displayName: traineeNames[w.userId],
       templateName: w.templateId != null ? templateNames[w.templateId] : null,
+    ));
+  }
+
+  // Group trainings: встраиваем в существующий календарь как “виртуальные workouts”.
+  // Это позволит показывать их на тех же страницах без большого рефакторинга.
+  final myGroupTrainings = await groupTrainingsRepo.listMy(includePast: true, limit: 200, offset: 0);
+  List<GroupTraining> trainerCreatedGroupTrainings = [];
+  try {
+    trainerCreatedGroupTrainings = await groupTrainingsRepo.listTrainerTrainings(
+      includePast: true,
+      limit: 200,
+      offset: 0,
+    );
+  } catch (_) {
+    // Non-trainers or errors: skip trainer-created trainings in calendar
+  }
+  final groupById = <String, GroupTraining>{
+    for (final t in myGroupTrainings) t.id: t,
+    for (final t in trainerCreatedGroupTrainings) t.id: t,
+  };
+  for (final t in groupById.values) {
+    final dummyWorkout = Workout(
+      id: t.id,
+      templateId: t.templateId,
+      userId: t.trainerUserId,
+      programId: groupTrainingCalendarMarker,
+      scheduledAt: t.scheduledAt.toUtc().toIso8601String(),
+      createdAt: t.createdAt.toUtc().toIso8601String(),
+      volumeKg: null,
+    );
+    result.add(CalendarWorkoutItem(
+      workout: dummyWorkout,
+      isOwn: t.trainerUserId == me.id,
+      templateName: t.templateName?.isNotEmpty == true ? t.templateName : t.templateId,
     ));
   }
 

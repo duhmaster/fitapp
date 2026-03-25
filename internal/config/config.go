@@ -49,6 +49,15 @@ type Config struct {
 	// DaData API for city and organization suggest (geo)
 	DADATAAPIKey    string
 	DADATASecretKey string
+
+	// S3 (production file uploads, e.g. Selectel)
+	S3Endpoint   string
+	S3AccessKey  string
+	S3SecretKey  string
+	S3Bucket     string
+	S3Region     string
+	S3PublicURL  string // e.g. http://s3.gymmore.ru
+	S3UseSSL     bool
 }
 
 // Load reads configuration from environment variables.
@@ -78,6 +87,13 @@ func Load() (*Config, error) {
 		AdminPassword: getEnv("ADMIN_PASSWORD", adminPasswordDefault(getEnv("ENV", "development"))),
 		DADATAAPIKey:    getEnv("DADATA_API_KEY", "dfd6d88dbc8ad4121becbac2491eb6d9fdd1dc90"),
 		DADATASecretKey: getEnv("DADATA_SECRET_KEY", "6da2b0c689818b4a38a8accd7f197fa5fc0e3fb4"),
+		S3Endpoint:      getEnv("S3_ENDPOINT", ""),
+		S3AccessKey:     getEnv("S3_ACCESS_KEY", ""),
+		S3SecretKey:     getEnv("S3_SECRET_KEY", ""),
+		S3Bucket:        getEnv("S3_BUCKET", "gymmore"),
+		S3Region:        getEnv("S3_REGION", "ru-7"),
+		S3PublicURL:     getEnv("S3_PUBLIC_URL", "http://s3.gymmore.ru"),
+		S3UseSSL:        getEnv("S3_USE_SSL", "true") == "true",
 	}
 
 	return cfg, nil

@@ -3,7 +3,7 @@
 # (or see Dockerfile.runtime and deployments/docker/README.md)
 #
 # Build stage (works without BuildKit)
-FROM golang:1.23-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
 WORKDIR /app
 

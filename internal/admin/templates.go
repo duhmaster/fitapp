@@ -43,6 +43,8 @@ const (
     <a href="/admin/entities/tags">Tags</a>
     <a href="/admin/entities/blog_posts">Blog posts</a>
     <a href="/admin/entities/system_messages">System messages</a>
+    <a href="/admin/entities/buckets">Buckets</a>
+    <a href="/admin/entities/photos">Photos</a>
     <form action="/admin/logout" method="post" style="margin-left:auto;">
       <button type="submit" class="btn btn-sm">Logout</button>
     </form>
@@ -78,6 +80,27 @@ const (
   <p><a href="/admin/entities/tags">Tags</a> – list, create, delete</p>
   <p><a href="/admin/entities/blog_posts">Blog posts</a> – list, CRUD</p>
   <p><a href="/admin/entities/system_messages">System messages</a> – list, CRUD</p>
+  <p><a href="/admin/entities/buckets">Buckets</a> – S3 storage reference, CRUD</p>
+  <p><a href="/admin/entities/photos">Photos</a> – uploaded images, list, upload, delete</p>
+</div>
+{{end}}`
+
+	viewHTML = `{{define "body"}}
+<div class="card">
+  <h2>{{.Title}}</h2>
+  {{.FieldsHTML}}
+  <p><a href="{{.CancelURL}}" class="btn">Back</a></p>
+</div>
+{{end}}`
+
+	uploadFormHTML = `{{define "body"}}
+<div class="card">
+  <h2>{{.Title}}</h2>
+  <form method="post" action="{{.Action}}" enctype="multipart/form-data">
+    {{.FieldsHTML}}
+    <button type="submit" class="btn">{{.SubmitLabel}}</button>
+    <a href="{{.CancelURL}}" class="btn">Cancel</a>
+  </form>
 </div>
 {{end}}`
 

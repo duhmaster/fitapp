@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:fitflow/core/locale/locale_provider.dart';
 import 'package:fitflow/features/calendar/calendar_provider.dart';
 import 'package:fitflow/features/calendar/calendar_workout_item.dart';
+import 'package:fitflow/features/trainer/trainer_providers.dart';
 import 'package:fitflow/features/workouts/data/workout_repository.dart';
 import 'package:fitflow/features/trainer/data/trainer_repository.dart';
 import 'package:fitflow/features/workouts/domain/workout_models.dart';
@@ -90,15 +91,41 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           ? SafeArea(
               child: Padding(
                 padding: const EdgeInsets.all(16),
-                child: FilledButton.icon(
-                  icon: const Icon(Icons.add),
-                  label: Text(tr('create_workout')),
-                  onPressed: () async {
-                    await showTemplatePickerDialog(context, ref, initialDate: _selectedDate);
-                    ref.invalidate(workoutsCalendarCombinedProvider);
-                    ref.invalidate(workoutsCalendarProvider);
-                    ref.invalidate(workoutsListProvider);
-                    if (mounted) setState(() {});
+                child: Consumer(
+                  builder: (ctx, ref, _) {
+                    final isTrainer = ref.watch(isTrainerProvider).valueOrNull ?? false;
+                    return Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        FilledButton.icon(
+                          icon: const Icon(Icons.add),
+                          label: Text(tr('create_workout')),
+                          onPressed: () async {
+                            await showTemplatePickerDialog(context, ref, initialDate: _selectedDate);
+                            ref.invalidate(workoutsCalendarCombinedProvider);
+                            ref.invalidate(workoutsCalendarProvider);
+                            ref.invalidate(workoutsListProvider);
+                            if (mounted) setState(() {});
+                          },
+                        ),
+                        if (isTrainer)
+                          FilledButton.tonalIcon(
+                            icon: const Icon(Icons.groups),
+                            label: Text(tr('create_group_training')),
+                            onPressed: () {
+                              context.push('/trainer/group-trainings/new');
+                              ref.invalidate(workoutsCalendarCombinedProvider);
+                            },
+                          )
+                        else
+                          OutlinedButton.icon(
+                            icon: const Icon(Icons.groups),
+                            label: Text(tr('enroll_group_training')),
+                            onPressed: () => context.push('/group-trainings/available'),
+                          ),
+                      ],
+                    );
                   },
                 ),
               ),
@@ -109,6 +136,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
 
   void _showDayDialog(BuildContext context, WidgetRef ref, List<CalendarWorkoutItem> items, DateTime date) {
     final tr = ref.read(trProvider);
+    final isTrainer = ref.read(isTrainerProvider).valueOrNull ?? false;
     final dayItems = items.where((item) => _isSameDay(_workoutDate(item.workout), date)).toList();
     showDialog<void>(
       context: context,
@@ -116,6 +144,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         tr: tr,
         date: date,
         items: dayItems,
+        isTrainer: isTrainer,
         onCreate: () async {
           Navigator.of(ctx).pop();
           await showTemplatePickerDialog(context, ref, initialDate: date);
@@ -124,6 +153,13 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           ref.invalidate(workoutsListProvider);
           if (mounted) setState(() {});
         },
+        onCreateGroupTraining: isTrainer
+            ? () {
+                Navigator.of(ctx).pop();
+                GoRouter.of(context).push('/trainer/group-trainings/new');
+                ref.invalidate(workoutsCalendarCombinedProvider);
+              }
+            : null,
         onCreateForTrainee: () async {
           Navigator.of(ctx).pop();
           final trainees = await ref.read(trainerRepositoryProvider).listMyTrainees();
@@ -162,6 +198,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         },
         onDelete: (item) async {
           if (!item.isOwn) return;
+          if (item.isGroupTraining) return;
           try {
             await ref.read(workoutRepositoryProvider).deleteWorkout(item.workout.id);
             ref.invalidate(workoutsCalendarCombinedProvider);
@@ -179,6 +216,15 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         },
         onTapWorkout: (item) {
           Navigator.of(ctx).pop();
+          if (item.isGroupTraining) {
+            final trainingId = item.workout.id;
+            if (item.isOwn) {
+              GoRouter.of(context).push('/trainer/group-trainings/$trainingId');
+            } else {
+              GoRouter.of(context).push('/group-trainings/$trainingId');
+            }
+            return;
+          }
           final suffix = item.isOwn ? '' : '?readOnly=1';
           GoRouter.of(context).push('/workout/${item.workout.id}$suffix');
         },
@@ -377,12 +423,17 @@ class _ListView extends ConsumerWidget {
         final dateStr = dt != null
             ? '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}'
             : '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
-        final title = formatCalendarWorkoutTitle(item, tr('workout'));
+        final title = formatCalendarWorkoutTitle(
+          item,
+          tr('workout'),
+          groupTrainingOwn: tr('my_group_training_calendar'),
+          groupTraining: tr('group_training_calendar'),
+        );
         return Card(
           margin: const EdgeInsets.only(bottom: 8),
           child: ListTile(
             leading: Icon(
-              item.isOwn ? Icons.person : Icons.people,
+              item.isGroupTraining ? Icons.groups : (item.isOwn ? Icons.person : Icons.people),
               color: item.isOwn ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.secondary,
             ),
             title: Text(title, maxLines: 2, overflow: TextOverflow.ellipsis),
@@ -392,13 +443,21 @@ class _ListView extends ConsumerWidget {
               children: [
                 Text(dateStr),
                 Text(
-                  item.statusLabel,
+                  formatCalendarStatusLabel(item, tr),
                   style: TextStyle(color: Color(item.statusColorValue), fontSize: 12),
                 ),
               ],
             ),
-            trailing: Icon(w.isActive ? Icons.play_circle : Icons.fitness_center),
+            trailing: item.isGroupTraining ? const Icon(Icons.groups) : Icon(w.isActive ? Icons.play_circle : Icons.fitness_center),
             onTap: () {
+              if (item.isGroupTraining) {
+                if (item.isOwn) {
+                  context.push('/trainer/group-trainings/${w.id}');
+                } else {
+                  context.push('/group-trainings/${w.id}');
+                }
+                return;
+              }
               final suffix = item.isOwn ? '' : '?readOnly=1';
               context.push('/workout/${w.id}$suffix');
             },
@@ -416,8 +475,10 @@ class _DayDialog extends StatelessWidget {
     required this.items,
     required this.onCreate,
     this.onCreateForTrainee,
+    this.onCreateGroupTraining,
     required this.onDelete,
     required this.onTapWorkout,
+    this.isTrainer = false,
   });
 
   final String Function(String) tr;
@@ -425,8 +486,10 @@ class _DayDialog extends StatelessWidget {
   final List<CalendarWorkoutItem> items;
   final VoidCallback onCreate;
   final VoidCallback? onCreateForTrainee;
+  final VoidCallback? onCreateGroupTraining;
   final ValueChanged<CalendarWorkoutItem> onDelete;
   final ValueChanged<CalendarWorkoutItem> onTapWorkout;
+  final bool isTrainer;
 
   @override
   Widget build(BuildContext context) {
@@ -442,10 +505,15 @@ class _DayDialog extends StatelessWidget {
                 itemCount: items.length,
                 itemBuilder: (_, i) {
                   final item = items[i];
-                  final title = formatCalendarWorkoutTitle(item, tr('workout'));
+                  final title = formatCalendarWorkoutTitle(
+                    item,
+                    tr('workout'),
+                    groupTrainingOwn: tr('my_group_training_calendar'),
+                    groupTraining: tr('group_training_calendar'),
+                  );
                   return ListTile(
                     leading: Icon(
-                      item.isOwn ? Icons.person : Icons.people,
+                      item.isGroupTraining ? Icons.groups : (item.isOwn ? Icons.person : Icons.people),
                       color: item.isOwn ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.secondary,
                     ),
                     title: Text(title, maxLines: 2, overflow: TextOverflow.ellipsis),
@@ -458,12 +526,12 @@ class _DayDialog extends StatelessWidget {
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
                         Text(
-                          item.statusLabel,
+                          formatCalendarStatusLabel(item, tr),
                           style: TextStyle(color: Color(item.statusColorValue), fontSize: 12),
                         ),
                       ],
                     ),
-                    trailing: item.isOwn
+                    trailing: item.isOwn && !item.isGroupTraining
                         ? IconButton(
                             icon: const Icon(Icons.delete_outline),
                             onPressed: () => onDelete(item),
@@ -479,10 +547,24 @@ class _DayDialog extends StatelessWidget {
           onPressed: () => Navigator.of(context).pop(),
           child: Text(tr('cancel')),
         ),
+        FilledButton.icon(
+          icon: const Icon(Icons.groups),
+          label: Text(tr('enroll_group_training')),
+          onPressed: () {
+            Navigator.of(context).pop();
+            context.push('/group-trainings/available');
+          },
+        ),
+        if (onCreateGroupTraining != null && isTrainer)
+          FilledButton.tonalIcon(
+            icon: const Icon(Icons.groups),
+            label: Text(tr('create_group_training')),
+            onPressed: onCreateGroupTraining,
+          ),
         if (onCreateForTrainee != null)
           FilledButton.tonalIcon(
             icon: const Icon(Icons.people),
-            label: const Text('Подопечному'),
+            label: Text(tr('create_for_trainee')),
             onPressed: onCreateForTrainee,
           ),
         FilledButton.icon(

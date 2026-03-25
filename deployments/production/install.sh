@@ -130,8 +130,9 @@ prepare_web() {
   sudo mkdir -p "$web_dir"
   if command -v flutter &>/dev/null; then
     log "Сборка Flutter web..."
-    # HTML renderer avoids downloading huge CanvasKit (~tens of MB).
-    ( cd "$PROJECT_ROOT/mobile" && flutter build web --release --web-renderer html )
+    # Avoid fetching CanvasKit from external CDN (gstatic) on weak/offline networks.
+    # Also note: `--web-renderer` may be unavailable on some Flutter versions.
+    ( cd "$PROJECT_ROOT/mobile" && flutter build web --release --no-web-resources-cdn )
     sudo cp -r "$PROJECT_ROOT/mobile/build/web/"* "$web_dir/"
     # Ensure pre-compressed variants exist for slow connections (nginx will serve *.gz via gzip_static)
     sudo gzip -k -f -9 "$web_dir/main.dart.js" 2>/dev/null || true
@@ -142,8 +143,6 @@ prepare_web() {
     sudo gzip -k -f -9 "$web_dir/manifest.json" 2>/dev/null || true
     sudo gzip -k -f -9 "$web_dir/version.json" 2>/dev/null || true
 
-    # If something still produced canvaskit, drop it for html renderer deploy.
-    sudo rm -rf "$web_dir/canvaskit" 2>/dev/null || true
     log "Flutter web скопирован в $web_dir"
   else
     if [[ ! -f "$web_dir/index.html" ]]; then

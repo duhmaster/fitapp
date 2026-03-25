@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	authdomain "github.com/fitflow/fitflow/internal/auth/domain"
+	photodomain "github.com/fitflow/fitflow/internal/photo/domain"
 	systemmessagedomain "github.com/fitflow/fitflow/internal/systemmessage/domain"
 	workoutdomain "github.com/fitflow/fitflow/internal/workout/domain"
 	"github.com/gin-gonic/gin"
@@ -60,6 +61,8 @@ func NewHandler(d *Deps) *Handler {
 	t = template.Must(t.Parse(dashboardHTML))
 	t = template.Must(t.Parse(listHTML))
 	t = template.Must(t.Parse(formHTML))
+	t = template.Must(t.Parse(viewHTML))
+	t = template.Must(t.Parse(uploadFormHTML))
 	return &Handler{Deps: d, tmpl: t, secret: secret}
 }
 
@@ -868,4 +871,200 @@ func (h *Handler) SystemMessagesDelete(c *gin.Context) {
 		return
 	}
 	c.Redirect(http.StatusFound, "/admin/entities/system_messages?flash=Deleted")
+}
+
+// --- Buckets
+func (h *Handler) BucketsList(c *gin.Context) {
+	list, err := h.Deps.BucketsList(c.Request.Context())
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+	rows := make([]ListRow, 0, len(list))
+	for _, b := range list {
+		rows = append(rows, ListRow{ID: b.ID.String(), Cells: []string{b.Name, b.Endpoint, b.Region, b.PublicURL}})
+	}
+	data := h.listData("Buckets", "/admin/entities/buckets", "/admin/entities/buckets/new", "/admin/entities/buckets", "/admin/entities/buckets/delete", []string{"Name", "Endpoint", "Region", "Public URL"}, rows, "", false, 1, len(list), len(list))
+	h.renderOK(c, listHTML, gin.H{"ShowBar": true, "Title": data.Title, "Headers": data.Headers, "Rows": data.Rows, "ListPath": data.ListPath, "NewPath": data.NewPath, "EditPath": data.EditPath, "DeletePath": data.DeletePath, "AllowDelete": data.AllowDelete, "SearchQ": data.SearchQ, "HasPrev": data.HasPrev, "HasNext": data.HasNext, "PrevURL": data.PrevURL, "NextURL": data.NextURL})
+}
+
+func (h *Handler) BucketsNew(c *gin.Context) {
+	fields := `<label>Name</label><input type="text" name="name" required>
+<label>Endpoint</label><input type="text" name="endpoint" placeholder="s3.ru-7.storage.selcloud.ru">
+<label>Region</label><input type="text" name="region" placeholder="ru-7">
+<label>Public URL</label><input type="text" name="public_url" placeholder="http://s3.gymmore.ru">`
+	h.renderOK(c, formHTML, gin.H{"ShowBar": true, "Title": "New bucket", "Action": "/admin/entities/buckets/create", "FieldsHTML": template.HTML(fields), "SubmitLabel": "Create", "CancelURL": "/admin/entities/buckets"})
+}
+
+func (h *Handler) BucketsCreate(c *gin.Context) {
+	name := strings.TrimSpace(c.PostForm("name"))
+	endpoint := strings.TrimSpace(c.PostForm("endpoint"))
+	region := strings.TrimSpace(c.PostForm("region"))
+	publicURL := strings.TrimSpace(c.PostForm("public_url"))
+	if name == "" {
+		c.String(http.StatusBadRequest, "name required")
+		return
+	}
+	_, err := h.Deps.BucketsCreate(c.Request.Context(), name, endpoint, region, publicURL)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+	c.Redirect(http.StatusFound, "/admin/entities/buckets?flash=Created")
+}
+
+func (h *Handler) BucketsEdit(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.String(http.StatusBadRequest, "invalid id")
+		return
+	}
+	b, err := h.Deps.BucketsGet(c.Request.Context(), id)
+	if err != nil {
+		c.String(http.StatusNotFound, err.Error())
+		return
+	}
+	fields := `<label>Name</label><input type="text" name="name" value="` + template.HTMLEscaper(b.Name) + `" required>
+<label>Endpoint</label><input type="text" name="endpoint" value="` + template.HTMLEscaper(b.Endpoint) + `">
+<label>Region</label><input type="text" name="region" value="` + template.HTMLEscaper(b.Region) + `">
+<label>Public URL</label><input type="text" name="public_url" value="` + template.HTMLEscaper(b.PublicURL) + `">
+<input type="hidden" name="id" value="` + b.ID.String() + `">`
+	h.renderOK(c, formHTML, gin.H{"ShowBar": true, "Title": "Edit bucket", "Action": "/admin/entities/buckets/update", "FieldsHTML": template.HTML(fields), "SubmitLabel": "Save", "CancelURL": "/admin/entities/buckets"})
+}
+
+func (h *Handler) BucketsUpdate(c *gin.Context) {
+	id, err := uuid.Parse(c.PostForm("id"))
+	if err != nil {
+		c.String(http.StatusBadRequest, "invalid id")
+		return
+	}
+	name := strings.TrimSpace(c.PostForm("name"))
+	endpoint := strings.TrimSpace(c.PostForm("endpoint"))
+	region := strings.TrimSpace(c.PostForm("region"))
+	publicURL := strings.TrimSpace(c.PostForm("public_url"))
+	if name == "" {
+		c.String(http.StatusBadRequest, "name required")
+		return
+	}
+	_, err = h.Deps.BucketsUpdate(c.Request.Context(), id, name, endpoint, region, publicURL)
+	if err != nil {
+		if err == photodomain.ErrBucketNotFound {
+			c.String(http.StatusNotFound, err.Error())
+			return
+		}
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+	c.Redirect(http.StatusFound, "/admin/entities/buckets?flash=Updated")
+}
+
+func (h *Handler) BucketsDelete(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.String(http.StatusBadRequest, "invalid id")
+		return
+	}
+	if err := h.Deps.BucketsDelete(c.Request.Context(), id); err != nil {
+		if err == photodomain.ErrBucketNotFound {
+			c.String(http.StatusNotFound, err.Error())
+			return
+		}
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+	c.Redirect(http.StatusFound, "/admin/entities/buckets?flash=Deleted")
+}
+
+// --- Photos
+func (h *Handler) PhotosList(c *gin.Context) {
+	page, limit, offset := pageLimit(c)
+	list, err := h.Deps.PhotosList(c.Request.Context(), limit, offset)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+	rows := make([]ListRow, 0, len(list))
+	for _, p := range list {
+		urlShort := p.URL
+		if len(urlShort) > 60 {
+			urlShort = urlShort[:57] + "…"
+		}
+		rows = append(rows, ListRow{ID: p.ID.String(), Cells: []string{p.ID.String()[:8], urlShort, p.CreatedAt.Format("2006-01-02 15:04")}})
+	}
+	data := h.listData("Photos", "/admin/entities/photos", "/admin/entities/photos/new", "/admin/entities/photos", "/admin/entities/photos/delete", []string{"ID", "URL", "Created"}, rows, "", true, page, limit, len(list))
+	h.renderOK(c, listHTML, gin.H{"ShowBar": true, "Title": data.Title, "Headers": data.Headers, "Rows": data.Rows, "ListPath": data.ListPath, "NewPath": data.NewPath, "EditPath": data.EditPath, "DeletePath": data.DeletePath, "AllowDelete": data.AllowDelete, "SearchQ": data.SearchQ, "HasPrev": data.HasPrev, "HasNext": data.HasNext, "PrevURL": data.PrevURL, "NextURL": data.NextURL})
+}
+
+func (h *Handler) PhotosNew(c *gin.Context) {
+	buckets, err := h.Deps.BucketsList(c.Request.Context())
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+	var opts string
+	for _, b := range buckets {
+		opts += `<option value="` + template.HTMLEscaper(b.Name) + `">` + template.HTMLEscaper(b.Name) + `</option>`
+	}
+	fields := `<label>Bucket</label><select name="bucket" required>` + opts + `</select>
+<label>File</label><input type="file" name="file" accept="image/*" required>`
+	h.renderOK(c, uploadFormHTML, gin.H{"ShowBar": true, "Title": "Upload photo", "Action": "/admin/entities/photos/create", "FieldsHTML": template.HTML(fields), "SubmitLabel": "Upload", "CancelURL": "/admin/entities/photos"})
+}
+
+func (h *Handler) PhotosCreate(c *gin.Context) {
+	bucket := strings.TrimSpace(c.PostForm("bucket"))
+	file, err := c.FormFile("file")
+	if err != nil || file == nil {
+		c.String(http.StatusBadRequest, "file required")
+		return
+	}
+	if bucket == "" {
+		c.String(http.StatusBadRequest, "bucket required")
+		return
+	}
+	f, err := file.Open()
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+	defer f.Close()
+	photoID, _, err := h.Deps.PhotosUpload(c.Request.Context(), bucket, f, file.Header.Get("Content-Type"))
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+	c.Redirect(http.StatusFound, "/admin/entities/photos?flash=Uploaded&created_id="+photoID.String())
+}
+
+func (h *Handler) PhotosView(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.String(http.StatusBadRequest, "invalid id")
+		return
+	}
+	p, err := h.Deps.PhotosGet(c.Request.Context(), id)
+	if err != nil {
+		c.String(http.StatusNotFound, err.Error())
+		return
+	}
+	fields := `<p><strong>ID:</strong> ` + p.ID.String() + `</p>
+<p><strong>URL:</strong> <a href="` + template.HTMLEscaper(p.URL) + `" target="_blank">` + template.HTMLEscaper(p.URL) + `</a></p>
+<p><img src="` + template.HTMLEscaper(p.URL) + `" alt="Photo" style="max-width:400px;"></p>`
+	h.renderOK(c, viewHTML, gin.H{"ShowBar": true, "Title": "Photo", "FieldsHTML": template.HTML(fields), "CancelURL": "/admin/entities/photos"})
+}
+
+func (h *Handler) PhotosDelete(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.String(http.StatusBadRequest, "invalid id")
+		return
+	}
+	if err := h.Deps.PhotosDelete(c.Request.Context(), id); err != nil {
+		if err == photodomain.ErrPhotoNotFound {
+			c.String(http.StatusNotFound, err.Error())
+			return
+		}
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+	c.Redirect(http.StatusFound, "/admin/entities/photos?flash=Deleted")
 }
