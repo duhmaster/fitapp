@@ -1429,6 +1429,7 @@ file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/progress/da
 file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/progress/domain/progress_models.dart
 file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/progress/presentation/progress_exercises_screen.dart
 file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/progress/presentation/progress_menu_screen.dart
+file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/progress/presentation/progress_muscles_screen.dart
 file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/progress/presentation/progress_provider.dart
 file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/progress/presentation/progress_screen.dart
 file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/progress/presentation/progress_workouts_screen.dart
@@ -1443,6 +1444,7 @@ file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/templates/t
 file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/timers/timers_screen.dart
 file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/trainer/data/trainer_repository.dart
 file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/trainer/my_trainers_screen.dart
+file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/trainer/presentation/widgets/trainer_landing_view.dart
 file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/trainer/presentation/widgets/trainer_profile_view.dart
 file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/trainer/trainee_profile_screen.dart
 file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/trainer/trainee_progress_screen.dart
@@ -1456,6 +1458,7 @@ file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/workouts/da
 file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/workouts/domain/workout_models.dart
 file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/workouts/presentation/active_workout_screen.dart
 file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/workouts/presentation/widgets/template_picker_dialog.dart
+file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/workouts/presentation/workout_stats_screen.dart
 file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/workouts/presentation/workouts_list_screen.dart
 file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/workouts/presentation/workouts_provider.dart
 file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/main.dart

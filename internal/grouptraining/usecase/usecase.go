@@ -169,6 +169,15 @@ func (uc *GroupTrainingUseCase) ListAvailableForUser(
 	return uc.trainings.ListAvailableForUser(ctx, userID, city, gymID, trainerUserID, dateFrom, dateTo, groupTypeID, limit, offset)
 }
 
+// ListUpcomingForTrainer returns future group trainings created by a trainer.
+func (uc *GroupTrainingUseCase) ListUpcomingForTrainer(
+	ctx context.Context,
+	trainerID uuid.UUID,
+	limit, offset int,
+) ([]*domain.GroupTrainingBookingItem, error) {
+	return uc.trainings.ListUpcomingForTrainer(ctx, trainerID, limit, offset)
+}
+
 // GetTrainingBookingDisplay returns rich card data for a training (for detail screens).
 func (uc *GroupTrainingUseCase) GetTrainingBookingDisplay(ctx context.Context, trainingID uuid.UUID) (*domain.GroupTrainingBookingItem, error) {
 	return uc.trainings.GetBookingDisplayByID(ctx, trainingID)

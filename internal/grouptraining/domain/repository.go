@@ -87,6 +87,10 @@ type GroupTrainingRepository interface {
 		limit, offset int,
 	) ([]*GroupTrainingBookingItem, error)
 
+	// ListUpcomingForTrainer returns future group trainings created by a trainer.
+	// Includes participants count but does not exclude already registered users (trainer list is public).
+	ListUpcomingForTrainer(ctx context.Context, trainerID uuid.UUID, limit, offset int) ([]*GroupTrainingBookingItem, error)
+
 	// CountTrainerCreationsInWeek counts how many group trainings a trainer has created in the given week.
 	// Used for limiting free users' group training creation.
 	CountTrainerCreationsInWeek(ctx context.Context, trainerID uuid.UUID, weekStart time.Time, weekEnd time.Time) (int, error)

@@ -68,27 +68,14 @@ class _WorkoutsListScreenState extends ConsumerState<WorkoutsListScreen> {
     try {
       final detail = await ref.read(workoutRepositoryProvider).getWorkout(workoutId);
       if (!mounted) return;
-      showDialog<void>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: Text(ref.read(trProvider)('workout')),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('${ref.read(trProvider)('exercises_count')}: ${detail.exercises.length}'),
-                Text('${ref.read(trProvider)('sets_logged')}: ${detail.logs.length}'),
-                if (detail.workout.startedAt != null) Text('${ref.read(trProvider)('started')}: ${detail.workout.startedAt}'),
-                if (detail.workout.finishedAt != null) Text('${ref.read(trProvider)('finished')}: ${detail.workout.finishedAt}'),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(MaterialLocalizations.of(ctx).okButtonLabel)),
-          ],
-        ),
-      );
+      if (!detail.workout.isCompleted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Статистика доступна только после завершения тренировки.')),
+        );
+        return;
+      }
+
+      context.push('/workout/$workoutId/stats');
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
     }
@@ -213,7 +200,7 @@ class _WorkoutsListScreenState extends ConsumerState<WorkoutsListScreen> {
                                   else if (v == 'delete') _confirmDeleteWorkout(context, w.id);
                                 },
                                 itemBuilder: (_) => [
-                                  PopupMenuItem(value: 'stat', child: Text(tr('stat'))),
+                                  if (w.isCompleted) PopupMenuItem(value: 'stat', child: Text(tr('stat'))),
                                   PopupMenuItem(value: 'open', child: Text(tr('edit'))),
                                   PopupMenuItem(value: 'delete', child: Text(tr('delete_workout'))),
                                 ],
@@ -221,7 +208,8 @@ class _WorkoutsListScreenState extends ConsumerState<WorkoutsListScreen> {
                             : Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  IconButton(icon: const Icon(Icons.bar_chart), tooltip: tr('stat'), onPressed: () => _showWorkoutStat(w.id)),
+                                  if (w.isCompleted)
+                                    IconButton(icon: const Icon(Icons.bar_chart), tooltip: tr('stat'), onPressed: () => _showWorkoutStat(w.id)),
                                   IconButton(icon: const Icon(Icons.edit), tooltip: tr('edit'), onPressed: () => context.push(w.isActive ? '/workout/${w.id}/active' : '/workout/${w.id}')),
                                   IconButton(icon: const Icon(Icons.delete_outline), tooltip: tr('delete_workout'), onPressed: () => _confirmDeleteWorkout(context, w.id)),
                                 ],

@@ -34,6 +34,13 @@ class ProgressMenuScreen extends ConsumerWidget {
             icon: Icons.fitness_center,
             onTap: () => context.push('/progress/exercises'),
           ),
+          const SizedBox(height: 12),
+          _MenuTile(
+            title: tr('progress_muscles'),
+            subtitle: tr('progress_muscles_subtitle'),
+            icon: Icons.scatter_plot_rounded,
+            onTap: () => context.push('/progress/muscles'),
+          ),
         ],
       ),
     );

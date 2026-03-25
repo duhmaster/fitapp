@@ -11,6 +11,7 @@ import 'package:fitflow/features/progress/presentation/progress_menu_screen.dart
 import 'package:fitflow/features/progress/presentation/progress_screen.dart';
 import 'package:fitflow/features/progress/presentation/progress_workouts_screen.dart';
 import 'package:fitflow/features/progress/presentation/progress_exercises_screen.dart';
+import 'package:fitflow/features/progress/presentation/progress_muscles_screen.dart';
 import 'package:fitflow/features/shell/main_shell_screen.dart';
 import 'package:fitflow/features/trainer/my_trainers_screen.dart';
 import 'package:fitflow/features/trainer/trainer_profile_screen.dart';
@@ -27,6 +28,7 @@ import 'package:fitflow/features/group_trainings/presentation/trainer_group_trai
 import 'package:fitflow/features/group_trainings/presentation/trainer_group_training_edit_screen.dart';
 import 'package:fitflow/features/workouts/presentation/active_workout_screen.dart';
 import 'package:fitflow/features/workouts/presentation/workouts_list_screen.dart';
+import 'package:fitflow/features/workouts/presentation/workout_stats_screen.dart';
 import 'package:fitflow/features/home/home_screen.dart';
 import 'package:fitflow/features/exercises/exercises_screen.dart';
 import 'package:fitflow/features/templates/templates_screen.dart';
@@ -112,6 +114,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   GoRoute(path: 'measurements', builder: (_, __) => const ProgressScreen()),
                   GoRoute(path: 'workouts', builder: (_, __) => const ProgressWorkoutsScreen()),
                   GoRoute(path: 'exercises', builder: (_, __) => const ProgressExercisesScreen()),
+                  GoRoute(path: 'muscles', builder: (_, __) => const ProgressMusclesScreen()),
                 ],
               ),
               GoRoute(path: 'feed', builder: (_, __) => const FeedScreen()),
@@ -142,6 +145,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   workoutId: state.pathParameters['id']!,
                   readOnly: state.uri.queryParameters['readOnly'] == '1',
                 ),
+              ),
+              GoRoute(
+                path: 'workout/:id/stats',
+                builder: (_, state) => WorkoutStatsScreen(workoutId: state.pathParameters['id']!),
               ),
               GoRoute(
                 path: 'trainer',

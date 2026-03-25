@@ -118,6 +118,7 @@ func (s *Server) RegisterRoutes(cfg *RoutesConfig) {
 		// Public group training landing (no auth) — GET /api/v1/group-trainings/:training_id
 		if cfg.GroupTrainingHandler != nil {
 			v1.GET("/group-trainings/:training_id", cfg.GroupTrainingHandler.GetPublicGroupTraining)
+			v1.GET("/trainers/:user_id/group-trainings/upcoming", cfg.GroupTrainingHandler.ListUpcomingForTrainerPublic)
 		}
 
 		if len(cfg.JWTSecret) > 0 && cfg.AuthHandler != nil {

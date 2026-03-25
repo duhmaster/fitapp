@@ -482,6 +482,92 @@ func (r *GroupTrainingRepository) ListAvailableForUser(
 	return out, rows.Err()
 }
 
+func (r *GroupTrainingRepository) ListUpcomingForTrainer(
+	ctx context.Context,
+	trainerID uuid.UUID,
+	limit, offset int,
+) ([]*domain.GroupTrainingBookingItem, error) {
+	if limit <= 0 {
+		limit = 20
+	}
+	if limit > 200 {
+		limit = 200
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	rows, err := r.pool.Query(ctx, `
+		SELECT
+			t.id,
+			t.template_id,
+			tpl.name,
+			tpl.description,
+			tpl.duration_minutes,
+			tpl.equipment,
+			tpl.level_of_preparation,
+			COALESCE(p.url, tpl.photo_path) AS photo_path,
+			tpl.max_people_count,
+			typ.id,
+			typ.name,
+			t.scheduled_at,
+			t.trainer_user_id,
+			t.gym_id,
+			t.city,
+			COUNT(reg.user_id) AS participants_count
+		FROM group_trainings t
+		INNER JOIN group_training_templates tpl ON tpl.id = t.template_id
+		INNER JOIN group_training_types typ ON typ.id = tpl.group_type_id
+		LEFT JOIN photos p ON tpl.photo_id = p.id
+		LEFT JOIN group_training_registrations reg ON reg.group_training_id = t.id
+		WHERE tpl.deleted_at IS NULL
+		  AND tpl.is_active = TRUE
+		  AND t.trainer_user_id = $1
+		  AND t.scheduled_at >= NOW()
+		GROUP BY
+			t.id, t.template_id,
+			tpl.name, tpl.description, tpl.duration_minutes, tpl.equipment, tpl.level_of_preparation,
+			COALESCE(p.url, tpl.photo_path), tpl.max_people_count,
+			typ.id, typ.name,
+			t.scheduled_at, t.trainer_user_id, t.gym_id, t.city
+		ORDER BY t.scheduled_at ASC
+		LIMIT $2 OFFSET $3
+	`, trainerID, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	out := make([]*domain.GroupTrainingBookingItem, 0)
+	for rows.Next() {
+		var item domain.GroupTrainingBookingItem
+		var photo *string
+		if err := rows.Scan(
+			&item.TrainingID,
+			&item.TemplateID,
+			&item.TemplateName,
+			&item.Description,
+			&item.DurationMinutes,
+			&item.Equipment,
+			&item.LevelOfPreparation,
+			&photo,
+			&item.MaxPeopleCount,
+			&item.GroupTypeID,
+			&item.GroupTypeName,
+			&item.ScheduledAt,
+			&item.TrainerUserID,
+			&item.GymID,
+			&item.City,
+			&item.ParticipantsCount,
+		); err != nil {
+			return nil, err
+		}
+		item.PhotoPath = photo
+		out = append(out, &item)
+	}
+	return out, rows.Err()
+}
+
 func (r *GroupTrainingRepository) CountTrainerCreationsInWeek(ctx context.Context, trainerID uuid.UUID, weekStart time.Time, weekEnd time.Time) (int, error) {
 	var n int
 	err := r.pool.QueryRow(ctx, `

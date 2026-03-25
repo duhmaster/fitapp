@@ -106,6 +106,23 @@ class GroupTrainingsRepository {
     return GroupTrainingBookingItem.fromJson(m);
   }
 
+  /// Public trainer page helper.
+  /// GET /api/v1/trainers/:user_id/group-trainings/upcoming (no auth).
+  Future<List<GroupTrainingBookingItem>> listFutureByTrainer(String trainerUserId, {int limit = 20, int offset = 0}) async {
+    final res = await dio.get<Map<String, dynamic>>(
+      '/api/v1/trainers/$trainerUserId/group-trainings/upcoming',
+      queryParameters: {
+        'limit': limit,
+        'offset': offset,
+      },
+    );
+    final list = res.data?['trainings'] as List<dynamic>? ?? const [];
+    return list
+        .whereType<Map<String, dynamic>>()
+        .map((e) => GroupTrainingBookingItem.fromJson(e))
+        .toList();
+  }
+
   // ---- Trainer templates ----
 
   Future<List<GroupTrainingTemplate>> listTrainerTemplates({int limit = 50, int offset = 0}) async {

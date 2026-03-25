@@ -3,10 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fitflow/core/locale/locale_provider.dart';
 import 'package:fitflow/features/trainer/data/trainer_repository.dart';
-
-final myTrainersListProvider = FutureProvider<List<MyTrainerItem>>((ref) {
-  return ref.watch(trainerRepositoryProvider).listMyTrainers();
-});
+import 'package:fitflow/features/trainer/trainer_providers.dart';
 
 class MyTrainersScreen extends ConsumerWidget {
   const MyTrainersScreen({super.key});

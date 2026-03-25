@@ -20,3 +20,8 @@ final myTrainerPublicProfileProvider = FutureProvider<TrainerPublicProfile?>((re
     return null;
   }
 });
+
+/// List of trainers linked to current user (GET /me/trainers).
+final myTrainersListProvider = FutureProvider<List<MyTrainerItem>>((ref) {
+  return ref.watch(trainerRepositoryProvider).listMyTrainers();
+});

@@ -113,6 +113,8 @@ final Map<String, String> _fallbackStringsRu = {
   'progress_workouts_subtitle': 'Объём по шаблону тренировки',
   'progress_exercises': 'Прогресс упражнений',
   'progress_exercises_subtitle': 'Объём упражнения по тренировкам',
+  'progress_muscles': 'Статистика по мышцам',
+  'progress_muscles_subtitle': 'Нагрузка на группы мышц за период',
   'statistics_exercises': 'Статистика упражнений',
   'volume_chart': 'График объёма',
   'workouts_list': 'Тренировки',
@@ -287,6 +289,7 @@ final Map<String, String> _fallbackStringsRu = {
   'group_trainings': 'Групповые тренировки',
   'my_group_trainings': 'Мои групповые',
   'future_group_trainings': 'Будущие',
+  'open_group_trainings': 'Открытые групповые тренировки',
   'available_group_trainings': 'Доступные групповые',
   'no_group_trainings_yet': 'Пока нет групповых тренировок. Запишитесь на доступные.',
   'no_available_group_trainings_yet': 'Доступных групповых тренировок пока нет.',
@@ -312,6 +315,7 @@ final Map<String, String> _fallbackStringsRu = {
   'group_training_share_link': 'Поделиться ссылкой',
   'group_training_enrolled_ok': 'Вы записаны на тренировку',
   'delete_group_training_confirm': 'Удалить эту групповую тренировку?',
+  'add_trainer': 'Добавить тренера',
 };
 
 /// List of available locale codes (from server, or default [en, ru]).
@@ -391,6 +395,8 @@ final Map<String, String> _fallbackStrings = {
   'progress_workouts_subtitle': 'Volume by workout template',
   'progress_exercises': 'Exercise progress',
   'progress_exercises_subtitle': 'Exercise volume per workout',
+  'progress_muscles': 'Muscle statistics',
+  'progress_muscles_subtitle': 'Muscle load over a period',
   'statistics_exercises': 'Exercise statistics',
   'volume_chart': 'Volume chart',
   'workouts_list': 'Workouts',
@@ -565,6 +571,7 @@ final Map<String, String> _fallbackStrings = {
   'group_trainings': 'Group trainings',
   'my_group_trainings': 'My group trainings',
   'future_group_trainings': 'Future',
+  'open_group_trainings': 'Open group trainings',
   'available_group_trainings': 'Available group trainings',
   'no_group_trainings_yet': 'No group trainings yet. Enroll in an available one.',
   'no_available_group_trainings_yet': 'No available group trainings right now.',
@@ -590,6 +597,7 @@ final Map<String, String> _fallbackStrings = {
   'group_training_share_link': 'Share link',
   'group_training_enrolled_ok': 'You are enrolled',
   'delete_group_training_confirm': 'Delete this group training?',
+  'add_trainer': 'Add trainer',
 };
 
 /// Helper to get a localized string by key.

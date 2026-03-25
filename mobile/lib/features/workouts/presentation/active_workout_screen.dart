@@ -89,6 +89,12 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                     ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
                     : Text(tr('finish_workout')),
               ),
+            if (detail.workout.isCompleted)
+              IconButton(
+                icon: const Icon(Icons.show_chart_rounded),
+                tooltip: tr('stat'),
+                onPressed: () => context.push('/workout/${detail.workout.id}/stats'),
+              ),
           ],
         ),
         if (detail.exercises.isEmpty)
@@ -213,6 +219,12 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                 child: _finishing
                     ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
                     : Text(tr('finish_workout')),
+              ),
+            if (detail.workout.isCompleted)
+              IconButton(
+                icon: const Icon(Icons.show_chart_rounded),
+                tooltip: tr('stat'),
+                onPressed: () => context.push('/workout/${detail.workout.id}/stats'),
               ),
           ],
         ),

@@ -62,6 +62,27 @@ func (h *Handler) GetPublicGroupTraining(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"landing": toBookingItemResponse(item)})
 }
 
+// ListUpcomingForTrainerPublic — GET /trainers/:user_id/group-trainings/upcoming (no auth).
+func (h *Handler) ListUpcomingForTrainerPublic(c *gin.Context) {
+	trainerID, ok := parseUUIDParam(c, "user_id")
+	if !ok {
+		return
+	}
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+
+	list, err := h.uc.ListUpcomingForTrainer(c.Request.Context(), trainerID, limit, offset)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	out := make([]GroupTrainingBookingItemResponse, 0, len(list))
+	for _, it := range list {
+		out = append(out, toBookingItemResponse(it))
+	}
+	c.JSON(http.StatusOK, gin.H{"trainings": out})
+}
+
 // ---- Templates (trainer) ----
 
 type GroupTrainingTemplateCreateRequest struct {
