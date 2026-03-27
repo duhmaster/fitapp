@@ -96,6 +96,12 @@ type GroupTrainingRepository interface {
 	CountTrainerCreationsInWeek(ctx context.Context, trainerID uuid.UUID, weekStart time.Time, weekEnd time.Time) (int, error)
 
 	Delete(ctx context.Context, trainerID uuid.UUID, trainingID uuid.UUID) error
+
+	// ListByGymID returns group trainings at a gym, ordered by scheduled_at ascending.
+	ListByGymID(ctx context.Context, gymID uuid.UUID, limit, offset int) ([]*GroupTraining, error)
+
+	// ListTrainersAtGym returns distinct trainers (group trainings + workouts with trainer_id) at this gym.
+	ListTrainersAtGym(ctx context.Context, gymID uuid.UUID) ([]TrainerAtGym, error)
 }
 
 type GroupTrainingRegistrationRepository interface {

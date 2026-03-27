@@ -124,6 +124,7 @@ const (
     {{end}}
     </tbody>
   </table>
+  {{if .PaginationSummary}}<p class="muted">{{.PaginationSummary}}</p>{{end}}
   <div class="pagination">
   {{if .HasPrev}}<a href="{{.PrevURL}}">Prev</a>{{end}}
   {{if .HasNext}}<a href="{{.NextURL}}">Next</a>{{end}}

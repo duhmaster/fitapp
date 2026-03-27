@@ -34,6 +34,7 @@ type Deps struct {
 	GymsDelete   func(ctx context.Context, id uuid.UUID) error
 
 	ExercisesList   func(ctx context.Context, limit, offset int, filters *workoutdomain.ExerciseFilters) ([]*workoutdomain.Exercise, error)
+	ExercisesCount  func(ctx context.Context, filters *workoutdomain.ExerciseFilters) (int, error)
 	ExercisesGet    func(ctx context.Context, id uuid.UUID) (*workoutdomain.Exercise, error)
 	ExercisesCreate func(ctx context.Context, e *workoutdomain.Exercise) (*workoutdomain.Exercise, error)
 	ExercisesUpdate func(ctx context.Context, e *workoutdomain.Exercise) (*workoutdomain.Exercise, error)

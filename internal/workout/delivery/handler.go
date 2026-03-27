@@ -298,7 +298,28 @@ func (h *Handler) ListMyWorkouts(c *gin.Context) {
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
 	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
 
-	list, err := h.uc.ListMyWorkouts(c.Request.Context(), user, limit, offset)
+	var finishedFrom, finishedTo *time.Time
+	if s := c.Query("from"); s != "" {
+		t, err := time.Parse(time.RFC3339, s)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid from (use RFC3339)"})
+			return
+		}
+		finishedFrom = &t
+	}
+	if s := c.Query("to"); s != "" {
+		t, err := time.Parse(time.RFC3339, s)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid to (use RFC3339)"})
+			return
+		}
+		finishedTo = &t
+	}
+	if (finishedFrom != nil || finishedTo != nil) && limit > 500 {
+		limit = 500
+	}
+
+	list, err := h.uc.ListMyWorkouts(c.Request.Context(), user, limit, offset, finishedFrom, finishedTo)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:fitflow/core/locale/locale_provider.dart';
 import 'package:fitflow/core/network/geo_repository.dart';
 import 'package:fitflow/features/gym/data/gym_repository.dart';
@@ -42,30 +43,6 @@ class _GymScreenState extends ConsumerState<GymScreen> {
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
     }
-  }
-
-  void _showGymDetail(Gym gym) {
-    showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(gym.name),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (gym.city != null && gym.city!.isNotEmpty) Text('${ref.read(trProvider)('city')}: ${gym.city}'),
-              if (gym.address != null && gym.address!.isNotEmpty) ...[const SizedBox(height: 8), Text(gym.address!)],
-              if (gym.contactPhone != null && gym.contactPhone!.isNotEmpty) ...[const SizedBox(height: 8), Text('Tel: ${gym.contactPhone}')],
-              if (gym.contactUrl != null && gym.contactUrl!.isNotEmpty) ...[const SizedBox(height: 8), Text('URL: ${gym.contactUrl}')],
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(MaterialLocalizations.of(ctx).okButtonLabel)),
-        ],
-      ),
-    );
   }
 
   Future<void> _openAddGym() async {
@@ -136,7 +113,9 @@ class _GymScreenState extends ConsumerState<GymScreen> {
                       icon: const Icon(Icons.delete_outline),
                       onPressed: () => _removeGym(g),
                     ),
-                    onTap: () => _showGymDetail(g),
+                    onTap: () => context.push(
+                          '/gym/${g.id}?name=${Uri.encodeQueryComponent(g.name)}',
+                        ),
                   ),
                 );
               },

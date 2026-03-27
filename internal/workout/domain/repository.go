@@ -9,6 +9,7 @@ import (
 
 type ExerciseRepository interface {
 	List(ctx context.Context, limit, offset int, filters *ExerciseFilters) ([]*Exercise, error)
+	Count(ctx context.Context, filters *ExerciseFilters) (int, error)
 	GetByID(ctx context.Context, id uuid.UUID) (*Exercise, error)
 	// GetByName returns one exercise by name (case-insensitive exact match).
 	GetByName(ctx context.Context, name string) (*Exercise, error)
@@ -19,12 +20,15 @@ type ExerciseFilters struct {
 	MuscleGroup *string
 	Tags        []string
 	Difficulty  *string
+	// NameSearch: optional ILIKE filter on name (e.g. admin search).
+	NameSearch *string
 }
 
 type WorkoutRepository interface {
 	Create(ctx context.Context, userID uuid.UUID, trainerID *uuid.UUID, templateID *uuid.UUID, programID *uuid.UUID, scheduledAt *time.Time, gymID *uuid.UUID) (*Workout, error)
 	GetByID(ctx context.Context, id uuid.UUID) (*Workout, error)
-	ListByUserID(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*Workout, error)
+	// ListByUserID lists workouts for the user. Optional finishedFrom/finishedTo filter by finished_at (inclusive bounds).
+	ListByUserID(ctx context.Context, userID uuid.UUID, limit, offset int, finishedFrom, finishedTo *time.Time) ([]*Workout, error)
 	ListByTrainerID(ctx context.Context, trainerID uuid.UUID, limit, offset int) ([]*Workout, error)
 	CountByTrainerID(ctx context.Context, trainerID uuid.UUID) (int, error)
 	Start(ctx context.Context, id uuid.UUID, at time.Time) (*Workout, error)

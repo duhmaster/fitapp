@@ -1412,6 +1412,7 @@ file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/group_train
 file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/group_trainings/presentation/trainer_group_trainings_screen.dart
 file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/group_trainings/presentation/widgets/group_training_landing_view.dart
 file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/gym/data/gym_repository.dart
+file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/gym/gym_detail_screen.dart
 file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/gym/gym_screen.dart
 file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/help/help_screen.dart
 file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/help/help_topic_screen.dart

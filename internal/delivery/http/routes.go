@@ -107,6 +107,10 @@ func (s *Server) RegisterRoutes(cfg *RoutesConfig) {
 				gyms.GET("", cfg.GymHandler.SearchGyms)
 				gyms.GET("/:gym_id/load", cfg.GymHandler.GetLoad)
 				gyms.GET("/:gym_id/load/history", cfg.GymHandler.GetLoadHistory)
+				if cfg.GroupTrainingHandler != nil {
+					gyms.GET("/:gym_id/trainers", cfg.GroupTrainingHandler.ListTrainersAtGym)
+					gyms.GET("/:gym_id/group-trainings", cfg.GroupTrainingHandler.ListGroupTrainingsByGym)
+				}
 			}
 		}
 

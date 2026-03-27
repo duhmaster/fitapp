@@ -316,6 +316,8 @@ final Map<String, String> _fallbackStringsRu = {
   'group_training_enrolled_ok': 'Вы записаны на тренировку',
   'delete_group_training_confirm': 'Удалить эту групповую тренировку?',
   'add_trainer': 'Добавить тренера',
+  'gym_trainers_tab': 'Тренеры',
+  'no_trainers_at_gym': 'В этом зале пока нет тренеров в списке.',
 };
 
 /// List of available locale codes (from server, or default [en, ru]).
@@ -598,6 +600,8 @@ final Map<String, String> _fallbackStrings = {
   'group_training_enrolled_ok': 'You are enrolled',
   'delete_group_training_confirm': 'Delete this group training?',
   'add_trainer': 'Add trainer',
+  'gym_trainers_tab': 'Trainers',
+  'no_trainers_at_gym': 'No trainers listed for this gym yet.',
 };
 
 /// Helper to get a localized string by key.

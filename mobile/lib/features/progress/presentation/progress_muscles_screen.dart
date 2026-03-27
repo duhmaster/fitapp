@@ -25,40 +25,33 @@ final muscleStatsRangeProvider = FutureProvider.family<_MuscleStatsRange, String
     final parts = key.split('|');
     if (parts.length != 2) throw FormatException('Invalid date range key');
 
-    final from = DateTime.tryParse(parts[0]);
-    final to = DateTime.tryParse(parts[1]);
-    if (from == null || to == null) throw FormatException('Invalid date range');
+    final fp = parts[0].split('-');
+    final tp = parts[1].split('-');
+    if (fp.length != 3 || tp.length != 3) throw FormatException('Invalid date range key');
+    final fromDay = DateTime(int.parse(fp[0]), int.parse(fp[1]), int.parse(fp[2]));
+    final toDay = DateTime(int.parse(tp[0]), int.parse(tp[1]), int.parse(tp[2]));
 
-    final fromLocal = from.toLocal();
-    final toLocal = to.toLocal();
-    final fromDay = DateTime(fromLocal.year, fromLocal.month, fromLocal.day);
-    final toDay = DateTime(toLocal.year, toLocal.month, toLocal.day);
-
-    // Fetch enough workouts for typical ranges (backend doesn't provide a date filter here).
-    // We still filter by `finished_at` on the client.
-    const pageSize = 100;
-    const maxPages = 10;
+    // API: GET /api/v1/me/workouts?from=&to= filters by finished_at (RFC3339, inclusive).
+    final finishedFrom = DateTime(fromDay.year, fromDay.month, fromDay.day).toUtc().toIso8601String();
+    final finishedTo = DateTime(toDay.year, toDay.month, toDay.day, 23, 59, 59, 999).toUtc().toIso8601String();
 
     final all = <Workout>[];
-    for (var page = 0; page < maxPages; page++) {
-      final batch = await repo.listMyWorkouts(limit: pageSize, offset: page * pageSize);
+    var offset = 0;
+    const pageSize = 500;
+    while (true) {
+      final batch = await repo.listMyWorkouts(
+        limit: pageSize,
+        offset: offset,
+        finishedFrom: finishedFrom,
+        finishedTo: finishedTo,
+      );
       if (batch.isEmpty) break;
       all.addAll(batch);
       if (batch.length < pageSize) break;
+      offset += pageSize;
     }
 
-    final completedInRange = all.where((w) {
-      if (!w.isCompleted) return false;
-      final finishedAt = w.finishedAt;
-      if (finishedAt == null || finishedAt.isEmpty) return false;
-      final dt = DateTime.tryParse(finishedAt);
-      if (dt == null) return false;
-      final local = dt.toLocal();
-      final d = DateTime(local.year, local.month, local.day);
-      final inRange = (d.isAtSameMomentAs(fromDay) || d.isAfter(fromDay)) &&
-          (d.isAtSameMomentAs(toDay) || d.isBefore(toDay));
-      return inRange;
-    }).toList();
+    final completedInRange = all.where((w) => w.isCompleted).toList();
 
     if (completedInRange.isEmpty) {
       return _MuscleStatsRange(workoutsCount: 0, totalVolumeKg: 0, muscleGroupLoads: const []);

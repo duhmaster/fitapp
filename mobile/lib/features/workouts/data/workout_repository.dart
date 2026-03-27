@@ -65,10 +65,19 @@ class WorkoutRepository {
     return Workout.fromJson(res.data!);
   }
 
-  Future<List<Workout>> listMyWorkouts({int limit = 20, int offset = 0}) async {
+  /// Optional [finishedFrom] / [finishedTo]: RFC3339 timestamps; filters by `finished_at` (inclusive).
+  Future<List<Workout>> listMyWorkouts({
+    int limit = 20,
+    int offset = 0,
+    String? finishedFrom,
+    String? finishedTo,
+  }) async {
+    final params = <String, dynamic>{'limit': limit, 'offset': offset};
+    if (finishedFrom != null && finishedFrom.isNotEmpty) params['from'] = finishedFrom;
+    if (finishedTo != null && finishedTo.isNotEmpty) params['to'] = finishedTo;
     final res = await dio.get<Map<String, dynamic>>(
       '/api/v1/me/workouts',
-      queryParameters: {'limit': limit, 'offset': offset},
+      queryParameters: params,
     );
     final list = res.data?['workouts'] as List<dynamic>? ?? [];
     return list.map((e) => Workout.fromJson(e as Map<String, dynamic>)).toList();

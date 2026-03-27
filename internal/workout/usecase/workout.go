@@ -157,8 +157,8 @@ func (uc *WorkoutUseCase) StartWorkoutFromProgram(ctx context.Context, user *aut
 	return w, nil
 }
 
-func (uc *WorkoutUseCase) ListMyWorkouts(ctx context.Context, user *authdomain.User, limit, offset int) ([]*workoutdomain.Workout, error) {
-	return uc.workouts.ListByUserID(ctx, user.ID, limit, offset)
+func (uc *WorkoutUseCase) ListMyWorkouts(ctx context.Context, user *authdomain.User, limit, offset int, finishedFrom, finishedTo *time.Time) ([]*workoutdomain.Workout, error) {
+	return uc.workouts.ListByUserID(ctx, user.ID, limit, offset, finishedFrom, finishedTo)
 }
 
 func (uc *WorkoutUseCase) ListWorkoutsByTrainerID(ctx context.Context, trainerID uuid.UUID, limit, offset int) ([]*workoutdomain.Workout, error) {

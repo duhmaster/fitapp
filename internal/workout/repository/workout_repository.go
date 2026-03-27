@@ -54,12 +54,16 @@ func (r *WorkoutRepository) GetByID(ctx context.Context, id uuid.UUID) (*workout
 	return &w, nil
 }
 
-func (r *WorkoutRepository) ListByUserID(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*workoutdomain.Workout, error) {
+func (r *WorkoutRepository) ListByUserID(ctx context.Context, userID uuid.UUID, limit, offset int, finishedFrom, finishedTo *time.Time) ([]*workoutdomain.Workout, error) {
 	if limit <= 0 {
 		limit = 20
 	}
-	if limit > 100 {
-		limit = 100
+	maxLimit := 100
+	if finishedFrom != nil || finishedTo != nil {
+		maxLimit = 500
+	}
+	if limit > maxLimit {
+		limit = maxLimit
 	}
 	if offset < 0 {
 		offset = 0
@@ -69,10 +73,12 @@ func (r *WorkoutRepository) ListByUserID(ctx context.Context, userID uuid.UUID, 
 		SELECT id, template_id, program_id, user_id, trainer_id, gym_id, scheduled_at, started_at, finished_at, created_at
 		FROM workouts
 		WHERE user_id = $1
+		  AND ($4::timestamptz IS NULL OR (finished_at IS NOT NULL AND finished_at >= $4))
+		  AND ($5::timestamptz IS NULL OR (finished_at IS NOT NULL AND finished_at <= $5))
 		ORDER BY created_at DESC
 		LIMIT $2 OFFSET $3
 	`
-	rows, err := r.pool.Query(ctx, query, userID, limit, offset)
+	rows, err := r.pool.Query(ctx, query, userID, limit, offset, finishedFrom, finishedTo)
 	if err != nil {
 		return nil, err
 	}

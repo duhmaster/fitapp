@@ -580,5 +580,66 @@ func (r *GroupTrainingRepository) CountTrainerCreationsInWeek(ctx context.Contex
 	return n, err
 }
 
+func (r *GroupTrainingRepository) ListByGymID(ctx context.Context, gymID uuid.UUID, limit, offset int) ([]*domain.GroupTraining, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+	if limit > 500 {
+		limit = 500
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	query := `
+		SELECT t.id, t.template_id, COALESCE(tpl.name, ''), t.scheduled_at, t.trainer_user_id, t.gym_id, t.city, t.created_at, t.updated_at
+		FROM group_trainings t
+		LEFT JOIN group_training_templates tpl ON tpl.id = t.template_id
+		WHERE t.gym_id = $1
+		ORDER BY t.scheduled_at ASC
+		LIMIT $2 OFFSET $3
+	`
+	rows, err := r.pool.Query(ctx, query, gymID, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := make([]*domain.GroupTraining, 0)
+	for rows.Next() {
+		var t domain.GroupTraining
+		if err := rows.Scan(&t.ID, &t.TemplateID, &t.TemplateName, &t.ScheduledAt, &t.TrainerUserID, &t.GymID, &t.City, &t.CreatedAt, &t.UpdatedAt); err != nil {
+			return nil, err
+		}
+		out = append(out, &t)
+	}
+	return out, rows.Err()
+}
+
+func (r *GroupTrainingRepository) ListTrainersAtGym(ctx context.Context, gymID uuid.UUID) ([]domain.TrainerAtGym, error) {
+	query := `
+		SELECT DISTINCT u.user_id, COALESCE(up.display_name, '')
+		FROM (
+			SELECT trainer_user_id AS user_id FROM group_trainings WHERE gym_id = $1
+			UNION
+			SELECT trainer_id AS user_id FROM workouts WHERE gym_id = $1 AND trainer_id IS NOT NULL
+		) u
+		JOIN user_profiles up ON up.user_id = u.user_id
+		ORDER BY COALESCE(up.display_name, '')
+	`
+	rows, err := r.pool.Query(ctx, query, gymID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []domain.TrainerAtGym
+	for rows.Next() {
+		var row domain.TrainerAtGym
+		if err := rows.Scan(&row.UserID, &row.DisplayName); err != nil {
+			return nil, err
+		}
+		out = append(out, row)
+	}
+	return out, rows.Err()
+}
+
 var _ uuid.UUID
 

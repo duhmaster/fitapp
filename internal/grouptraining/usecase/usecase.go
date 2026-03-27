@@ -240,3 +240,13 @@ func (uc *GroupTrainingUseCase) UnregisterUser(ctx context.Context, userID, trai
 // getMaxPeopleForTraining fetches template capacity for a given training.
 // (capacity retrieval is implemented in training repository)
 
+// ListGroupTrainingsByGym returns group trainings at a gym (scheduled ascending).
+func (uc *GroupTrainingUseCase) ListGroupTrainingsByGym(ctx context.Context, gymID uuid.UUID, limit, offset int) ([]*domain.GroupTraining, error) {
+	return uc.trainings.ListByGymID(ctx, gymID, limit, offset)
+}
+
+// ListTrainersAtGym returns trainers who run group trainings or personal workouts at the gym.
+func (uc *GroupTrainingUseCase) ListTrainersAtGym(ctx context.Context, gymID uuid.UUID) ([]domain.TrainerAtGym, error) {
+	return uc.trainings.ListTrainersAtGym(ctx, gymID)
+}
+

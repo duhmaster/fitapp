@@ -722,6 +722,52 @@ func toBookingItemResponse(it *domain.GroupTrainingBookingItem) GroupTrainingBoo
 	}
 }
 
+type TrainerAtGymResponse struct {
+	UserID      string `json:"user_id"`
+	DisplayName string `json:"display_name"`
+}
+
+// ListTrainersAtGym — GET /gyms/:gym_id/trainers (public).
+func (h *Handler) ListTrainersAtGym(c *gin.Context) {
+	gymID, ok := parseUUIDParam(c, "gym_id")
+	if !ok {
+		return
+	}
+	list, err := h.uc.ListTrainersAtGym(c.Request.Context(), gymID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	out := make([]TrainerAtGymResponse, 0, len(list))
+	for _, t := range list {
+		out = append(out, TrainerAtGymResponse{
+			UserID:      t.UserID.String(),
+			DisplayName: t.DisplayName,
+		})
+	}
+	c.JSON(http.StatusOK, gin.H{"trainers": out})
+}
+
+// ListGroupTrainingsByGym — GET /gyms/:gym_id/group-trainings (public). Ordered by scheduled_at ascending.
+func (h *Handler) ListGroupTrainingsByGym(c *gin.Context) {
+	gymID, ok := parseUUIDParam(c, "gym_id")
+	if !ok {
+		return
+	}
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "100"))
+	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+	list, err := h.uc.ListGroupTrainingsByGym(c.Request.Context(), gymID, limit, offset)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	out := make([]GroupTrainingResponse, 0, len(list))
+	for _, t := range list {
+		out = append(out, toGroupTrainingResponse(t))
+	}
+	c.JSON(http.StatusOK, gin.H{"trainings": out})
+}
+
 func getUser(c *gin.Context) *authdomain.User {
 	val, exists := c.Get(string(middleware.UserContextKey))
 	if !exists {

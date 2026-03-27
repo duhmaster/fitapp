@@ -282,7 +282,7 @@ func run() error {
 			return out, nil
 		},
 		func(ctx context.Context, userID uuid.UUID, limit, offset int) ([]map[string]interface{}, error) {
-			list, err := workoutRepo.ListByUserID(ctx, userID, limit, offset)
+			list, err := workoutRepo.ListByUserID(ctx, userID, limit, offset, nil, nil)
 			if err != nil {
 				return nil, err
 			}
@@ -387,6 +387,7 @@ func run() error {
 			},
 			GymsDelete: gymRepo.SoftDelete,
 			ExercisesList:   exerciseRepo.List,
+			ExercisesCount:  exerciseRepo.Count,
 			ExercisesGet:   exerciseRepo.GetByID,
 			ExercisesCreate: exerciseRepo.Create,
 			ExercisesUpdate: exerciseRepo.Update,

@@ -42,6 +42,12 @@ type GroupTraining struct {
 	UpdatedAt      time.Time
 }
 
+// TrainerAtGym is a trainer who conducts group trainings or personal workouts at a gym.
+type TrainerAtGym struct {
+	UserID      uuid.UUID
+	DisplayName string
+}
+
 type GroupTrainingRegistration struct {
 	ID              uuid.UUID
 	GroupTrainingID uuid.UUID

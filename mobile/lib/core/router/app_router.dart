@@ -6,6 +6,7 @@ import 'package:fitflow/features/auth/presentation/register_screen.dart';
 import 'package:fitflow/features/feed/feed_screen.dart';
 import 'package:fitflow/features/profile/presentation/profile_screen.dart';
 import 'package:fitflow/features/gym/gym_screen.dart';
+import 'package:fitflow/features/gym/gym_detail_screen.dart';
 import 'package:fitflow/features/options/options_screen.dart';
 import 'package:fitflow/features/progress/presentation/progress_menu_screen.dart';
 import 'package:fitflow/features/progress/presentation/progress_screen.dart';
@@ -215,6 +216,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ],
           ),
           GoRoute(path: 'gym', builder: (_, __) => const GymScreen()),
+          GoRoute(
+            path: 'gym/:gymId',
+            builder: (_, state) => GymDetailScreen(
+              gymId: state.pathParameters['gymId']!,
+              gymName: state.uri.queryParameters['name'],
+            ),
+          ),
           GoRoute(path: 'my-trainers', builder: (_, __) => const MyTrainersScreen()),
           GoRoute(path: 'options', builder: (_, __) => const OptionsScreen()),
         ],

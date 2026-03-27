@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	workoutdomain "github.com/fitflow/fitflow/internal/workout/domain"
 	"github.com/google/uuid"
@@ -18,6 +19,45 @@ type ExerciseRepository struct {
 
 func NewExerciseRepository(pool *pgxpool.Pool) *ExerciseRepository {
 	return &ExerciseRepository{pool: pool}
+}
+
+func exerciseFilterSQL(filters *workoutdomain.ExerciseFilters) (suffix string, args []interface{}) {
+	if filters == nil {
+		return "", nil
+	}
+	args = []interface{}{}
+	argNum := 1
+	var b strings.Builder
+	if filters.MuscleGroup != nil && *filters.MuscleGroup != "" {
+		fmt.Fprintf(&b, " AND muscle_group = $%d", argNum)
+		args = append(args, *filters.MuscleGroup)
+		argNum++
+	}
+	if len(filters.Tags) > 0 {
+		fmt.Fprintf(&b, " AND tags && $%d::text[]", argNum)
+		args = append(args, filters.Tags)
+		argNum++
+	}
+	if filters.Difficulty != nil && *filters.Difficulty != "" {
+		fmt.Fprintf(&b, " AND difficulty_level = $%d", argNum)
+		args = append(args, *filters.Difficulty)
+		argNum++
+	}
+	if filters.NameSearch != nil && strings.TrimSpace(*filters.NameSearch) != "" {
+		fmt.Fprintf(&b, " AND name ILIKE $%d", argNum)
+		args = append(args, "%"+strings.TrimSpace(*filters.NameSearch)+"%")
+		argNum++
+	}
+	return b.String(), args
+}
+
+func (r *ExerciseRepository) Count(ctx context.Context, filters *workoutdomain.ExerciseFilters) (int, error) {
+	query := `SELECT COUNT(*) FROM exercises WHERE 1=1`
+	suffix, args := exerciseFilterSQL(filters)
+	query += suffix
+	var n int
+	err := r.pool.QueryRow(ctx, query, args...).Scan(&n)
+	return n, err
 }
 
 func (r *ExerciseRepository) List(ctx context.Context, limit, offset int, filters *workoutdomain.ExerciseFilters) ([]*workoutdomain.Exercise, error) {
@@ -38,26 +78,9 @@ func (r *ExerciseRepository) List(ctx context.Context, limit, offset int, filter
 		FROM exercises
 		WHERE 1=1
 	`
-	args := []interface{}{}
-	argNum := 1
-
-	if filters != nil {
-		if filters.MuscleGroup != nil && *filters.MuscleGroup != "" {
-			query += fmt.Sprintf(" AND muscle_group = $%d", argNum)
-			args = append(args, *filters.MuscleGroup)
-			argNum++
-		}
-		if len(filters.Tags) > 0 {
-			query += fmt.Sprintf(" AND tags && $%d::text[]", argNum)
-			args = append(args, filters.Tags)
-			argNum++
-		}
-		if filters.Difficulty != nil && *filters.Difficulty != "" {
-			query += fmt.Sprintf(" AND difficulty_level = $%d", argNum)
-			args = append(args, *filters.Difficulty)
-			argNum++
-		}
-	}
+	suffix, args := exerciseFilterSQL(filters)
+	query += suffix
+	argNum := len(args) + 1
 
 	query += fmt.Sprintf(" ORDER BY name ASC LIMIT $%d OFFSET $%d", argNum, argNum+1)
 	args = append(args, limit, offset)

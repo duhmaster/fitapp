@@ -1,8 +1,11 @@
 package admin
 
 import (
+	"fmt"
 	"html/template"
 	"net/http"
+	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -37,6 +40,7 @@ type ListData struct {
 	HasNext           bool
 	PrevURL           string
 	NextURL           string
+	PaginationSummary string
 }
 
 // Handler for admin panel.
@@ -131,35 +135,48 @@ func (h *Handler) renderOK(c *gin.Context, bodyTmpl string, data gin.H) {
 	}
 }
 
-func (h *Handler) listData(entity, listPath, newPath, editPath, deletePath string, headers []string, rows []ListRow, searchQ string, allowDelete bool, page, limit int, total int) ListData {
+func (h *Handler) listData(entity, listPath, newPath, editPath, deletePath string, headers []string, rows []ListRow, searchQ string, allowDelete bool, page, limit, offset int, totalCount int) ListData {
 	prevURL := ""
 	nextURL := ""
-	if page > 1 {
-		prevURL = listPath + "?page=" + strconv.Itoa(page-1)
-		if searchQ != "" {
-			prevURL += "&q=" + searchQ
-		}
+	qParam := ""
+	if searchQ != "" {
+		qParam = "&q=" + url.QueryEscape(searchQ)
 	}
-	if total >= limit && len(rows) == limit {
-		nextURL = listPath + "?page=" + strconv.Itoa(page+1)
-		if searchQ != "" {
-			nextURL += "&q=" + searchQ
+	if page > 1 {
+		prevURL = listPath + "?page=" + strconv.Itoa(page-1) + qParam
+	}
+	var hasNext bool
+	paginationSummary := ""
+	if totalCount >= 0 {
+		hasNext = offset+len(rows) < totalCount
+		if totalCount == 0 {
+			paginationSummary = "0 of 0"
+		} else if len(rows) == 0 {
+			paginationSummary = fmt.Sprintf("0 of %d", totalCount)
+		} else {
+			paginationSummary = fmt.Sprintf("%d–%d of %d", offset+1, offset+len(rows), totalCount)
 		}
+	} else {
+		hasNext = len(rows) == limit
+	}
+	if hasNext {
+		nextURL = listPath + "?page=" + strconv.Itoa(page+1) + qParam
 	}
 	return ListData{
-		Title:      entity,
-		Headers:    headers,
-		Rows:       rows,
-		ListPath:   listPath,
-		NewPath:    newPath,
-		EditPath:   editPath,
-		DeletePath: deletePath,
-		AllowDelete: allowDelete,
-		SearchQ:    searchQ,
-		HasPrev:    page > 1,
-		HasNext:    len(rows) == limit && total >= limit,
-		PrevURL:    prevURL,
-		NextURL:    nextURL,
+		Title:             entity,
+		Headers:           headers,
+		Rows:              rows,
+		ListPath:          listPath,
+		NewPath:           newPath,
+		EditPath:          editPath,
+		DeletePath:        deletePath,
+		AllowDelete:       allowDelete,
+		SearchQ:           searchQ,
+		HasPrev:           page > 1,
+		HasNext:           hasNext,
+		PrevURL:           prevURL,
+		NextURL:           nextURL,
+		PaginationSummary: paginationSummary,
 	}
 }
 
@@ -191,9 +208,9 @@ func (h *Handler) UsersList(c *gin.Context) {
 			Cells: []string{u.Email, string(u.Role), u.CreatedAt.Format("2006-01-02 15:04")},
 		})
 	}
-	data := h.listData("Users", "/admin/entities/users", "/admin/entities/users/new", "/admin/entities/users", "/admin/entities/users/delete", []string{"Email", "Role", "Created"}, rows, q, false, page, limit, len(list))
+	data := h.listData("Users", "/admin/entities/users", "/admin/entities/users/new", "/admin/entities/users", "/admin/entities/users/delete", []string{"Email", "Role", "Created"}, rows, q, false, page, limit, offset, -1)
 	data.FilterPlaceholder = ""
-	h.renderOK(c, listHTML, gin.H{"ShowBar": true, "Title": data.Title, "Headers": data.Headers, "Rows": data.Rows, "ListPath": data.ListPath, "NewPath": data.NewPath, "EditPath": data.EditPath, "DeletePath": data.DeletePath, "AllowDelete": data.AllowDelete, "SearchQ": data.SearchQ, "HasPrev": data.HasPrev, "HasNext": data.HasNext, "PrevURL": data.PrevURL, "NextURL": data.NextURL})
+	h.renderOK(c, listHTML, gin.H{"ShowBar": true, "Title": data.Title, "Headers": data.Headers, "Rows": data.Rows, "ListPath": data.ListPath, "NewPath": data.NewPath, "EditPath": data.EditPath, "DeletePath": data.DeletePath, "AllowDelete": data.AllowDelete, "SearchQ": data.SearchQ, "HasPrev": data.HasPrev, "HasNext": data.HasNext, "PrevURL": data.PrevURL, "NextURL": data.NextURL, "PaginationSummary": data.PaginationSummary})
 }
 
 func (h *Handler) UsersNew(c *gin.Context) {
@@ -261,8 +278,8 @@ func (h *Handler) GymsList(c *gin.Context) {
 		}
 		rows = append(rows, ListRow{ID: g.ID.String(), Cells: []string{g.Name, addr, g.CreatedAt.Format("2006-01-02")}})
 	}
-	data := h.listData("Gyms", "/admin/entities/gyms", "/admin/entities/gyms/new", "/admin/entities/gyms", "/admin/entities/gyms/delete", []string{"Name", "Address", "Created"}, rows, q, true, page, limit, len(list))
-	h.renderOK(c, listHTML, gin.H{"ShowBar": true, "Title": data.Title, "Headers": data.Headers, "Rows": data.Rows, "ListPath": data.ListPath, "NewPath": data.NewPath, "EditPath": data.EditPath, "DeletePath": data.DeletePath, "AllowDelete": data.AllowDelete, "SearchQ": data.SearchQ, "HasPrev": data.HasPrev, "HasNext": data.HasNext, "PrevURL": data.PrevURL, "NextURL": data.NextURL})
+	data := h.listData("Gyms", "/admin/entities/gyms", "/admin/entities/gyms/new", "/admin/entities/gyms", "/admin/entities/gyms/delete", []string{"Name", "Address", "Created"}, rows, q, true, page, limit, offset, -1)
+	h.renderOK(c, listHTML, gin.H{"ShowBar": true, "Title": data.Title, "Headers": data.Headers, "Rows": data.Rows, "ListPath": data.ListPath, "NewPath": data.NewPath, "EditPath": data.EditPath, "DeletePath": data.DeletePath, "AllowDelete": data.AllowDelete, "SearchQ": data.SearchQ, "HasPrev": data.HasPrev, "HasNext": data.HasNext, "PrevURL": data.PrevURL, "NextURL": data.NextURL, "PaginationSummary": data.PaginationSummary})
 }
 
 func (h *Handler) GymsNew(c *gin.Context) {
@@ -368,7 +385,12 @@ func (h *Handler) ExercisesList(c *gin.Context) {
 	q := strings.TrimSpace(c.Query("q"))
 	filters := &workoutdomain.ExerciseFilters{}
 	if q != "" {
-		// Exercise repo filter by name would need adding; for now list all and filter in memory for display
+		filters.NameSearch = &q
+	}
+	total, err := h.Deps.ExercisesCount(c.Request.Context(), filters)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
 	}
 	list, err := h.Deps.ExercisesList(c.Request.Context(), limit, offset, filters)
 	if err != nil {
@@ -377,19 +399,17 @@ func (h *Handler) ExercisesList(c *gin.Context) {
 	}
 	rows := make([]ListRow, 0, len(list))
 	for _, e := range list {
-		mg := ""
-		if e.MuscleGroup != nil {
-			mg = *e.MuscleGroup
-		}
+		mg := exerciseMuscleGroupsDisplay(e)
 		rows = append(rows, ListRow{ID: e.ID.String(), Cells: []string{e.Name, mg, e.CreatedAt.Format("2006-01-02")}})
 	}
-	data := h.listData("Exercises", "/admin/entities/exercises", "/admin/entities/exercises/new", "/admin/entities/exercises", "/admin/entities/exercises/delete", []string{"Name", "Muscle group", "Created"}, rows, q, true, page, limit, len(list))
-	h.renderOK(c, listHTML, gin.H{"ShowBar": true, "Title": data.Title, "Headers": data.Headers, "Rows": data.Rows, "ListPath": data.ListPath, "NewPath": data.NewPath, "EditPath": data.EditPath, "DeletePath": data.DeletePath, "AllowDelete": data.AllowDelete, "SearchQ": data.SearchQ, "HasPrev": data.HasPrev, "HasNext": data.HasNext, "PrevURL": data.PrevURL, "NextURL": data.NextURL})
+	data := h.listData("Exercises", "/admin/entities/exercises", "/admin/entities/exercises/new", "/admin/entities/exercises", "/admin/entities/exercises/delete", []string{"Name", "Muscle groups", "Created"}, rows, q, true, page, limit, offset, total)
+	h.renderOK(c, listHTML, gin.H{"ShowBar": true, "Title": data.Title, "Headers": data.Headers, "Rows": data.Rows, "ListPath": data.ListPath, "NewPath": data.NewPath, "EditPath": data.EditPath, "DeletePath": data.DeletePath, "AllowDelete": data.AllowDelete, "SearchQ": data.SearchQ, "HasPrev": data.HasPrev, "HasNext": data.HasNext, "PrevURL": data.PrevURL, "NextURL": data.NextURL, "PaginationSummary": data.PaginationSummary})
 }
 
 func (h *Handler) ExercisesNew(c *gin.Context) {
 	fields := `<label>Name</label><input type="text" name="name" required>
-<label>Muscle group</label><input type="text" name="muscle_group">
+<label>Muscle groups</label><textarea name="muscle_groups" rows="4" placeholder="One per line, or comma-separated"></textarea>
+<p class="muted">Load is split equally between groups (stored in muscle_loads). First group is the primary filter (muscle_group).</p>
 <label>Difficulty</label><input type="text" name="difficulty_level">
 <label>Description</label><textarea name="description"></textarea>
 <label>Formula</label><input type="text" name="formula">
@@ -401,15 +421,13 @@ func (h *Handler) ExercisesNew(c *gin.Context) {
 
 func (h *Handler) ExercisesCreate(c *gin.Context) {
 	e := &workoutdomain.Exercise{
-		Name:            strings.TrimSpace(c.PostForm("name")),
-		MuscleLoads:     make(map[string]float64),
-		IsFree:          c.PostForm("is_free") == "1",
-		IsBase:          c.PostForm("is_base") == "1",
-		IsPopular:       c.PostForm("is_popular") == "1",
+		Name:        strings.TrimSpace(c.PostForm("name")),
+		MuscleLoads: make(map[string]float64),
+		IsFree:      c.PostForm("is_free") == "1",
+		IsBase:      c.PostForm("is_base") == "1",
+		IsPopular:   c.PostForm("is_popular") == "1",
 	}
-	if v := c.PostForm("muscle_group"); v != "" {
-		e.MuscleGroup = &v
-	}
+	applyExerciseMuscleGroupsFromForm(e, c.PostForm("muscle_groups"))
 	if v := c.PostForm("difficulty_level"); v != "" {
 		e.DifficultyLevel = &v
 	}
@@ -438,10 +456,7 @@ func (h *Handler) ExercisesEdit(c *gin.Context) {
 		c.String(http.StatusNotFound, err.Error())
 		return
 	}
-	mg := ""
-	if e.MuscleGroup != nil {
-		mg = *e.MuscleGroup
-	}
+	mg := exerciseMuscleGroupsFormValue(e)
 	diff := ""
 	if e.DifficultyLevel != nil {
 		diff = *e.DifficultyLevel
@@ -467,7 +482,8 @@ func (h *Handler) ExercisesEdit(c *gin.Context) {
 		freeChk = " checked"
 	}
 	fields := `<label>Name</label><input type="text" name="name" value="` + template.HTMLEscaper(e.Name) + `" required>
-<label>Muscle group</label><input type="text" name="muscle_group" value="` + template.HTMLEscaper(mg) + `">
+<label>Muscle groups</label><textarea name="muscle_groups" rows="4">` + template.HTMLEscaper(mg) + `</textarea>
+<p class="muted">One per line or comma-separated. Equal load share per group.</p>
 <label>Difficulty</label><input type="text" name="difficulty_level" value="` + template.HTMLEscaper(diff) + `">
 <label>Description</label><textarea name="description">` + template.HTMLEscaper(desc) + `</textarea>
 <label>Formula</label><input type="text" name="formula" value="` + template.HTMLEscaper(formula) + `">
@@ -493,11 +509,7 @@ func (h *Handler) ExercisesUpdate(c *gin.Context) {
 	e.IsFree = c.PostForm("is_free") == "1"
 	e.IsBase = c.PostForm("is_base") == "1"
 	e.IsPopular = c.PostForm("is_popular") == "1"
-	if v := c.PostForm("muscle_group"); v != "" {
-		e.MuscleGroup = &v
-	} else {
-		e.MuscleGroup = nil
-	}
+	applyExerciseMuscleGroupsFromForm(e, c.PostForm("muscle_groups"))
 	if v := c.PostForm("difficulty_level"); v != "" {
 		e.DifficultyLevel = &v
 	} else {
@@ -546,8 +558,8 @@ func (h *Handler) ProgramsList(c *gin.Context) {
 	for _, p := range list {
 		rows = append(rows, ListRow{ID: p.ID.String(), Cells: []string{p.Name, p.CreatedAt.Format("2006-01-02")}})
 	}
-	data := h.listData("Programs", "/admin/entities/programs", "/admin/entities/programs/new", "/admin/entities/programs", "/admin/entities/programs/delete", []string{"Name", "Created"}, rows, "", true, page, limit, len(list))
-	h.renderOK(c, listHTML, gin.H{"ShowBar": true, "Title": data.Title, "Headers": data.Headers, "Rows": data.Rows, "ListPath": data.ListPath, "NewPath": data.NewPath, "EditPath": data.EditPath, "DeletePath": data.DeletePath, "AllowDelete": data.AllowDelete, "SearchQ": data.SearchQ, "HasPrev": data.HasPrev, "HasNext": data.HasNext, "PrevURL": data.PrevURL, "NextURL": data.NextURL})
+	data := h.listData("Programs", "/admin/entities/programs", "/admin/entities/programs/new", "/admin/entities/programs", "/admin/entities/programs/delete", []string{"Name", "Created"}, rows, "", true, page, limit, offset, -1)
+	h.renderOK(c, listHTML, gin.H{"ShowBar": true, "Title": data.Title, "Headers": data.Headers, "Rows": data.Rows, "ListPath": data.ListPath, "NewPath": data.NewPath, "EditPath": data.EditPath, "DeletePath": data.DeletePath, "AllowDelete": data.AllowDelete, "SearchQ": data.SearchQ, "HasPrev": data.HasPrev, "HasNext": data.HasNext, "PrevURL": data.PrevURL, "NextURL": data.NextURL, "PaginationSummary": data.PaginationSummary})
 }
 
 func (h *Handler) ProgramsNew(c *gin.Context) {
@@ -629,8 +641,8 @@ func (h *Handler) TagsList(c *gin.Context) {
 	for _, t := range list {
 		rows = append(rows, ListRow{ID: t.ID.String(), Cells: []string{t.Name}})
 	}
-	data := h.listData("Tags", "/admin/entities/tags", "/admin/entities/tags/new", "/admin/entities/tags", "/admin/entities/tags/delete", []string{"Name"}, rows, "", true, page, limit, len(list))
-	h.renderOK(c, listHTML, gin.H{"ShowBar": true, "Title": data.Title, "Headers": data.Headers, "Rows": data.Rows, "ListPath": data.ListPath, "NewPath": data.NewPath, "EditPath": data.EditPath, "DeletePath": data.DeletePath, "AllowDelete": data.AllowDelete, "SearchQ": data.SearchQ, "HasPrev": data.HasPrev, "HasNext": data.HasNext, "PrevURL": data.PrevURL, "NextURL": data.NextURL})
+	data := h.listData("Tags", "/admin/entities/tags", "/admin/entities/tags/new", "/admin/entities/tags", "/admin/entities/tags/delete", []string{"Name"}, rows, "", true, page, limit, offset, -1)
+	h.renderOK(c, listHTML, gin.H{"ShowBar": true, "Title": data.Title, "Headers": data.Headers, "Rows": data.Rows, "ListPath": data.ListPath, "NewPath": data.NewPath, "EditPath": data.EditPath, "DeletePath": data.DeletePath, "AllowDelete": data.AllowDelete, "SearchQ": data.SearchQ, "HasPrev": data.HasPrev, "HasNext": data.HasNext, "PrevURL": data.PrevURL, "NextURL": data.NextURL, "PaginationSummary": data.PaginationSummary})
 }
 
 func (h *Handler) TagsNew(c *gin.Context) {
@@ -677,8 +689,8 @@ func (h *Handler) BlogPostsList(c *gin.Context) {
 	for _, p := range list {
 		rows = append(rows, ListRow{ID: p.ID.String(), Cells: []string{p.Title, p.UserID.String(), p.CreatedAt.Format("2006-01-02")}})
 	}
-	data := h.listData("Blog posts", "/admin/entities/blog_posts", "/admin/entities/blog_posts/new", "/admin/entities/blog_posts", "/admin/entities/blog_posts/delete", []string{"Title", "User ID", "Created"}, rows, "", true, page, limit, len(list))
-	h.renderOK(c, listHTML, gin.H{"ShowBar": true, "Title": data.Title, "Headers": data.Headers, "Rows": data.Rows, "ListPath": data.ListPath, "NewPath": data.NewPath, "EditPath": data.EditPath, "DeletePath": data.DeletePath, "AllowDelete": data.AllowDelete, "SearchQ": data.SearchQ, "HasPrev": data.HasPrev, "HasNext": data.HasNext, "PrevURL": data.PrevURL, "NextURL": data.NextURL})
+	data := h.listData("Blog posts", "/admin/entities/blog_posts", "/admin/entities/blog_posts/new", "/admin/entities/blog_posts", "/admin/entities/blog_posts/delete", []string{"Title", "User ID", "Created"}, rows, "", true, page, limit, offset, -1)
+	h.renderOK(c, listHTML, gin.H{"ShowBar": true, "Title": data.Title, "Headers": data.Headers, "Rows": data.Rows, "ListPath": data.ListPath, "NewPath": data.NewPath, "EditPath": data.EditPath, "DeletePath": data.DeletePath, "AllowDelete": data.AllowDelete, "SearchQ": data.SearchQ, "HasPrev": data.HasPrev, "HasNext": data.HasNext, "PrevURL": data.PrevURL, "NextURL": data.NextURL, "PaginationSummary": data.PaginationSummary})
 }
 
 func (h *Handler) BlogPostsNew(c *gin.Context) {
@@ -782,8 +794,8 @@ func (h *Handler) SystemMessagesList(c *gin.Context) {
 		}
 		rows = append(rows, ListRow{ID: m.ID.String(), Cells: []string{m.Title, active, m.CreatedAt.Format("2006-01-02"), body}})
 	}
-	data := h.listData("System messages", "/admin/entities/system_messages", "/admin/entities/system_messages/new", "/admin/entities/system_messages", "/admin/entities/system_messages/delete", []string{"Title", "Active", "Created", "Body"}, rows, "", true, page, limit, len(list))
-	h.renderOK(c, listHTML, gin.H{"ShowBar": true, "Title": data.Title, "Headers": data.Headers, "Rows": data.Rows, "ListPath": data.ListPath, "NewPath": data.NewPath, "EditPath": data.EditPath, "DeletePath": data.DeletePath, "AllowDelete": data.AllowDelete, "SearchQ": data.SearchQ, "HasPrev": data.HasPrev, "HasNext": data.HasNext, "PrevURL": data.PrevURL, "NextURL": data.NextURL})
+	data := h.listData("System messages", "/admin/entities/system_messages", "/admin/entities/system_messages/new", "/admin/entities/system_messages", "/admin/entities/system_messages/delete", []string{"Title", "Active", "Created", "Body"}, rows, "", true, page, limit, offset, -1)
+	h.renderOK(c, listHTML, gin.H{"ShowBar": true, "Title": data.Title, "Headers": data.Headers, "Rows": data.Rows, "ListPath": data.ListPath, "NewPath": data.NewPath, "EditPath": data.EditPath, "DeletePath": data.DeletePath, "AllowDelete": data.AllowDelete, "SearchQ": data.SearchQ, "HasPrev": data.HasPrev, "HasNext": data.HasNext, "PrevURL": data.PrevURL, "NextURL": data.NextURL, "PaginationSummary": data.PaginationSummary})
 }
 
 func (h *Handler) SystemMessagesNew(c *gin.Context) {
@@ -884,8 +896,8 @@ func (h *Handler) BucketsList(c *gin.Context) {
 	for _, b := range list {
 		rows = append(rows, ListRow{ID: b.ID.String(), Cells: []string{b.Name, b.Endpoint, b.Region, b.PublicURL}})
 	}
-	data := h.listData("Buckets", "/admin/entities/buckets", "/admin/entities/buckets/new", "/admin/entities/buckets", "/admin/entities/buckets/delete", []string{"Name", "Endpoint", "Region", "Public URL"}, rows, "", false, 1, len(list), len(list))
-	h.renderOK(c, listHTML, gin.H{"ShowBar": true, "Title": data.Title, "Headers": data.Headers, "Rows": data.Rows, "ListPath": data.ListPath, "NewPath": data.NewPath, "EditPath": data.EditPath, "DeletePath": data.DeletePath, "AllowDelete": data.AllowDelete, "SearchQ": data.SearchQ, "HasPrev": data.HasPrev, "HasNext": data.HasNext, "PrevURL": data.PrevURL, "NextURL": data.NextURL})
+	data := h.listData("Buckets", "/admin/entities/buckets", "/admin/entities/buckets/new", "/admin/entities/buckets", "/admin/entities/buckets/delete", []string{"Name", "Endpoint", "Region", "Public URL"}, rows, "", false, 1, len(list), 0, len(list))
+	h.renderOK(c, listHTML, gin.H{"ShowBar": true, "Title": data.Title, "Headers": data.Headers, "Rows": data.Rows, "ListPath": data.ListPath, "NewPath": data.NewPath, "EditPath": data.EditPath, "DeletePath": data.DeletePath, "AllowDelete": data.AllowDelete, "SearchQ": data.SearchQ, "HasPrev": data.HasPrev, "HasNext": data.HasNext, "PrevURL": data.PrevURL, "NextURL": data.NextURL, "PaginationSummary": data.PaginationSummary})
 }
 
 func (h *Handler) BucketsNew(c *gin.Context) {
@@ -991,8 +1003,8 @@ func (h *Handler) PhotosList(c *gin.Context) {
 		}
 		rows = append(rows, ListRow{ID: p.ID.String(), Cells: []string{p.ID.String()[:8], urlShort, p.CreatedAt.Format("2006-01-02 15:04")}})
 	}
-	data := h.listData("Photos", "/admin/entities/photos", "/admin/entities/photos/new", "/admin/entities/photos", "/admin/entities/photos/delete", []string{"ID", "URL", "Created"}, rows, "", true, page, limit, len(list))
-	h.renderOK(c, listHTML, gin.H{"ShowBar": true, "Title": data.Title, "Headers": data.Headers, "Rows": data.Rows, "ListPath": data.ListPath, "NewPath": data.NewPath, "EditPath": data.EditPath, "DeletePath": data.DeletePath, "AllowDelete": data.AllowDelete, "SearchQ": data.SearchQ, "HasPrev": data.HasPrev, "HasNext": data.HasNext, "PrevURL": data.PrevURL, "NextURL": data.NextURL})
+	data := h.listData("Photos", "/admin/entities/photos", "/admin/entities/photos/new", "/admin/entities/photos", "/admin/entities/photos/delete", []string{"ID", "URL", "Created"}, rows, "", true, page, limit, offset, -1)
+	h.renderOK(c, listHTML, gin.H{"ShowBar": true, "Title": data.Title, "Headers": data.Headers, "Rows": data.Rows, "ListPath": data.ListPath, "NewPath": data.NewPath, "EditPath": data.EditPath, "DeletePath": data.DeletePath, "AllowDelete": data.AllowDelete, "SearchQ": data.SearchQ, "HasPrev": data.HasPrev, "HasNext": data.HasNext, "PrevURL": data.PrevURL, "NextURL": data.NextURL, "PaginationSummary": data.PaginationSummary})
 }
 
 func (h *Handler) PhotosNew(c *gin.Context) {
@@ -1067,4 +1079,71 @@ func (h *Handler) PhotosDelete(c *gin.Context) {
 		return
 	}
 	c.Redirect(http.StatusFound, "/admin/entities/photos?flash=Deleted")
+}
+
+func exerciseMuscleGroupsDisplay(e *workoutdomain.Exercise) string {
+	if len(e.MuscleLoads) > 0 {
+		keys := make([]string, 0, len(e.MuscleLoads))
+		for k := range e.MuscleLoads {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		return strings.Join(keys, ", ")
+	}
+	if e.MuscleGroup != nil {
+		return *e.MuscleGroup
+	}
+	return ""
+}
+
+func exerciseMuscleGroupsFormValue(e *workoutdomain.Exercise) string {
+	if len(e.MuscleLoads) > 0 {
+		keys := make([]string, 0, len(e.MuscleLoads))
+		for k := range e.MuscleLoads {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		return strings.Join(keys, "\n")
+	}
+	if e.MuscleGroup != nil {
+		return *e.MuscleGroup
+	}
+	return ""
+}
+
+func applyExerciseMuscleGroupsFromForm(e *workoutdomain.Exercise, raw string) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		e.MuscleGroup = nil
+		e.MuscleLoads = make(map[string]float64)
+		return
+	}
+	parts := splitMuscleGroupNames(raw)
+	if len(parts) == 0 {
+		e.MuscleGroup = nil
+		e.MuscleLoads = make(map[string]float64)
+		return
+	}
+	w := 1.0 / float64(len(parts))
+	loads := make(map[string]float64)
+	for _, p := range parts {
+		loads[p] = w
+	}
+	e.MuscleLoads = loads
+	primary := parts[0]
+	e.MuscleGroup = &primary
+}
+
+func splitMuscleGroupNames(raw string) []string {
+	for _, sep := range []string{",", ";"} {
+		raw = strings.ReplaceAll(raw, sep, "\n")
+	}
+	var out []string
+	for _, line := range strings.Split(raw, "\n") {
+		s := strings.TrimSpace(line)
+		if s != "" {
+			out = append(out, s)
+		}
+	}
+	return out
 }

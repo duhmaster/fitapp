@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fitflow/core/network/api_client.dart';
+import 'package:fitflow/features/group_trainings/domain/group_training_models.dart';
 
 final gymRepositoryProvider = Provider<GymRepository>((ref) {
   return GymRepository(dio: ref.watch(apiClientProvider));
@@ -36,6 +37,20 @@ class Gym {
       address: json['address'] as String?,
       contactPhone: json['contact_phone'] as String?,
       contactUrl: json['contact_url'] as String?,
+    );
+  }
+}
+
+/// Trainer linked to a gym (group trainings and/or workouts with trainer at gym).
+class GymTrainerAtGym {
+  const GymTrainerAtGym({required this.userId, required this.displayName});
+  final String userId;
+  final String displayName;
+
+  factory GymTrainerAtGym.fromJson(Map<String, dynamic> json) {
+    return GymTrainerAtGym(
+      userId: json['user_id'] as String,
+      displayName: (json['display_name'] as String?) ?? '',
     );
   }
 }
@@ -90,6 +105,23 @@ class GymRepository {
   }
 
   /// GET /api/v1/gyms?q=...&city=... (public search; city filters by gym city)
+  /// GET /api/v1/gyms/:gym_id/trainers (public)
+  Future<List<GymTrainerAtGym>> listTrainersAtGym(String gymId) async {
+    final res = await dio.get<Map<String, dynamic>>('/api/v1/gyms/$gymId/trainers');
+    final list = res.data?['trainers'] as List<dynamic>? ?? [];
+    return list.map((e) => GymTrainerAtGym.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  /// GET /api/v1/gyms/:gym_id/group-trainings — ascending by scheduled_at
+  Future<List<GroupTraining>> listGroupTrainingsAtGym(String gymId, {int limit = 200, int offset = 0}) async {
+    final res = await dio.get<Map<String, dynamic>>(
+      '/api/v1/gyms/$gymId/group-trainings',
+      queryParameters: {'limit': limit, 'offset': offset},
+    );
+    final list = res.data?['trainings'] as List<dynamic>? ?? [];
+    return list.map((e) => GroupTraining.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
   Future<List<Gym>> searchGyms({String query = '', String? city, int limit = 20, int offset = 0}) async {
     final params = <String, dynamic>{'limit': limit, 'offset': offset};
     if (query.isNotEmpty) params['q'] = query;
