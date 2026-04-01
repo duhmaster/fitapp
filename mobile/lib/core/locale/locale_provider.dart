@@ -318,6 +318,8 @@ final Map<String, String> _fallbackStringsRu = {
   'add_trainer': 'Добавить тренера',
   'gym_trainers_tab': 'Тренеры',
   'no_trainers_at_gym': 'В этом зале пока нет тренеров в списке.',
+  'open_trainer_profile': 'Открыть',
+  'trainer_no_description': 'Описание тренера отсутствует.',
 };
 
 /// List of available locale codes (from server, or default [en, ru]).
@@ -602,6 +604,8 @@ final Map<String, String> _fallbackStrings = {
   'add_trainer': 'Add trainer',
   'gym_trainers_tab': 'Trainers',
   'no_trainers_at_gym': 'No trainers listed for this gym yet.',
+  'open_trainer_profile': 'Open',
+  'trainer_no_description': 'No trainer description.',
 };
 
 /// Helper to get a localized string by key.

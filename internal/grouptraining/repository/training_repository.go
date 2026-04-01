@@ -595,6 +595,7 @@ func (r *GroupTrainingRepository) ListByGymID(ctx context.Context, gymID uuid.UU
 		FROM group_trainings t
 		LEFT JOIN group_training_templates tpl ON tpl.id = t.template_id
 		WHERE t.gym_id = $1
+		  AND t.scheduled_at >= NOW()
 		ORDER BY t.scheduled_at ASC
 		LIMIT $2 OFFSET $3
 	`
