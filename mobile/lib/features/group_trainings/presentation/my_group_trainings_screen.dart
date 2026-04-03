@@ -117,6 +117,15 @@ class _TrainingTile extends StatelessWidget {
       color: theme.colorScheme.surface,
       child: ListTile(
         onTap: onTap,
+        leading: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: const Icon(Icons.image_outlined),
+        ),
         title: Text(formatDateTime(training.scheduledAt)),
         subtitle: Text(subtitle),
         trailing: const Icon(Icons.chevron_right),

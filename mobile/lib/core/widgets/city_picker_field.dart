@@ -1,13 +1,15 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fitflow/core/locale/locale_provider.dart';
 import 'package:fitflow/core/network/geo_repository.dart';
 
 /// A field that opens a search dialog to select a city from DaData suggestions.
-class CityPickerField extends StatefulWidget {
+class CityPickerField extends ConsumerStatefulWidget {
   const CityPickerField({
     super.key,
     this.initialCity = '',
-    this.label = 'Город',
+    this.label = '',
     required this.onSearch,
     required this.onChanged,
   });
@@ -17,10 +19,10 @@ class CityPickerField extends StatefulWidget {
   final void Function(String? city) onChanged;
 
   @override
-  State<CityPickerField> createState() => _CityPickerFieldState();
+  ConsumerState<CityPickerField> createState() => _CityPickerFieldState();
 }
 
-class _CityPickerFieldState extends State<CityPickerField> {
+class _CityPickerFieldState extends ConsumerState<CityPickerField> {
   late TextEditingController _controller;
   Timer? _debounce;
 
@@ -54,11 +56,12 @@ class _CityPickerFieldState extends State<CityPickerField> {
 
   @override
   Widget build(BuildContext context) {
+    final tr = ref.watch(trProvider);
     return InkWell(
       onTap: _openPicker,
       child: InputDecorator(
         decoration: InputDecoration(
-          labelText: widget.label,
+          labelText: widget.label.isNotEmpty ? widget.label : tr('city'),
           border: const OutlineInputBorder(),
           suffixIcon: const Icon(Icons.arrow_drop_down),
         ),
@@ -73,7 +76,7 @@ class _CityPickerFieldState extends State<CityPickerField> {
   }
 }
 
-class _CitySearchDialog extends StatefulWidget {
+class _CitySearchDialog extends ConsumerStatefulWidget {
   const _CitySearchDialog({
     required this.initialQuery,
     required this.onSearch,
@@ -82,10 +85,10 @@ class _CitySearchDialog extends StatefulWidget {
   final Future<List<CitySuggestion>> Function(String query) onSearch;
 
   @override
-  State<_CitySearchDialog> createState() => _CitySearchDialogState();
+  ConsumerState<_CitySearchDialog> createState() => _CitySearchDialogState();
 }
 
-class _CitySearchDialogState extends State<_CitySearchDialog> {
+class _CitySearchDialogState extends ConsumerState<_CitySearchDialog> {
   late TextEditingController _queryController;
   List<CitySuggestion> _items = [];
   bool _loading = false;
@@ -128,8 +131,9 @@ class _CitySearchDialogState extends State<_CitySearchDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final tr = ref.watch(trProvider);
     return AlertDialog(
-      title: const Text('Город'),
+      title: Text(tr('city')),
       content: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: 320, maxHeight: MediaQuery.sizeOf(context).height * 0.6),
         child: Column(
@@ -138,10 +142,10 @@ class _CitySearchDialogState extends State<_CitySearchDialog> {
           children: [
             TextField(
               controller: _queryController,
-              decoration: const InputDecoration(
-                hintText: 'Введите название города',
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                hintText: tr('city_search_hint'),
+                prefixIcon: const Icon(Icons.search),
+                border: const OutlineInputBorder(),
               ),
               autofocus: true,
               onChanged: _onQueryChanged,
@@ -154,8 +158,9 @@ class _CitySearchDialogState extends State<_CitySearchDialog> {
                       ? Center(
                           child: Text(
                             _queryController.text.length < 2
-                                ? 'Введите минимум 2 символа'
-                                : 'Ничего не найдено',
+                                ? tr('city_min_chars')
+                                : tr('city_no_results'),
+                            textAlign: TextAlign.center,
                             style: Theme.of(context).textTheme.bodyMedium,
                           ),
                         )

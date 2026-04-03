@@ -65,12 +65,13 @@ class _WorkoutsListScreenState extends ConsumerState<WorkoutsListScreen> {
   }
 
   Future<void> _showWorkoutStat(String workoutId) async {
+    final tr = ref.read(trProvider);
     try {
       final detail = await ref.read(workoutRepositoryProvider).getWorkout(workoutId);
       if (!mounted) return;
       if (!detail.workout.isCompleted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Статистика доступна только после завершения тренировки.')),
+          SnackBar(content: Text(tr('stats_only_after_completion'))),
         );
         return;
       }

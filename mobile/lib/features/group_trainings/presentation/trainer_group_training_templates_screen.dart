@@ -51,6 +51,7 @@ class TrainerGroupTrainingTemplatesScreen extends ConsumerWidget {
                 final t = templates[i];
                 return _TemplateTile(
                   template: t,
+                  tr: tr,
                   onEdit: () => context.push('/trainer/group-training-templates/${t.id}'),
                   onDelete: () async {
                     final ok = await showDialog<bool>(
@@ -84,11 +85,13 @@ class TrainerGroupTrainingTemplatesScreen extends ConsumerWidget {
 class _TemplateTile extends StatelessWidget {
   const _TemplateTile({
     required this.template,
+    required this.tr,
     required this.onEdit,
     required this.onDelete,
   });
 
   final GroupTrainingTemplate template;
+  final String Function(String) tr;
   final VoidCallback onEdit;
   final Future<void> Function() onDelete;
 
@@ -97,7 +100,7 @@ class _TemplateTile extends StatelessWidget {
     return Card(
       child: ListTile(
         title: Text(template.name),
-        subtitle: Text('${template.durationMinutes} min • ${template.maxPeopleCount} места'),
+        subtitle: Text('${template.durationMinutes} ${tr('minutes_short')} • ${template.maxPeopleCount} ${tr('seats')}'),
         trailing: Wrap(
           spacing: 8,
           children: [

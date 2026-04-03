@@ -123,7 +123,7 @@ class _TrainerGymCard extends ConsumerWidget {
         child: ListTile(
           leading: const CircleAvatar(child: Icon(Icons.person_outline)),
           title: Text(trainer.displayName.isNotEmpty ? trainer.displayName : trainer.userId),
-          subtitle: const Text('...'),
+          subtitle: Text(tr('loading')),
           trailing: const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
         ),
       ),
@@ -143,42 +143,143 @@ class _TrainerGymCard extends ConsumerWidget {
             : (trainer.displayName.isNotEmpty ? trainer.displayName : trainer.userId);
         final about = profile.aboutMe.trim().isEmpty ? tr('trainer_no_description') : _shortDescription(profile.aboutMe);
         final avatar = profile.avatarUrl.trim();
+        final cs = Theme.of(context).colorScheme;
         return Card(
           clipBehavior: Clip.antiAlias,
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                CircleAvatar(
-                  radius: 28,
-                  backgroundImage: avatar.isNotEmpty ? NetworkImage(avatar) : null,
-                  child: avatar.isEmpty ? const Icon(Icons.person, size: 28) : null,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(name, style: Theme.of(context).textTheme.titleMedium),
-                      const SizedBox(height: 6),
-                      Text(about, style: Theme.of(context).textTheme.bodyMedium),
-                      const SizedBox(height: 10),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: FilledButton.tonal(
-                          onPressed: () => context.push('/t/${trainer.userId}'),
-                          child: Text(tr('open_trainer_profile')),
-                        ),
-                      ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 14),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      cs.primary,
+                      cs.primary.withValues(alpha: 0.75),
+                      cs.tertiary.withValues(alpha: 0.85),
                     ],
                   ),
                 ),
-              ],
-            ),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 28,
+                      backgroundColor: cs.surfaceContainerHighest,
+                      backgroundImage: avatar.isNotEmpty ? NetworkImage(avatar) : null,
+                      child: avatar.isEmpty ? Icon(Icons.person, size: 28, color: cs.onSurfaceVariant) : null,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
+                          if (profile.city.isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              profile.city,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Colors.white.withValues(alpha: 0.95),
+                                  ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(about, style: Theme.of(context).textTheme.bodyMedium),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _MiniStatChip(
+                            icon: Icons.group_outlined,
+                            value: '${profile.traineesCount}',
+                            label: tr('trainees'),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _MiniStatChip(
+                            icon: Icons.fitness_center_outlined,
+                            value: '${profile.workoutsCount}',
+                            label: tr('workouts'),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: FilledButton(
+                        onPressed: () => context.push('/t/${trainer.userId}'),
+                        child: Text(tr('open_trainer_profile')),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         );
       },
+    );
+  }
+}
+
+class _MiniStatChip extends StatelessWidget {
+  const _MiniStatChip({
+    required this.icon,
+    required this.value,
+    required this.label,
+  });
+
+  final IconData icon;
+  final String value;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerHighest.withValues(alpha: 0.75),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: cs.primary),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              '$value · $label',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -221,6 +322,15 @@ class _GroupTrainingsTab extends ConsumerWidget {
               final subtitle = t.templateName?.isNotEmpty == true ? '${t.templateName} · ${t.city}' : t.city;
               return Card(
                 child: ListTile(
+                  leading: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.image_outlined),
+                  ),
                   title: Text(fmt(t.scheduledAt)),
                   subtitle: Text(subtitle),
                   trailing: const Icon(Icons.chevron_right),

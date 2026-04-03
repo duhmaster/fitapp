@@ -116,7 +116,7 @@ Future<void> showTemplatePickerDialog(
                   ),
                   if (myTrainers.isNotEmpty) ...[
                     const SizedBox(height: 16),
-                    Text('Тренер', style: Theme.of(context).textTheme.labelLarge),
+                    Text(tr('trainer'), style: Theme.of(context).textTheme.labelLarge),
                     const SizedBox(height: 4),
                     InkWell(
                       onTap: () async {
@@ -158,7 +158,7 @@ Future<void> showTemplatePickerDialog(
                         context.push('/templates');
                       },
                       child: Text(
-                        'Чтобы изменить или добавить шаблоны перейдите на страницу «${tr('workout_templates')}»',
+                        tr('templates_manage_hint'),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: Theme.of(context).colorScheme.primary,
                               decoration: TextDecoration.underline,
@@ -295,7 +295,7 @@ Future<MyTrainerItem?> _showTrainerPicker(BuildContext context, WidgetRef ref, L
   return showDialog<MyTrainerItem>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: const Text('Тренер'),
+      title: Text(ref.read(trProvider)('trainer')),
       content: SizedBox(
         width: 320,
         child: ListView.builder(
@@ -551,7 +551,7 @@ Future<void> _onCreateForClientTemplateSelected(
     onSuccess?.call();
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${ref.read(trProvider)('workout')} создана')),
+        SnackBar(content: Text(ref.read(trProvider)('workout_created'))),
       );
       context.push('/workout/${w.id}?readOnly=1');
     }

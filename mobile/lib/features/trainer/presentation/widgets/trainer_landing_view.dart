@@ -285,7 +285,7 @@ class TrainerLandingView extends StatelessWidget {
                   _infoCard(
                     context: context,
                     icon: Icons.info_outline,
-                    title: 'О себе',
+                    title: tr('about_me'),
                     child: Text(profile.aboutMe.trim(), style: theme.textTheme.bodyLarge?.copyWith(height: 1.45)),
                   ),
                   const SizedBox(height: 16),
@@ -296,7 +296,7 @@ class TrainerLandingView extends StatelessWidget {
                   _infoCard(
                     context: context,
                     icon: Icons.star_outline,
-                    title: 'Оценка',
+                    title: tr('rating'),
                     child: Text(
                       profile.rating!.toStringAsFixed(1),
                       style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
@@ -370,7 +370,7 @@ class TrainerLandingView extends StatelessWidget {
 
                 // Photos gallery preview
                 if (profile.photos.isNotEmpty) ...[
-                  Text('Галерея', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                  Text(tr('gallery'), style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
                   const SizedBox(height: 10),
                   Wrap(
                     spacing: 10,

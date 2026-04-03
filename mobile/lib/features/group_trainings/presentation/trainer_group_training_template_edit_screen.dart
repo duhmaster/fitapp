@@ -131,19 +131,19 @@ class _TrainerGroupTrainingTemplateEditScreenState extends ConsumerState<Trainer
           controller: _durationController,
           keyboardType: TextInputType.number,
           decoration: InputDecoration(
-            labelText: 'Duration (min)',
+            labelText: tr('duration_minutes'),
             border: const OutlineInputBorder(),
           ),
         ),
         const SizedBox(height: 12),
         TextField(
           controller: _equipmentController,
-          decoration: InputDecoration(labelText: 'Equipment (comma)', border: const OutlineInputBorder()),
+          decoration: InputDecoration(labelText: tr('equipment_comma'), border: const OutlineInputBorder()),
         ),
         const SizedBox(height: 12),
         TextField(
           controller: _levelController,
-          decoration: InputDecoration(labelText: 'Level', border: const OutlineInputBorder()),
+          decoration: InputDecoration(labelText: tr('level'), border: const OutlineInputBorder()),
         ),
         const SizedBox(height: 12),
         _buildPhotoSection(tr),
@@ -151,14 +151,14 @@ class _TrainerGroupTrainingTemplateEditScreenState extends ConsumerState<Trainer
         TextField(
           controller: _maxPeopleController,
           keyboardType: TextInputType.number,
-          decoration: InputDecoration(labelText: 'Max people', border: const OutlineInputBorder()),
+          decoration: InputDecoration(labelText: tr('max_people'), border: const OutlineInputBorder()),
         ),
         const SizedBox(height: 12),
         DropdownButtonFormField<String>(
           value: _selectedGroupTypeId,
           items: groupTypes.map((t) => DropdownMenuItem(value: t.id, child: Text(t.name))).toList(),
           onChanged: (v) => setState(() => _selectedGroupTypeId = v),
-          decoration: InputDecoration(labelText: 'Group type', border: const OutlineInputBorder()),
+          decoration: InputDecoration(labelText: tr('group_type'), border: const OutlineInputBorder()),
         ),
         const SizedBox(height: 12),
         SwitchListTile(
@@ -174,7 +174,7 @@ class _TrainerGroupTrainingTemplateEditScreenState extends ConsumerState<Trainer
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Photo (optional)', style: Theme.of(context).textTheme.titleSmall),
+        Text(tr('photo_optional'), style: Theme.of(context).textTheme.titleSmall),
         const SizedBox(height: 8),
         if (_uploadedPhotoUrl != null && _uploadedPhotoUrl!.isNotEmpty)
           ClipRRect(

@@ -130,6 +130,15 @@ class _TrainingTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: ListTile(
+        leading: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: const Icon(Icons.image_outlined),
+        ),
         title: Text(formatDateTime(training.scheduledAt)),
         subtitle: Text(
           training.templateName?.isNotEmpty == true

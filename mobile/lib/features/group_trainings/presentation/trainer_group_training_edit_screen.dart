@@ -150,7 +150,7 @@ class _TrainerGroupTrainingEditScreenState extends ConsumerState<TrainerGroupTra
           controller: _scheduledAtController,
           readOnly: true,
           decoration: InputDecoration(
-            labelText: 'Scheduled at',
+            labelText: tr('scheduled_at'),
             border: const OutlineInputBorder(),
             suffixIcon: IconButton(icon: const Icon(Icons.edit_calendar), onPressed: () => _pickDateTime(context)),
           ),

@@ -161,6 +161,7 @@ class _ProgressMusclesScreenState extends ConsumerState<ProgressMusclesScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _DateRangeControls(
+                    tr: tr,
                     from: _fromDate,
                     to: _toDate,
                     onFromChanged: (v) => setState(() => _fromDate = v),
@@ -174,19 +175,19 @@ class _ProgressMusclesScreenState extends ConsumerState<ProgressMusclesScreen> {
                     ),
                   ] else ...[
                     Text(
-                      'Завершено тренировок: ${data.workoutsCount}',
+                      '${tr('completed_workouts_count')}: ${data.workoutsCount}',
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Суммарный выполненный объем: ${data.totalVolumeKg.toStringAsFixed(0)} kg',
+                      '${tr('total_completed_volume')}: ${data.totalVolumeKg.toStringAsFixed(0)} ${tr('kg_short')}',
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                     const SizedBox(height: 20),
 
                     if (data.muscleGroupLoads.isNotEmpty) ...[
                       Text(
-                        'Нагрузка на группы мышц',
+                        tr('muscle_groups_load'),
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       const SizedBox(height: 8),
@@ -222,8 +223,8 @@ class _ProgressMusclesScreenState extends ConsumerState<ProgressMusclesScreen> {
                               ),
                             ),
                             title: Text(g.group),
-                            subtitle: Text('${g.sharePercent.toStringAsFixed(0)}% от объёма'),
-                            trailing: Text('${g.performedVolumeKg.toStringAsFixed(0)} kg'),
+                            subtitle: Text('${g.sharePercent.toStringAsFixed(0)}% ${tr('of_volume')}'),
+                            trailing: Text('${g.performedVolumeKg.toStringAsFixed(0)} ${tr('kg_short')}'),
                           ),
                         );
                       }),
@@ -248,12 +249,14 @@ class _ProgressMusclesScreenState extends ConsumerState<ProgressMusclesScreen> {
 
 class _DateRangeControls extends StatelessWidget {
   const _DateRangeControls({
+    required this.tr,
     required this.from,
     required this.to,
     required this.onFromChanged,
     required this.onToChanged,
   });
 
+  final String Function(String) tr;
   final DateTime? from;
   final DateTime? to;
   final ValueChanged<DateTime> onFromChanged;
@@ -279,7 +282,7 @@ class _DateRangeControls extends StatelessWidget {
                   );
                   if (picked != null) onFromChanged(DateTime(picked.year, picked.month, picked.day));
                 },
-                child: Text(from != null ? '${from!.day}.${from!.month}.${from!.year}' : 'From'),
+                    child: Text(from != null ? '${from!.day}.${from!.month}.${from!.year}' : tr('from')),
               ),
             ),
             const SizedBox(width: 12),
@@ -296,14 +299,14 @@ class _DateRangeControls extends StatelessWidget {
                   );
                   if (picked != null) onToChanged(DateTime(picked.year, picked.month, picked.day));
                 },
-                child: Text(to != null ? '${to!.day}.${to!.month}.${to!.year}' : 'To'),
+                    child: Text(to != null ? '${to!.day}.${to!.month}.${to!.year}' : tr('to')),
               ),
             ),
           ],
         ),
         const SizedBox(height: 10),
         Text(
-          'Фильтр по дате завершения (finished_at).',
+          tr('filter_by_finished_at'),
           style: Theme.of(context).textTheme.bodySmall,
         ),
       ],

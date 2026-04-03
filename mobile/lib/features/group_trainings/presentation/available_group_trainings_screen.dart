@@ -50,6 +50,7 @@ class AvailableGroupTrainingsScreen extends ConsumerWidget {
               itemBuilder: (_, i) {
                 final it = list[i];
                 final isFull = it.remainingSeats <= 0;
+                final photo = it.photoPath;
                 return Card(
                   elevation: 0,
                   child: Padding(
@@ -57,12 +58,46 @@ class AvailableGroupTrainingsScreen extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(it.templateName, style: Theme.of(context).textTheme.titleMedium),
-                        const SizedBox(height: 6),
-                        Text(_formatDateTime(it.scheduledAt), style: Theme.of(context).textTheme.bodySmall),
+                        Row(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: photo != null && photo.isNotEmpty
+                                  ? Image.network(
+                                      photo,
+                                      width: 56,
+                                      height: 56,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) => Container(
+                                        width: 56,
+                                        height: 56,
+                                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                                        child: const Icon(Icons.image_not_supported_outlined),
+                                      ),
+                                    )
+                                  : Container(
+                                      width: 56,
+                                      height: 56,
+                                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                                      child: const Icon(Icons.image_outlined),
+                                    ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(it.templateName, style: Theme.of(context).textTheme.titleMedium),
+                                  const SizedBox(height: 4),
+                                  Text(_formatDateTime(it.scheduledAt), style: Theme.of(context).textTheme.bodySmall),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                         const SizedBox(height: 8),
                         Text(it.city),
-                        Text('${it.groupTypeName} • ${it.durationMinutes} min'),
+                        Text('${it.groupTypeName} • ${it.durationMinutes} ${tr('minutes_short')}'),
                         const SizedBox(height: 10),
                         Text('${tr('seats')}: ${it.participantsCount}/${it.maxPeopleCount}'),
                         const SizedBox(height: 12),

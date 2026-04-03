@@ -15,6 +15,7 @@ class HelpScreen extends ConsumerWidget {
       _Topic('current_workout', tr('help_current_workout_title'), Icons.play_circle),
       _Topic('progress', tr('help_progress_title'), Icons.show_chart),
       _Topic('profile', tr('help_profile_title'), Icons.person),
+      _Topic('gyms_trainers_groups', tr('help_gyms_trainers_groups_title'), Icons.store_mall_directory_outlined),
       _Topic('exercises', tr('help_exercises_title'), Icons.fitness_center),
     ];
     return Scaffold(

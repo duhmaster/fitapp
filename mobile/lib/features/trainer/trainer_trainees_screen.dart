@@ -18,13 +18,13 @@ class TrainerTraineesScreen extends ConsumerWidget {
     final tr = ref.watch(trProvider);
     final async = ref.watch(traineesListProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Подопечные')),
+      appBar: AppBar(title: Text(tr('trainees'))),
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('${tr('error_label')}: $e')),
         data: (list) {
           if (list.isEmpty) {
-            return Center(child: Text(tr('gym_optional')));
+            return Center(child: Text(tr('no_data_in_range')));
           }
           return ListView.builder(
             padding: const EdgeInsets.all(16),
@@ -68,7 +68,7 @@ Future<void> _confirmRemoveTrainee(
     context: context,
     builder: (ctx) => AlertDialog(
       title: Text(tr('delete')),
-      content: Text('Удалить подопечного «$displayName» из списка?'),
+      content: Text('${tr('delete')} «$displayName»?'),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(ctx, false),

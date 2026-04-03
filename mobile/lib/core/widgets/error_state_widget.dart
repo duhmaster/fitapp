@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fitflow/core/locale/locale_provider.dart';
 
 /// Full-page or inline error state with optional retry.
-class ErrorStateWidget extends StatelessWidget {
+class ErrorStateWidget extends ConsumerWidget {
   const ErrorStateWidget({
     super.key,
     required this.message,
@@ -14,7 +16,8 @@ class ErrorStateWidget extends StatelessWidget {
   final bool compact;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tr = ref.watch(trProvider);
     final content = Column(
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.center,
@@ -35,7 +38,7 @@ class ErrorStateWidget extends StatelessWidget {
           FilledButton.icon(
             onPressed: onRetry,
             icon: const Icon(Icons.refresh, size: 20),
-            label: const Text('Retry'),
+            label: Text(tr('retry')),
           ),
         ],
       ],

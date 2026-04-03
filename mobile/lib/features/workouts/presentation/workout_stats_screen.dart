@@ -127,7 +127,7 @@ class WorkoutStatsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Статистика тренировки'),
+        title: Text(tr('workout_statistics_title')),
       ),
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -144,7 +144,7 @@ class WorkoutStatsScreen extends ConsumerWidget {
                 children: [
                   Text(tr('workout_detail'), style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 8),
-                  Text('Статистика доступна только после завершения тренировки.',
+                  Text(tr('stats_only_after_completion'),
                       style: Theme.of(context).textTheme.bodyMedium),
                 ],
               ),
@@ -160,34 +160,34 @@ class WorkoutStatsScreen extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    'Объём и выполнение',
+                    tr('volume_and_completion'),
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                   const SizedBox(height: 12),
                   _SummaryCard(
-                    title: 'Планируемый объем',
+                    title: tr('planned_volume'),
                     valueKg: stats.plannedVolumeKg,
-                    hint: 'из шаблона',
+                    hint: tr('from_template'),
                     icon: Icons.list_alt_rounded,
                   ),
                   const SizedBox(height: 12),
                   _SummaryCard(
                     title: tr('volume_completed'),
                     valueKg: stats.performedVolumeKg,
-                    hint: 'по логам',
+                    hint: tr('from_logs'),
                     icon: Icons.check_circle_outline_rounded,
                   ),
                   const SizedBox(height: 12),
                   _SummaryCard(
-                    title: 'Выполнение',
+                    title: tr('completion'),
                     valueText: '${stats.completionPercent.toStringAsFixed(0)}%',
-                    hint: 'в сравнении с планом',
+                    hint: tr('compared_to_plan'),
                     icon: Icons.percent_rounded,
                   ),
                   const SizedBox(height: 20),
 
                   Text(
-                    'Нагрузка на группы мышц',
+                    tr('muscle_groups_load'),
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                   const SizedBox(height: 8),
@@ -196,7 +196,7 @@ class WorkoutStatsScreen extends ConsumerWidget {
                     Padding(
                       padding: const EdgeInsets.all(16),
                       child: Text(
-                        'Нет данных по группам мышц для этой тренировки.',
+                        tr('no_muscle_group_data_for_workout'),
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
                     )
@@ -217,8 +217,8 @@ class WorkoutStatsScreen extends ConsumerWidget {
                           dense: true,
                           leading: _ColorDot(color: _paletteColorForIndex(idx)),
                           title: Text(g.group),
-                          subtitle: Text('${g.sharePercent.toStringAsFixed(0)}% от объёма'),
-                          trailing: Text('${g.performedVolumeKg.toStringAsFixed(0)} kg'),
+                          subtitle: Text('${g.sharePercent.toStringAsFixed(0)}% ${tr('of_volume')}'),
+                          trailing: Text('${g.performedVolumeKg.toStringAsFixed(0)} ${tr('kg_short')}'),
                         ),
                       );
                     }),

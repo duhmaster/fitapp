@@ -73,6 +73,7 @@ class HelpTopicScreen extends ConsumerWidget {
       case 'current_workout': return 'help_current_workout_title';
       case 'progress': return 'help_progress_title';
       case 'profile': return 'help_profile_title';
+      case 'gyms_trainers_groups': return 'help_gyms_trainers_groups_title';
       case 'exercises': return 'help_exercises_title';
       default: return 'help';
     }
@@ -85,6 +86,7 @@ class HelpTopicScreen extends ConsumerWidget {
       case 'current_workout': return 'help_current_workout_body';
       case 'progress': return 'help_progress_body';
       case 'profile': return 'help_profile_body';
+      case 'gyms_trainers_groups': return 'help_gyms_trainers_groups_body';
       case 'exercises': return 'help_exercises_body';
       default: return '';
     }

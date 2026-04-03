@@ -165,7 +165,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           final trainees = await ref.read(trainerRepositoryProvider).listMyTrainees();
           if (!mounted) return;
           if (trainees.isEmpty) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Нет подопечных')));
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('no_trainees'))));
             return;
           }
           final picked = await showDialog<TraineeItem>(

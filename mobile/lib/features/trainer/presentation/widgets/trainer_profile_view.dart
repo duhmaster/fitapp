@@ -7,6 +7,7 @@ class TrainerProfileView extends StatelessWidget {
     super.key,
     required this.profile,
     required this.isOwnProfile,
+    this.tr,
     this.onShareLink,
     this.onEditPressed,
     this.profileLinkDisplay,
@@ -14,6 +15,7 @@ class TrainerProfileView extends StatelessWidget {
 
   final TrainerPublicProfile profile;
   final bool isOwnProfile;
+  final String Function(String)? tr;
   final VoidCallback? onShareLink;
   /// Called when "Редактировать профиль" is tapped (only when [isOwnProfile] is true).
   final VoidCallback? onEditPressed;
@@ -22,6 +24,7 @@ class TrainerProfileView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    String t(String key, String fallback) => tr != null ? tr!(key) : fallback;
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
@@ -179,7 +182,7 @@ class TrainerProfileView extends StatelessWidget {
                 backgroundColor: cs.surfaceContainerHighest.withValues(alpha: 0.18),
                 foregroundColor: cs.onPrimary,
               ),
-              child: const Text('Редактировать профиль'),
+              child: Text(t('edit_trainer_profile', 'Edit profile')),
             ),
           ],
         ],
@@ -210,7 +213,7 @@ class TrainerProfileView extends StatelessWidget {
                     IconButton(
                       icon: const Icon(Icons.share),
                       onPressed: onShareLink,
-                      tooltip: 'Копировать ссылку',
+                      tooltip: t('copy_link', 'Copy link'),
                     ),
                 ],
               );
@@ -219,7 +222,7 @@ class TrainerProfileView extends StatelessWidget {
           const SizedBox(height: 16),
           // Gallery
           if (profile.photos.isNotEmpty) ...[
-            Text('Галерея', style: theme.textTheme.titleSmall),
+            Text(t('gallery', 'Gallery'), style: theme.textTheme.titleSmall),
             const SizedBox(height: 8),
             SizedBox(
               height: 100,
@@ -283,7 +286,7 @@ class TrainerProfileView extends StatelessWidget {
           ],
 
           if (profile.aboutMe.isNotEmpty) ...[
-            Text('О себе', style: theme.textTheme.titleSmall),
+            Text(t('about_me', 'About me'), style: theme.textTheme.titleSmall),
             const SizedBox(height: 4),
             Text(profile.aboutMe),
             const SizedBox(height: 16),
@@ -291,7 +294,7 @@ class TrainerProfileView extends StatelessWidget {
 
           // Counts moved into the header for better UX consistency.
           if (profile.gyms.isNotEmpty) ...[
-            Text('Залы', style: theme.textTheme.titleSmall),
+            Text(t('my_gyms', 'Gyms'), style: theme.textTheme.titleSmall),
             const SizedBox(height: 4),
             ...profile.gyms.map((g) => ListTile(
                   title: Text(g.name),
@@ -305,7 +308,7 @@ class TrainerProfileView extends StatelessWidget {
             FilledButton.icon(
               onPressed: onEditPressed,
               icon: const Icon(Icons.edit),
-              label: const Text('Редактировать профиль'),
+              label: Text(t('edit_trainer_profile', 'Edit profile')),
             ),
           ],
         ],
