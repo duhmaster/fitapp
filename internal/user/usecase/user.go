@@ -104,6 +104,19 @@ func (uc *UserUseCase) UploadAvatar(ctx context.Context, user *authdomain.User, 
 	return url, nil
 }
 
+// ClearAvatar removes the user's profile photo URL from the database.
+func (uc *UserUseCase) ClearAvatar(ctx context.Context, user *authdomain.User) error {
+	p, err := uc.profileRepo.GetByUserID(ctx, user.ID)
+	if err != nil {
+		return err
+	}
+	if p == nil {
+		return nil
+	}
+	p.AvatarURL = ""
+	return uc.profileRepo.Upsert(ctx, p)
+}
+
 // RecordMetricInput for recording a metric.
 type RecordMetricInput struct {
 	HeightCm *float64

@@ -150,6 +150,13 @@ func (uc *TrainerUseCase) ListMyTrainerPhotos(ctx context.Context, user *authdom
 }
 
 func (uc *TrainerUseCase) AddTrainerPhoto(ctx context.Context, user *authdomain.User, path string, position int) (*trainerdomain.TrainerPhoto, error) {
+	n, err := uc.photos.CountByTrainerUserID(ctx, user.ID)
+	if err != nil {
+		return nil, err
+	}
+	if n >= trainerdomain.MaxTrainerProfilePhotos {
+		return nil, trainerdomain.ErrTrainerPhotoLimitReached
+	}
 	return uc.photos.Create(ctx, user.ID, path, position)
 }
 

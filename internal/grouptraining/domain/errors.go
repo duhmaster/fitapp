@@ -13,5 +13,7 @@ var (
 	ErrGroupTrainingFull         = errors.New("group training is full")
 
 	ErrFreeUserWeeklyLimitReached = errors.New("free user weekly limit reached")
+
+	ErrGroupTrainingTemplateTooManyPhotos = errors.New("group training template photo limit reached (max 3)")
 )
 

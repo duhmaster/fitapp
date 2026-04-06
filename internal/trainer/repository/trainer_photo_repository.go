@@ -41,6 +41,12 @@ func (r *TrainerPhotoRepository) ListByTrainerUserID(ctx context.Context, traine
 	return list, rows.Err()
 }
 
+func (r *TrainerPhotoRepository) CountByTrainerUserID(ctx context.Context, trainerUserID uuid.UUID) (int, error) {
+	var n int
+	err := r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM trainer_photos WHERE trainer_user_id = $1`, trainerUserID).Scan(&n)
+	return n, err
+}
+
 func (r *TrainerPhotoRepository) Create(ctx context.Context, trainerUserID uuid.UUID, path string, position int) (*trainerdomain.TrainerPhoto, error) {
 	query := `
 		INSERT INTO trainer_photos (trainer_user_id, path, position)

@@ -49,6 +49,11 @@ class ProfileRepository {
     return url;
   }
 
+  /// DELETE /api/v1/users/me/avatar — clear profile photo.
+  Future<void> deleteAvatar() async {
+    await dio.delete<void>(_avatarPath);
+  }
+
   /// GET /api/v1/users/me/metrics — latest metric (height_cm, weight_kg).
   Future<Map<String, double?>> getLatestMetric() async {
     final res = await dio.get<Map<String, dynamic>>('/api/v1/users/me/metrics');

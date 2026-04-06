@@ -5,7 +5,6 @@ import 'package:fitflow/core/locale/locale_provider.dart';
 import 'package:fitflow/features/group_trainings/data/group_trainings_repository.dart';
 import 'package:fitflow/features/group_trainings/domain/group_training_models.dart';
 import 'package:fitflow/features/group_trainings/presentation/trainer_group_trainings_providers.dart';
-import 'package:fitflow/features/group_trainings/presentation/group_trainings_providers.dart';
 import 'package:image_picker/image_picker.dart';
 
 class TrainerGroupTrainingTemplateEditScreen extends ConsumerStatefulWidget {
@@ -17,6 +16,8 @@ class TrainerGroupTrainingTemplateEditScreen extends ConsumerStatefulWidget {
 }
 
 class _TrainerGroupTrainingTemplateEditScreenState extends ConsumerState<TrainerGroupTrainingTemplateEditScreen> {
+  static const int _maxGalleryPhotos = 3;
+
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _durationController = TextEditingController(text: '60');
@@ -27,8 +28,8 @@ class _TrainerGroupTrainingTemplateEditScreenState extends ConsumerState<Trainer
   String? _selectedGroupTypeId;
   bool _saving = false;
   bool _isActive = true;
-  String? _uploadedPhotoId;
-  String? _uploadedPhotoUrl;
+  final List<String> _galleryPhotoIds = [];
+  final List<String> _galleryPhotoUrls = [];
   bool _uploadingPhoto = false;
 
   @override
@@ -97,8 +98,12 @@ class _TrainerGroupTrainingTemplateEditScreenState extends ConsumerState<Trainer
                   _durationController.text = '${t.durationMinutes}';
                   _equipmentController.text = t.equipment.join(', ');
                   _levelController.text = t.levelOfPreparation;
-                  _uploadedPhotoId = t.photoId;
-                  _uploadedPhotoUrl = t.photoPath;
+                  _galleryPhotoIds.clear();
+                  _galleryPhotoIds.addAll(t.photoIds.take(_maxGalleryPhotos));
+                  _galleryPhotoUrls.clear();
+                  for (var i = 0; i < _galleryPhotoIds.length; i++) {
+                    _galleryPhotoUrls.add(i < t.photoPaths.length ? t.photoPaths[i] : '');
+                  }
                   _maxPeopleController.text = '${t.maxPeopleCount}';
                   _selectedGroupTypeId = t.groupTypeId;
                   _isActive = t.isActive;
@@ -175,41 +180,120 @@ class _TrainerGroupTrainingTemplateEditScreenState extends ConsumerState<Trainer
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(tr('photo_optional'), style: Theme.of(context).textTheme.titleSmall),
+        Text(tr('group_template_photos_hint'), style: Theme.of(context).textTheme.bodySmall),
         const SizedBox(height: 8),
-        if (_uploadedPhotoUrl != null && _uploadedPhotoUrl!.isNotEmpty)
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Image.network(
-              _uploadedPhotoUrl!,
-              height: 120,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-            ),
+        if (_galleryPhotoUrls.isNotEmpty)
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (var i = 0; i < _galleryPhotoUrls.length; i++)
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: _galleryPhotoUrls[i].isNotEmpty
+                          ? Image.network(
+                              _galleryPhotoUrls[i],
+                              height: 88,
+                              width: 88,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
+                                height: 88,
+                                width: 88,
+                                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                                child: const Icon(Icons.broken_image_outlined),
+                              ),
+                            )
+                          : Container(
+                              height: 88,
+                              width: 88,
+                              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                              child: const Icon(Icons.image_outlined),
+                            ),
+                    ),
+                    Positioned(
+                      top: -4,
+                      right: -4,
+                      child: IconButton.filledTonal(
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                        iconSize: 16,
+                        onPressed: () => _confirmRemoveGalleryAt(i, tr),
+                        icon: const Icon(Icons.close),
+                      ),
+                    ),
+                  ],
+                ),
+            ],
           ),
-        if (_uploadedPhotoUrl != null && _uploadedPhotoUrl!.isNotEmpty) const SizedBox(height: 8),
+        if (_galleryPhotoUrls.isNotEmpty) const SizedBox(height: 8),
         Row(
           children: [
             FilledButton.icon(
-              onPressed: _uploadingPhoto ? null : () => _pickAndUploadPhoto(tr),
-              icon: _uploadingPhoto ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.upload_file),
+              onPressed: _uploadingPhoto || _galleryPhotoIds.length >= _maxGalleryPhotos
+                  ? null
+                  : () => _pickAndUploadPhoto(tr),
+              icon: _uploadingPhoto
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.upload_file),
               label: Text(_uploadingPhoto ? tr('uploading') : tr('choose_photo')),
             ),
-            if (_uploadedPhotoId != null || (_uploadedPhotoUrl != null && _uploadedPhotoUrl!.isNotEmpty))
+            if (_galleryPhotoIds.isNotEmpty) ...[
+              const SizedBox(width: 8),
               TextButton(
-                onPressed: () => setState(() {
-                  _uploadedPhotoId = null;
-                  _uploadedPhotoUrl = null;
-                }),
+                onPressed: () => _confirmClearGallery(tr),
                 child: Text(tr('remove')),
               ),
+            ],
           ],
         ),
       ],
     );
   }
 
+  Future<void> _confirmRemoveGalleryAt(int index, String Function(String) tr) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        content: Text(tr('delete_photo_confirm')),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tr('cancel'))),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(tr('delete'))),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    setState(() {
+      if (index < _galleryPhotoIds.length) _galleryPhotoIds.removeAt(index);
+      if (index < _galleryPhotoUrls.length) _galleryPhotoUrls.removeAt(index);
+    });
+  }
+
+  Future<void> _confirmClearGallery(String Function(String) tr) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        content: Text(tr('remove_all_photos_confirm')),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tr('cancel'))),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(tr('delete'))),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    setState(() {
+      _galleryPhotoIds.clear();
+      _galleryPhotoUrls.clear();
+    });
+  }
+
   Future<void> _pickAndUploadPhoto(String Function(String) tr) async {
+    if (_galleryPhotoIds.length >= _maxGalleryPhotos) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('group_template_photos_max'))));
+      return;
+    }
     final picker = ImagePicker();
     final xFile = await picker.pickImage(source: ImageSource.gallery, maxWidth: 1200, imageQuality: 85);
     if (xFile == null || !mounted) return;
@@ -219,8 +303,10 @@ class _TrainerGroupTrainingTemplateEditScreenState extends ConsumerState<Trainer
       final result = await repo.uploadPhoto(xFile);
       if (mounted) {
         setState(() {
-          _uploadedPhotoId = result.photoId;
-          _uploadedPhotoUrl = result.url;
+          if (_galleryPhotoIds.length < _maxGalleryPhotos) {
+            _galleryPhotoIds.add(result.photoId);
+            _galleryPhotoUrls.add(result.url);
+          }
           _uploadingPhoto = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('photo_uploaded'))));
@@ -260,7 +346,7 @@ class _TrainerGroupTrainingTemplateEditScreenState extends ConsumerState<Trainer
           durationMinutes: durationMinutes,
           equipment: equipment,
           levelOfPreparation: level,
-          photoId: _uploadedPhotoId,
+          photoIds: List<String>.from(_galleryPhotoIds),
           maxPeopleCount: maxPeopleCount,
           groupTypeId: groupTypeId,
           isActive: _isActive,
@@ -273,7 +359,7 @@ class _TrainerGroupTrainingTemplateEditScreenState extends ConsumerState<Trainer
           durationMinutes: durationMinutes,
           equipment: equipment,
           levelOfPreparation: level,
-          photoId: _uploadedPhotoId,
+          photoIds: List<String>.from(_galleryPhotoIds),
           maxPeopleCount: maxPeopleCount,
           groupTypeId: groupTypeId,
           isActive: _isActive,

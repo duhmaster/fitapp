@@ -136,6 +136,7 @@ func (s *Server) RegisterRoutes(cfg *RoutesConfig) {
 					protected.GET("/users/me/profile", cfg.UserHandler.GetProfile)
 					protected.PUT("/users/me/profile", cfg.UserHandler.UpdateProfile)
 					protected.POST("/users/me/avatar", cfg.UserHandler.UploadAvatar)
+					protected.DELETE("/users/me/avatar", cfg.UserHandler.DeleteAvatar)
 					protected.GET("/users/me/metrics", cfg.UserHandler.GetMetrics)
 					protected.GET("/users/me/metrics/history", cfg.UserHandler.GetMetricHistory)
 					protected.POST("/users/me/metrics", cfg.UserHandler.RecordMetric)

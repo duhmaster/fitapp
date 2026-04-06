@@ -1,0 +1,2 @@
+ALTER TABLE group_training_templates DROP CONSTRAINT IF EXISTS group_training_templates_gallery_len;
+ALTER TABLE group_training_templates DROP COLUMN IF EXISTS gallery_photo_ids;

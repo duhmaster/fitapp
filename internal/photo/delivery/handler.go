@@ -3,9 +3,10 @@ package delivery
 import (
 	"net/http"
 
+	authdomain "github.com/fitflow/fitflow/internal/auth/domain"
+	"github.com/fitflow/fitflow/internal/delivery/middleware"
 	"github.com/fitflow/fitflow/internal/photo/usecase"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 // Handler handles photo HTTP requests.
@@ -27,16 +28,17 @@ type UploadPhotoResponse struct {
 
 // Upload handles multipart file upload. Requires JWT auth.
 func (h *Handler) Upload(c *gin.Context) {
-	userIDVal, exists := c.Get("user_id")
+	val, exists := c.Get(string(middleware.UserContextKey))
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
-	userID, ok := userIDVal.(uuid.UUID)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user_id"})
+	user, ok := val.(*authdomain.User)
+	if !ok || user == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
+	userID := user.ID
 
 	file, err := c.FormFile("file")
 	if err != nil || file == nil {

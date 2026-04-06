@@ -15,6 +15,7 @@ type TrainerProfileRepository interface {
 
 type TrainerPhotoRepository interface {
 	ListByTrainerUserID(ctx context.Context, trainerUserID uuid.UUID) ([]*TrainerPhoto, error)
+	CountByTrainerUserID(ctx context.Context, trainerUserID uuid.UUID) (int, error)
 	Create(ctx context.Context, trainerUserID uuid.UUID, path string, position int) (*TrainerPhoto, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 	GetByID(ctx context.Context, id uuid.UUID) (*TrainerPhoto, error)

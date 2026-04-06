@@ -10,6 +10,19 @@ import (
 	"github.com/google/uuid"
 )
 
+func dedupeGalleryPhotoIDs(ids []uuid.UUID) []uuid.UUID {
+	seen := make(map[uuid.UUID]struct{})
+	out := make([]uuid.UUID, 0, len(ids))
+	for _, id := range ids {
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		out = append(out, id)
+	}
+	return out
+}
+
 type GroupTrainingUseCase struct {
 	types        domain.GroupTrainingTypeRepository
 	templates    domain.GroupTrainingTemplateRepository
@@ -47,7 +60,7 @@ func (uc *GroupTrainingUseCase) CreateTemplate(
 	equipment []string,
 	levelOfPreparation string,
 	photoPath *string,
-	photoID *uuid.UUID,
+	galleryPhotoIDs []uuid.UUID,
 	maxPeopleCount int,
 	groupTypeID uuid.UUID,
 	isActive bool,
@@ -55,7 +68,11 @@ func (uc *GroupTrainingUseCase) CreateTemplate(
 	if name == "" {
 		return nil, errors.New("template name is required")
 	}
-	return uc.templates.Create(ctx, trainerID, name, description, durationMinutes, equipment, levelOfPreparation, photoPath, photoID, maxPeopleCount, groupTypeID, isActive)
+	galleryPhotoIDs = dedupeGalleryPhotoIDs(galleryPhotoIDs)
+	if len(galleryPhotoIDs) > domain.MaxPhotosPerGroupTrainingTemplate {
+		return nil, domain.ErrGroupTrainingTemplateTooManyPhotos
+	}
+	return uc.templates.Create(ctx, trainerID, name, description, durationMinutes, equipment, levelOfPreparation, photoPath, galleryPhotoIDs, maxPeopleCount, groupTypeID, isActive)
 }
 
 func (uc *GroupTrainingUseCase) ListTrainerTemplates(ctx context.Context, trainerID uuid.UUID, limit, offset int) ([]*domain.GroupTrainingTemplate, error) {
@@ -74,12 +91,16 @@ func (uc *GroupTrainingUseCase) UpdateTemplate(
 	equipment []string,
 	levelOfPreparation string,
 	photoPath *string,
-	photoID *uuid.UUID,
+	galleryPhotoIDs []uuid.UUID,
 	maxPeopleCount int,
 	groupTypeID uuid.UUID,
 	isActive bool,
 ) (*domain.GroupTrainingTemplate, error) {
-	return uc.templates.Update(ctx, trainerID, templateID, name, description, durationMinutes, equipment, levelOfPreparation, photoPath, photoID, maxPeopleCount, groupTypeID, isActive)
+	galleryPhotoIDs = dedupeGalleryPhotoIDs(galleryPhotoIDs)
+	if len(galleryPhotoIDs) > domain.MaxPhotosPerGroupTrainingTemplate {
+		return nil, domain.ErrGroupTrainingTemplateTooManyPhotos
+	}
+	return uc.templates.Update(ctx, trainerID, templateID, name, description, durationMinutes, equipment, levelOfPreparation, photoPath, galleryPhotoIDs, maxPeopleCount, groupTypeID, isActive)
 }
 
 func (uc *GroupTrainingUseCase) SoftDeleteTemplate(ctx context.Context, trainerID, templateID uuid.UUID) error {

@@ -19,8 +19,10 @@ type GroupTrainingTemplate struct {
 	DurationMinutes    int
 	Equipment           []string
 	LevelOfPreparation  string
-	PhotoPath          *string  // URL: from photos table or legacy photo_path column
+	PhotoPath          *string  // URL: primary / first image (join on photo_id or legacy column)
 	PhotoID             *uuid.UUID
+	GalleryPhotoIDs    []uuid.UUID
+	GalleryPhotoURLs   []string // resolved URLs in gallery order (from DB)
 	MaxPeopleCount     int
 	TrainerUserID       uuid.UUID
 	IsActive            bool

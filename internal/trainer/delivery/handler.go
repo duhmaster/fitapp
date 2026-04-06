@@ -300,6 +300,10 @@ func (h *Handler) UploadTrainerPhoto(c *gin.Context) {
 	}
 	ph, err := h.uc.AddTrainerPhoto(c.Request.Context(), user, url, position)
 	if err != nil {
+		if err == trainerdomain.ErrTrainerPhotoLimitReached {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

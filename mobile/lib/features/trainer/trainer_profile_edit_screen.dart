@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:fitflow/core/locale/locale_provider.dart';
+import 'package:fitflow/core/widgets/removable_image_tile.dart';
 import 'package:fitflow/features/trainer/data/trainer_repository.dart';
 import 'package:fitflow/features/trainer/trainer_providers.dart';
 import 'package:fitflow/features/gym/data/gym_repository.dart';
@@ -70,7 +71,38 @@ class _TrainerProfileEditScreenState extends ConsumerState<TrainerProfileEditScr
     }
   }
 
+  Future<void> _confirmDeleteTrainerPhoto(TrainerPhoto ph, String Function(String) tr) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        content: Text(tr('delete_photo_confirm')),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tr('cancel'))),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(tr('delete'))),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    try {
+      await ref.read(trainerRepositoryProvider).deleteTrainerPhoto(ph.id);
+      ref.invalidate(_trainerPhotosEditProvider);
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('saved'))));
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString()), backgroundColor: Theme.of(context).colorScheme.error),
+        );
+      }
+    }
+  }
+
   Future<void> _pickAndUploadPhoto() async {
+    final existing = ref.read(_trainerPhotosEditProvider).valueOrNull;
+    if ((existing?.length ?? 0) >= 3) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(ref.read(trProvider)('trainer_photos_max'))));
+      return;
+    }
     final picker = ImagePicker();
     final xfile = await picker.pickImage(
       source: ImageSource.gallery,
@@ -164,10 +196,11 @@ class _TrainerProfileEditScreenState extends ConsumerState<TrainerProfileEditScr
                     FilledButton.icon(
                       icon: const Icon(Icons.add_photo_alternate, size: 20),
                       label: const Text('Добавить фото'),
-                      onPressed: _pickAndUploadPhoto,
+                      onPressed: (photosAsync.valueOrNull?.length ?? 0) >= 3 ? null : _pickAndUploadPhoto,
                     ),
                   ],
                 ),
+                Text(tr('trainer_photos_hint'), style: Theme.of(context).textTheme.bodySmall),
                 const SizedBox(height: 8),
                 photosAsync.when(
                   loading: () => const Padding(padding: EdgeInsets.all(8), child: CircularProgressIndicator()),
@@ -177,7 +210,15 @@ class _TrainerProfileEditScreenState extends ConsumerState<TrainerProfileEditScr
                       : Wrap(
                           spacing: 8,
                           runSpacing: 8,
-                          children: photos.map((ph) => Image.network(ph.url, width: 80, height: 80, fit: BoxFit.cover)).toList(),
+                          children: photos
+                              .map(
+                                (ph) => RemovableImageTile(
+                                  imageUrl: ph.url,
+                                  size: 80,
+                                  onRemove: () => _confirmDeleteTrainerPhoto(ph, tr),
+                                ),
+                              )
+                              .toList(),
                         ),
                 ),
                 const SizedBox(height: 16),

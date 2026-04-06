@@ -1383,6 +1383,7 @@ file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/core/widgets/empty_s
 file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/core/widgets/error_state_widget.dart
 file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/core/widgets/loading_screen.dart
 file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/core/widgets/loading_skeleton.dart
+file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/core/widgets/removable_image_tile.dart
 file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/auth/data/auth_repository.dart
 file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/auth/data/token_storage.dart
 file:///Users/duhmaster/dev/golang/fitapp/fitapp/mobile/lib/features/auth/domain/auth_models.dart

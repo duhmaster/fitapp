@@ -159,6 +159,19 @@ func (h *Handler) UploadAvatar(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"avatar_url": url})
 }
 
+// DeleteAvatar clears the user's profile avatar URL.
+func (h *Handler) DeleteAvatar(c *gin.Context) {
+	user := getUser(c)
+	if user == nil {
+		return
+	}
+	if err := h.uc.ClearAvatar(c.Request.Context(), user); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to clear avatar"})
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
 // GetMetrics returns the current user's latest metric.
 func (h *Handler) GetMetrics(c *gin.Context) {
 	user := getUser(c)

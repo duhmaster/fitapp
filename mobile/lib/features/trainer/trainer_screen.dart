@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:fitflow/core/locale/locale_provider.dart';
+import 'package:fitflow/core/widgets/removable_image_tile.dart';
 import 'package:fitflow/features/trainer/data/trainer_repository.dart';
 import 'package:fitflow/features/trainer/trainer_providers.dart';
 import 'package:fitflow/features/gym/data/gym_repository.dart';
@@ -23,7 +24,41 @@ final _trainerWorkoutsProvider = FutureProvider<List<dynamic>>((ref) {
   return ref.watch(trainerRepositoryProvider).listMyTrainerWorkouts();
 });
 
+Future<void> _confirmDeleteTrainerPhoto(BuildContext context, WidgetRef ref, TrainerPhoto ph) async {
+  final tr = ref.read(trProvider);
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      content: Text(tr('delete_photo_confirm')),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tr('cancel'))),
+        FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(tr('delete'))),
+      ],
+    ),
+  );
+  if (ok != true || !context.mounted) return;
+  try {
+    await ref.read(trainerRepositoryProvider).deleteTrainerPhoto(ph.id);
+    ref.invalidate(_trainerPhotosProvider);
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('saved'))));
+    }
+  } catch (e) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString()), backgroundColor: Theme.of(context).colorScheme.error),
+      );
+    }
+  }
+}
+
 Future<void> _pickAndUploadPhoto(BuildContext context, WidgetRef ref) async {
+  final existing = ref.read(_trainerPhotosProvider).valueOrNull;
+  if ((existing?.length ?? 0) >= 3) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(ref.read(trProvider)('trainer_photos_max'))));
+    return;
+  }
   final picker = ImagePicker();
   final xfile = await picker.pickImage(
     source: ImageSource.gallery,
@@ -260,7 +295,13 @@ class _TrainerProfileContent extends ConsumerWidget {
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      ...photos.map((ph) => Image.network(ph.url, width: 80, height: 80, fit: BoxFit.cover)),
+                      ...photos.map(
+                        (ph) => RemovableImageTile(
+                          imageUrl: ph.url,
+                          size: 80,
+                          onRemove: () => _confirmDeleteTrainerPhoto(context, ref, ph),
+                        ),
+                      ),
                     ],
                   ),
           ),

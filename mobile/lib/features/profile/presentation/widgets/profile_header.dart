@@ -10,6 +10,7 @@ class ProfileHeader extends ConsumerWidget {
     this.city,
     this.avatarUrl,
     this.onAvatarTap,
+    this.onRemoveAvatar,
     this.uploadingAvatar = false,
     this.paidSubscriber = false,
     this.subscriptionExpiresAt,
@@ -20,6 +21,8 @@ class ProfileHeader extends ConsumerWidget {
   final String? city;
   final String? avatarUrl;
   final VoidCallback? onAvatarTap;
+  /// Shown when [avatarUrl] is non-empty (e.g. in profile edit mode).
+  final VoidCallback? onRemoveAvatar;
   final bool uploadingAvatar;
   final bool paidSubscriber;
   final String? subscriptionExpiresAt;
@@ -48,6 +51,27 @@ class ProfileHeader extends ConsumerWidget {
               size: 100,
               uploading: uploadingAvatar,
             ),
+            if (onRemoveAvatar != null && avatarUrl != null && avatarUrl!.isNotEmpty)
+              Positioned(
+                top: 0,
+                right: 0,
+                child: Material(
+                  color: Theme.of(context).colorScheme.errorContainer,
+                  shape: const CircleBorder(),
+                  child: InkWell(
+                    onTap: uploadingAvatar ? null : onRemoveAvatar,
+                    customBorder: const CircleBorder(),
+                    child: Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: Icon(
+                        Icons.delete_outline,
+                        size: 22,
+                        color: Theme.of(context).colorScheme.onErrorContainer,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             if (onAvatarTap != null)
               Material(
                 color: Theme.of(context).colorScheme.primaryContainer,

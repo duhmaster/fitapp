@@ -200,22 +200,23 @@ class GroupTrainingDetail {
 }
 
 class GroupTrainingTemplate {
-  const GroupTrainingTemplate({
+  GroupTrainingTemplate({
     required this.id,
     required this.name,
     required this.description,
     required this.durationMinutes,
     required this.equipment,
     required this.levelOfPreparation,
-    this.photoPath,
-    this.photoId,
+    List<String>? photoPaths,
+    List<String>? photoIds,
     required this.maxPeopleCount,
     required this.trainerUserId,
     required this.isActive,
     required this.groupTypeId,
     required this.createdAt,
     required this.updatedAt,
-  });
+  })  : photoPaths = photoPaths ?? const [],
+        photoIds = photoIds ?? const [];
 
   final String id;
   final String name;
@@ -223,8 +224,10 @@ class GroupTrainingTemplate {
   final int durationMinutes;
   final List<String> equipment;
   final String levelOfPreparation;
-  final String? photoPath;
-  final String? photoId;
+  /// Ordered gallery URLs (max 3 on server).
+  final List<String> photoPaths;
+  /// Parallel photo UUIDs from `photos` table.
+  final List<String> photoIds;
   final int maxPeopleCount;
   final String trainerUserId;
   final bool isActive;
@@ -232,7 +235,23 @@ class GroupTrainingTemplate {
   final DateTime createdAt;
   final DateTime updatedAt;
 
+  /// First image URL (cards / legacy).
+  String? get photoPath => photoPaths.isEmpty ? null : photoPaths.first;
+
+  /// First gallery photo id.
+  String? get photoId => photoIds.isEmpty ? null : photoIds.first;
+
   factory GroupTrainingTemplate.fromJson(Map<String, dynamic> json) {
+    var paths = (json['photo_paths'] as List<dynamic>? ?? const []).map((e) => e as String).where((s) => s.isNotEmpty).toList();
+    var ids = (json['photo_ids'] as List<dynamic>? ?? const []).map((e) => e as String).where((s) => s.isNotEmpty).toList();
+    final legacyPath = json['photo_path'] as String?;
+    final legacyId = json['photo_id'] as String?;
+    if (paths.isEmpty && legacyPath != null && legacyPath.isNotEmpty) {
+      paths = [legacyPath];
+    }
+    if (ids.isEmpty && legacyId != null && legacyId.isNotEmpty) {
+      ids = [legacyId];
+    }
     return GroupTrainingTemplate(
       id: json['id'] as String,
       name: json['name'] as String,
@@ -240,8 +259,8 @@ class GroupTrainingTemplate {
       durationMinutes: (json['duration_minutes'] as num).toInt(),
       equipment: (json['equipment'] as List<dynamic>? ?? const []).map((e) => e as String).toList(),
       levelOfPreparation: json['level_of_preparation'] as String? ?? '',
-      photoPath: json['photo_path'] as String?,
-      photoId: json['photo_id'] as String?,
+      photoPaths: paths,
+      photoIds: ids,
       maxPeopleCount: (json['max_people_count'] as num).toInt(),
       trainerUserId: json['trainer_user_id'] as String,
       isActive: json['is_active'] as bool? ?? true,

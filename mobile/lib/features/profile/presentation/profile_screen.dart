@@ -7,7 +7,6 @@ import 'package:fitflow/core/network/geo_repository.dart';
 import 'package:fitflow/core/widgets/error_state_widget.dart';
 import 'package:fitflow/core/widgets/loading_skeleton.dart';
 import 'package:fitflow/features/profile/data/profile_repository.dart';
-import 'package:fitflow/features/profile/domain/profile_models.dart';
 import 'package:fitflow/features/profile/presentation/profile_provider.dart';
 import 'package:fitflow/core/locale/locale_provider.dart';
 import 'package:fitflow/features/profile/presentation/widgets/body_measurements_section.dart';
@@ -31,6 +30,32 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     ref.invalidate(profilePageDataProvider);
     ref.invalidate(profileProvider);
     ref.invalidate(bodyMeasurementsProvider);
+  }
+
+  Future<void> _confirmRemoveAvatar(String Function(String) tr) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        content: Text(tr('remove_avatar_confirm')),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tr('cancel'))),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(tr('delete'))),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    setState(() => _uploadingAvatar = true);
+    try {
+      await ref.read(profileRepositoryProvider).deleteAvatar();
+      await _refresh();
+      if (mounted) _showSnackBar(tr('saved'));
+    } on AppException catch (e) {
+      if (mounted) _showSnackBar(e.message, isError: true);
+    } catch (e) {
+      if (mounted) _showSnackBar(e.toString(), isError: true);
+    } finally {
+      if (mounted) setState(() => _uploadingAvatar = false);
+    }
   }
 
   Future<void> _pickAndUploadAvatar() async {
@@ -148,6 +173,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       city: data.city,
                       avatarUrl: data.avatarUrl,
                       onAvatarTap: _pickAndUploadAvatar,
+                      onRemoveAvatar: _editMode && (data.avatarUrl?.isNotEmpty ?? false)
+                          ? () => _confirmRemoveAvatar(tr)
+                          : null,
                       uploadingAvatar: _uploadingAvatar,
                       paidSubscriber: data.paidSubscriber,
                       subscriptionExpiresAt: data.subscriptionExpiresAt,

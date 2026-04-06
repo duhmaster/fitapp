@@ -1,6 +1,7 @@
 package delivery
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 	"time"
@@ -91,14 +92,51 @@ type GroupTrainingTemplateCreateRequest struct {
 	DurationMinutes    int      `json:"duration_minutes"`
 	Equipment          []string `json:"equipment"`
 	LevelOfPreparation string   `json:"level_of_preparation"`
-	PhotoPath          *string  `json:"photo_path"`  // legacy: external URL
-	PhotoID            *string  `json:"photo_id"`    // preferred: ID from POST /me/photos/upload
+	PhotoPath          *string  `json:"photo_path"` // legacy: external URL
+	PhotoID            *string  `json:"photo_id"`   // legacy single id when photo_ids omitted
+	PhotoIDs           []string `json:"photo_ids"`  // gallery (max 3); if key sent, replaces gallery (empty clears)
 	MaxPeopleCount     int      `json:"max_people_count"`
 	GroupTypeID        string   `json:"group_type_id" binding:"required"`
 	IsActive           bool     `json:"is_active"`
 }
 
 type GroupTrainingTemplateUpdateRequest = GroupTrainingTemplateCreateRequest
+
+// parseTemplateGalleryPhotoIDs builds an ordered unique gallery from the request.
+// If photo_ids was sent in JSON (including empty array), it defines the gallery.
+// If photo_ids is omitted (nil), legacy photo_id is used when set.
+func parseTemplateGalleryPhotoIDs(req *GroupTrainingTemplateCreateRequest) ([]uuid.UUID, error) {
+	if req.PhotoIDs != nil {
+		seen := make(map[uuid.UUID]struct{})
+		out := make([]uuid.UUID, 0, len(req.PhotoIDs))
+		for _, s := range req.PhotoIDs {
+			if s == "" {
+				continue
+			}
+			id, err := uuid.Parse(s)
+			if err != nil {
+				return nil, err
+			}
+			if _, ok := seen[id]; ok {
+				continue
+			}
+			seen[id] = struct{}{}
+			out = append(out, id)
+		}
+		if len(out) > domain.MaxPhotosPerGroupTrainingTemplate {
+			return nil, domain.ErrGroupTrainingTemplateTooManyPhotos
+		}
+		return out, nil
+	}
+	if req.PhotoID != nil && *req.PhotoID != "" {
+		id, err := uuid.Parse(*req.PhotoID)
+		if err != nil {
+			return nil, err
+		}
+		return []uuid.UUID{id}, nil
+	}
+	return []uuid.UUID{}, nil
+}
 
 type GroupTrainingTemplateResponse struct {
 	ID                 string   `json:"id"`
@@ -107,8 +145,10 @@ type GroupTrainingTemplateResponse struct {
 	DurationMinutes    int      `json:"duration_minutes"`
 	Equipment          []string `json:"equipment"`
 	LevelOfPreparation string   `json:"level_of_preparation"`
-	PhotoPath          *string  `json:"photo_path"`  // resolved URL (from photos table or legacy)
+	PhotoPath          *string  `json:"photo_path"` // primary/first URL (compat)
 	PhotoID            *string  `json:"photo_id,omitempty"`
+	PhotoPaths         []string `json:"photo_paths,omitempty"`
+	PhotoIDs           []string `json:"photo_ids,omitempty"`
 	MaxPeopleCount     int      `json:"max_people_count"`
 	TrainerUserID      string   `json:"trainer_user_id"`
 	IsActive           bool     `json:"is_active"`
@@ -173,11 +213,14 @@ func (h *Handler) CreateTrainerTemplate(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid group_type_id"})
 		return
 	}
-	var photoID *uuid.UUID
-	if req.PhotoID != nil && *req.PhotoID != "" {
-		if pid, err := uuid.Parse(*req.PhotoID); err == nil {
-			photoID = &pid
+	gallery, err := parseTemplateGalleryPhotoIDs(&req)
+	if err != nil {
+		if errors.Is(err, domain.ErrGroupTrainingTemplateTooManyPhotos) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
 		}
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid photo_ids"})
+		return
 	}
 
 	t, err := h.uc.CreateTemplate(
@@ -189,12 +232,16 @@ func (h *Handler) CreateTrainerTemplate(c *gin.Context) {
 		req.Equipment,
 		req.LevelOfPreparation,
 		req.PhotoPath,
-		photoID,
+		gallery,
 		req.MaxPeopleCount,
 		groupTypeID,
 		req.IsActive,
 	)
 	if err != nil {
+		if errors.Is(err, domain.ErrGroupTrainingTemplateTooManyPhotos) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -220,11 +267,14 @@ func (h *Handler) UpdateTrainerTemplate(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid group_type_id"})
 		return
 	}
-	var photoID *uuid.UUID
-	if req.PhotoID != nil && *req.PhotoID != "" {
-		if pid, err := uuid.Parse(*req.PhotoID); err == nil {
-			photoID = &pid
+	gallery, err := parseTemplateGalleryPhotoIDs(&req)
+	if err != nil {
+		if errors.Is(err, domain.ErrGroupTrainingTemplateTooManyPhotos) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
 		}
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid photo_ids"})
+		return
 	}
 
 	t, err := h.uc.UpdateTemplate(
@@ -237,7 +287,7 @@ func (h *Handler) UpdateTrainerTemplate(c *gin.Context) {
 		req.Equipment,
 		req.LevelOfPreparation,
 		req.PhotoPath,
-		photoID,
+		gallery,
 		req.MaxPeopleCount,
 		groupTypeID,
 		req.IsActive,
@@ -245,6 +295,10 @@ func (h *Handler) UpdateTrainerTemplate(c *gin.Context) {
 	if err != nil {
 		if err == domain.ErrGroupTrainingTemplateNotFound || err == domain.ErrGroupTrainingTemplateForbidden {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		if errors.Is(err, domain.ErrGroupTrainingTemplateTooManyPhotos) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -683,6 +737,16 @@ func toGroupTrainingTemplateResponse(t *domain.GroupTrainingTemplate) GroupTrain
 	if t.PhotoID != nil {
 		s := t.PhotoID.String()
 		resp.PhotoID = &s
+	}
+	if len(t.GalleryPhotoIDs) > 0 {
+		ids := make([]string, 0, len(t.GalleryPhotoIDs))
+		for _, id := range t.GalleryPhotoIDs {
+			ids = append(ids, id.String())
+		}
+		resp.PhotoIDs = ids
+	}
+	if len(t.GalleryPhotoURLs) > 0 {
+		resp.PhotoPaths = append([]string(nil), t.GalleryPhotoURLs...)
 	}
 	return resp
 }
