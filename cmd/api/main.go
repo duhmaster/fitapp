@@ -59,7 +59,12 @@ import (
 	workoutdelivery "github.com/fitflow/fitflow/internal/workout/delivery"
 	workoutrepository "github.com/fitflow/fitflow/internal/workout/repository"
 	workoutusecase "github.com/fitflow/fitflow/internal/workout/usecase"
+	gamificationdelivery "github.com/fitflow/fitflow/internal/gamification/delivery"
+	gamificationrepository "github.com/fitflow/fitflow/internal/gamification/repository"
+	gamificationusecase "github.com/fitflow/fitflow/internal/gamification/usecase"
 	"github.com/fitflow/fitflow/internal/workers"
+	gamleaderboard "github.com/fitflow/fitflow/internal/gamification/leaderboard"
+	"github.com/jackc/pgx/v5"
 )
 
 func main() {
@@ -154,6 +159,13 @@ func run() error {
 	gymUC := gymusecase.NewGymUseCase(gymRepo, userGymRepo, checkInRepo, snapshotRepo, loadService)
 	gymHandler := gymdelivery.NewHandler(gymUC)
 
+	gamLB := gamleaderboard.New(rdb)
+	gamRepo := gamificationrepository.NewPG(db, gamLB)
+	gamUC := gamificationusecase.New(gamRepo, gamLB)
+	gymUC.SetGamificationOnCheckIn(func(ctx context.Context, userID, gymID uuid.UUID) error {
+		return gamUC.ApplyGymCheckInMission(ctx, userID, gymID)
+	})
+
 	// Workout module
 	exerciseRepo := workoutrepository.NewExerciseRepository(db)
 	workoutRepo := workoutrepository.NewWorkoutRepository(db)
@@ -165,7 +177,15 @@ func run() error {
 	templateExerciseRepo := workoutrepository.NewWorkoutTemplateExerciseRepository(db)
 	templateSetRepo := workoutrepository.NewTemplateExerciseSetRepository(db)
 	workoutUC := workoutusecase.NewWorkoutUseCase(exerciseRepo, workoutRepo, workoutExerciseRepo, exerciseLogRepo, programRepo, programExerciseRepo, templateRepo, templateExerciseRepo, templateSetRepo)
+	workoutUC.SetGamificationOutbox(db, func(ctx context.Context, tx pgx.Tx, userID, workoutID uuid.UUID, volumeKg float64) error {
+		return gamRepo.EnqueueWorkoutFinished(ctx, tx, userID, workoutID, volumeKg)
+	}, func(ctx context.Context) error {
+		_, err := gamRepo.ProcessOutbox(ctx, 50)
+		return err
+	})
 	workoutHandler := workoutdelivery.NewHandler(workoutUC)
+	gamificationHandler := gamificationdelivery.NewHandler(gamUC)
+	gamificationAdminHandler := gamificationdelivery.NewAdminHandler(gamRepo)
 
 	// Default workout templates for newly registered users
 	authUC.SetDefaultTemplatesDeps(&authusecase.DefaultTemplatesDeps{
@@ -188,6 +208,9 @@ func run() error {
 	groupTrainingRepo := grouptrainingrepository.NewGroupTrainingRepository(db)
 	groupRegistrationRepo := grouptrainingrepository.NewGroupTrainingRegistrationRepository(db)
 	groupTrainingUC := grouptrainingusecase.NewGroupTrainingUseCase(groupTypeRepo, groupTemplateRepo, groupTrainingRepo, groupRegistrationRepo, authUserRepo)
+	groupTrainingUC.SetGamificationOnRegister(func(ctx context.Context, userID, trainingID uuid.UUID) error {
+		return gamUC.ApplyGroupTrainingRegistrationReward(ctx, userID, trainingID)
+	})
 	groupTrainingHandler := grouptrainingdelivery.NewHandler(groupTrainingUC)
 
 	// Social module
@@ -450,8 +473,10 @@ func run() error {
 		NotificationHandler: notificationHandler,
 		SystemMessageHandler: systemMessageHandler,
 		GroupTrainingHandler: groupTrainingHandler,
-		PhotoHandler:      photodelivery.NewHandler(photoUC),
-		AdminHandler:      adminHandler,
+		PhotoHandler:         photodelivery.NewHandler(photoUC),
+		GamificationHandler:      gamificationHandler,
+		GamificationAdminHandler: gamificationAdminHandler,
+		AdminHandler:             adminHandler,
 		JWTSecret:         []byte(cfg.JWTSecret),
 		UploadsPath:       cfg.StoragePath,
 	})
@@ -459,6 +484,19 @@ func run() error {
 	// Background workers (in-process for now; split into separate worker cmd later)
 	worker := workers.NewGymLoadSnapshotWorker(log, gymRepo, snapshotRepo, loadService, cfg.GymSnapshotInterval, cfg.GymSnapshotBatchSize)
 	go worker.Run(ctx)
+
+	go func() {
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				_, _ = gamRepo.ProcessOutbox(context.Background(), 50)
+			}
+		}
+	}()
 
 	// Start server
 	go func() {

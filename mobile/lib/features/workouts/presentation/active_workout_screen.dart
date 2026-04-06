@@ -6,6 +6,8 @@ import 'package:fitflow/core/errors/app_exceptions.dart';
 import 'package:fitflow/core/locale/locale_provider.dart';
 import 'package:fitflow/features/workouts/data/workout_repository.dart';
 import 'package:fitflow/features/workouts/domain/workout_models.dart';
+import 'package:fitflow/features/gamification/domain/gamification_profile.dart';
+import 'package:fitflow/features/gamification/presentation/gamification_provider.dart';
 import 'package:fitflow/features/workouts/presentation/workouts_provider.dart';
 import 'package:fitflow/features/templates/template_edit_screen.dart';
 
@@ -654,10 +656,21 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
   Future<void> _finishWorkout(String Function(String) tr) async {
     setState(() => _finishing = true);
     try {
+      GamificationProfile? profileBefore;
+      final flags = await ref.read(gamificationFeatureFlagsProvider.future);
+      if (flags.xpEnabled) {
+        profileBefore = await ref.read(gamificationProfileProvider.future);
+      }
       await ref.read(workoutRepositoryProvider).finishWorkout(widget.workoutId);
       if (mounted) {
         ref.invalidate(workoutsListProvider);
-        context.go('/home');
+        ref.invalidate(gamificationProfileProvider);
+        ref.invalidate(gamificationXpHistoryProvider);
+        if (flags.xpEnabled) {
+          context.go('/workout/${widget.workoutId}/stats?reward=1', extra: profileBefore);
+        } else {
+          context.go('/home');
+        }
       }
     } on AppException catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));

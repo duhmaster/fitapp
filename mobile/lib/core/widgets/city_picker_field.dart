@@ -132,12 +132,15 @@ class _CitySearchDialogState extends ConsumerState<_CitySearchDialog> {
   @override
   Widget build(BuildContext context) {
     final tr = ref.watch(trProvider);
+    // AlertDialog content must have a bounded height: Column(min) + Expanded(ListView)
+    // triggers Viewport intrinsic-dimension asserts on web.
+    final dialogHeight = (MediaQuery.sizeOf(context).height * 0.55).clamp(280.0, 520.0);
     return AlertDialog(
       title: Text(tr('city')),
-      content: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: 320, maxHeight: MediaQuery.sizeOf(context).height * 0.6),
+      content: SizedBox(
+        width: 320,
+        height: dialogHeight,
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             TextField(
@@ -165,6 +168,7 @@ class _CitySearchDialogState extends ConsumerState<_CitySearchDialog> {
                           ),
                         )
                       : ListView.builder(
+                          physics: const ClampingScrollPhysics(),
                           itemCount: _items.length,
                           itemBuilder: (_, i) {
                             final c = _items[i];

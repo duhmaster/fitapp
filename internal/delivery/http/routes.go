@@ -21,6 +21,7 @@ import (
 	workoutdelivery "github.com/fitflow/fitflow/internal/workout/delivery"
 	grouptrainingdelivery "github.com/fitflow/fitflow/internal/grouptraining/delivery"
 	photodelivery "github.com/fitflow/fitflow/internal/photo/delivery"
+	gamificationdelivery "github.com/fitflow/fitflow/internal/gamification/delivery"
 	"github.com/fitflow/fitflow/internal/delivery/middleware"
 	"github.com/gin-gonic/gin"
 )
@@ -42,7 +43,9 @@ type RoutesConfig struct {
 	SystemMessageHandler *systemmessagedelivery.Handler
 	GroupTrainingHandler  *grouptrainingdelivery.Handler
 	PhotoHandler         *photodelivery.Handler
-	AdminHandler         *admin.Handler
+	GamificationHandler      *gamificationdelivery.Handler
+	GamificationAdminHandler *gamificationdelivery.AdminHandler
+	AdminHandler             *admin.Handler
 	JWTSecret           []byte
 	UploadsPath         string       // local path for serving uploads (e.g. ./uploads)
 	GeoClient           *geo.Client  // 2GIS proxy for cities/organizations (optional)
@@ -123,6 +126,10 @@ func (s *Server) RegisterRoutes(cfg *RoutesConfig) {
 		if cfg.GroupTrainingHandler != nil {
 			v1.GET("/group-trainings/:training_id", cfg.GroupTrainingHandler.GetPublicGroupTraining)
 			v1.GET("/trainers/:user_id/group-trainings/upcoming", cfg.GroupTrainingHandler.ListUpcomingForTrainerPublic)
+		}
+
+		if cfg.GamificationHandler != nil {
+			v1.GET("/gamification/leaderboards/public", cfg.GamificationHandler.GetPublicLeaderboard)
 		}
 
 		if len(cfg.JWTSecret) > 0 && cfg.AuthHandler != nil {
@@ -277,6 +284,20 @@ func (s *Server) RegisterRoutes(cfg *RoutesConfig) {
 					protected.POST("/me/photos/upload", cfg.PhotoHandler.Upload)
 				}
 
+				if cfg.GamificationHandler != nil {
+					g := cfg.GamificationHandler
+					protected.GET("/me/gamification/preferences", g.GetFeaturePreferences)
+					protected.PATCH("/me/gamification/preferences", g.PatchFeaturePreferences)
+					protected.GET("/me/gamification/profile", g.GetProfile)
+					protected.GET("/me/gamification/xp-history", g.GetXPHistory)
+					protected.GET("/me/gamification/badges/catalog", g.GetBadgeCatalog)
+					protected.GET("/me/gamification/badges", g.GetUserBadges)
+					protected.GET("/me/gamification/missions", g.GetMissions)
+					protected.GET("/me/gamification/missions/progress", g.GetMissionProgress)
+					protected.POST("/me/gamification/missions/:mission_id/claim", g.ClaimMission)
+					protected.GET("/me/gamification/leaderboards", g.GetLeaderboards)
+				}
+
 				// Group trainings
 				if cfg.GroupTrainingHandler != nil {
 					protected.GET("/me/group-training-types", cfg.GroupTrainingHandler.ListTypes)
@@ -327,6 +348,21 @@ func (s *Server) RegisterRoutes(cfg *RoutesConfig) {
 
 				if cfg.GymHandler != nil {
 					admin.POST("/gyms", cfg.GymHandler.CreateGym)
+				}
+
+				if cfg.GamificationAdminHandler != nil {
+					gam := cfg.GamificationAdminHandler
+					ag := admin.Group("/gamification")
+					ag.GET("/settings", gam.GetSettings)
+					ag.PATCH("/settings/:key", gam.PatchSetting)
+					ag.GET("/badges", gam.ListBadges)
+					ag.POST("/badges", gam.CreateBadge)
+					ag.PATCH("/badges/:id", gam.UpdateBadge)
+					ag.DELETE("/badges/:id", gam.DeleteBadge)
+					ag.GET("/missions", gam.ListMissions)
+					ag.POST("/missions", gam.CreateMission)
+					ag.PATCH("/missions/:id", gam.UpdateMission)
+					ag.DELETE("/missions/:id", gam.DeleteMission)
 				}
 			}
 		}

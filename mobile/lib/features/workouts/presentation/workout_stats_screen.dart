@@ -2,8 +2,16 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:fitflow/core/analytics/gamification_analytics_provider.dart';
 import 'package:fitflow/core/locale/locale_provider.dart';
 import 'package:fitflow/core/widgets/error_state_widget.dart';
+import 'package:fitflow/features/gamification/domain/gamification_profile.dart';
+import 'package:fitflow/features/gamification/domain/workout_reward_result.dart';
+import 'package:fitflow/features/gamification/presentation/gamification_provider.dart';
+import 'package:fitflow/features/gamification/presentation/share_to_feed.dart';
+import 'package:fitflow/features/gamification/presentation/workout_reward_sheet.dart';
+import 'package:fitflow/features/gamification/services/post_workout_reward_service.dart';
 import 'package:fitflow/features/workouts/data/workout_repository.dart';
 import 'package:fitflow/features/workouts/domain/workout_models.dart';
 
@@ -116,14 +124,39 @@ WorkoutStats _computeWorkoutStats({
   );
 }
 
-class WorkoutStatsScreen extends ConsumerWidget {
-  const WorkoutStatsScreen({super.key, required this.workoutId});
+class WorkoutStatsScreen extends ConsumerStatefulWidget {
+  const WorkoutStatsScreen({
+    super.key,
+    required this.workoutId,
+    this.openRewardFlow = false,
+    this.profileBeforeWorkout,
+  });
+
   final String workoutId;
+  /// `?reward=1` after finishing a workout; shows XP sheet when [gamification] XP flag is on.
+  final bool openRewardFlow;
+  final GamificationProfile? profileBeforeWorkout;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<WorkoutStatsScreen> createState() => _WorkoutStatsScreenState();
+}
+
+class _WorkoutStatsScreenState extends ConsumerState<WorkoutStatsScreen> {
+  bool _rewardFlowHandled = false;
+
+  @override
+  Widget build(BuildContext context) {
     final tr = ref.watch(trProvider);
-    final async = ref.watch(workoutStatsProvider(workoutId));
+    final async = ref.watch(workoutStatsProvider(widget.workoutId));
+
+    ref.listen(workoutStatsProvider(widget.workoutId), (prev, next) {
+      final stats = next.valueOrNull;
+      if (stats == null) return;
+      if (!widget.openRewardFlow || _rewardFlowHandled) return;
+      if (!stats.isCompleted) return;
+      _rewardFlowHandled = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _runRewardFlow(context, stats));
+    });
 
     return Scaffold(
       appBar: AppBar(
@@ -133,7 +166,7 @@ class WorkoutStatsScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => ErrorStateWidget(
           message: e.toString(),
-          onRetry: () => ref.invalidate(workoutStatsProvider(workoutId)),
+          onRetry: () => ref.invalidate(workoutStatsProvider(widget.workoutId)),
         ),
         data: (stats) {
           if (!stats.isCompleted) {
@@ -152,7 +185,7 @@ class WorkoutStatsScreen extends ConsumerWidget {
           }
 
           return RefreshIndicator(
-            onRefresh: () async => ref.invalidate(workoutStatsProvider(workoutId)),
+            onRefresh: () async => ref.invalidate(workoutStatsProvider(widget.workoutId)),
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(16),
@@ -230,6 +263,39 @@ class WorkoutStatsScreen extends ConsumerWidget {
         },
       ),
     );
+  }
+
+  void _logWorkoutRewardAnalytics(WidgetRef ref, WorkoutRewardResult result) {
+    final a = ref.read(gamificationAnalyticsProvider);
+    a.logXpEarned(xp: result.earnedXp, workoutId: widget.workoutId);
+    if (result.leveledUp) {
+      a.logLevelUp(newLevel: result.newLevel, previousLevel: result.previousLevel);
+    }
+    for (final code in result.unlockedBadgeCodes) {
+      a.logBadgeUnlocked(code: code);
+    }
+  }
+
+  Future<void> _runRewardFlow(BuildContext context, WorkoutStats stats) async {
+    if (!context.mounted) return;
+    final flags = await ref.read(gamificationFeatureFlagsProvider.future);
+    if (!flags.xpEnabled) {
+      if (context.mounted) context.go('/workout/${widget.workoutId}/stats');
+      return;
+    }
+    final before = widget.profileBeforeWorkout ?? GamificationProfile.empty;
+    final result = const PostWorkoutRewardService().compute(
+      profileBefore: before,
+      performedVolumeKg: stats.performedVolumeKg,
+    );
+    if (!context.mounted) return;
+    _logWorkoutRewardAnalytics(ref, result);
+    await showWorkoutRewardSheet(context, ref, result: result);
+    if (!context.mounted) return;
+    final tr = ref.read(trProvider);
+    await maybeOfferShareRewardToFeed(context, ref, result, tr);
+    if (!context.mounted) return;
+    context.go('/workout/${widget.workoutId}/stats');
   }
 
   Color _paletteColorForIndex(int idx) {

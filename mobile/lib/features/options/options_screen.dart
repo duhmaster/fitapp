@@ -4,6 +4,8 @@ import 'package:fitflow/core/locale/locale_provider.dart';
 import 'package:fitflow/core/locale/locale_repository.dart';
 import 'package:fitflow/core/theme/theme_provider.dart';
 import 'package:fitflow/features/auth/data/auth_repository.dart';
+import 'package:fitflow/features/gamification/data/gamification_repository.dart';
+import 'package:fitflow/features/gamification/presentation/gamification_provider.dart';
 
 class OptionsScreen extends ConsumerStatefulWidget {
   const OptionsScreen({super.key});
@@ -63,6 +65,7 @@ class _OptionsScreenState extends ConsumerState<OptionsScreen> {
   }
 
   Widget _buildBody(BuildContext context, String Function(String) tr, List<String> localeList, String selectedCode, String selectedTheme) {
+    final gamFlagsAsync = ref.watch(gamificationFeatureFlagsProvider);
     return ListView(
       children: [
         Padding(
@@ -72,6 +75,7 @@ class _OptionsScreenState extends ConsumerState<OptionsScreen> {
         _themeTile(tr, 'system', tr('theme_current'), selectedTheme),
         _themeTile(tr, 'main', tr('theme_main'), selectedTheme),
         _themeTile(tr, 'dark', tr('theme_dark'), selectedTheme),
+        _themeTile(tr, 'gaming', tr('theme_gaming'), selectedTheme),
         const Divider(height: 24),
         Padding(
           padding: const EdgeInsets.all(16),
@@ -88,6 +92,71 @@ class _OptionsScreenState extends ConsumerState<OptionsScreen> {
             onTap: isSaving ? null : () => _selectLocale(code),
           );
         }),
+        const Divider(height: 24),
+        gamFlagsAsync.when(
+          data: (flags) => Column(
+            children: [
+              SwitchListTile(
+                title: Text(tr('gam_enable_xp')),
+                subtitle: Text(tr('gam_enable_xp_subtitle')),
+                value: flags.xpEnabled,
+                onChanged: (v) async {
+                  final next = flags.copyWith(xpEnabled: v);
+                  try {
+                    await ref.read(gamificationRepositoryProvider).saveFeaturePreferences(next);
+                  } catch (_) {}
+                  ref.invalidate(gamificationFeatureFlagsProvider);
+                  ref.invalidate(gamificationProfileProvider);
+                  ref.invalidate(gamificationHomeMissionProvider);
+                  ref.invalidate(gamificationMissionsFullProvider);
+                  ref.invalidate(gamificationXpHistoryProvider);
+                },
+              ),
+              SwitchListTile(
+                title: Text(tr('gam_enable_lb')),
+                subtitle: Text(tr('gam_enable_lb_subtitle')),
+                value: flags.leaderboardEnabled,
+                onChanged: (v) async {
+                  final next = flags.copyWith(leaderboardEnabled: v);
+                  try {
+                    await ref.read(gamificationRepositoryProvider).saveFeaturePreferences(next);
+                  } catch (_) {}
+                  ref.invalidate(gamificationFeatureFlagsProvider);
+                  ref.invalidate(gamificationLeaderboardMiniProvider);
+                  ref.invalidate(gamificationLeaderboardFullProvider);
+                },
+              ),
+              SwitchListTile(
+                title: Text(tr('gam_enable_badges')),
+                subtitle: Text(tr('gam_enable_badges_subtitle')),
+                value: flags.badgesEnabled,
+                onChanged: (v) async {
+                  final next = flags.copyWith(badgesEnabled: v);
+                  try {
+                    await ref.read(gamificationRepositoryProvider).saveFeaturePreferences(next);
+                  } catch (_) {}
+                  ref.invalidate(gamificationFeatureFlagsProvider);
+                  ref.invalidate(gamificationBadgeWallProvider);
+                },
+              ),
+              SwitchListTile(
+                title: Text(tr('gam_enable_trainer_rank')),
+                subtitle: Text(tr('gam_enable_trainer_rank_subtitle')),
+                value: flags.trainerRankingEnabled,
+                onChanged: (v) async {
+                  final next = flags.copyWith(trainerRankingEnabled: v);
+                  try {
+                    await ref.read(gamificationRepositoryProvider).saveFeaturePreferences(next);
+                  } catch (_) {}
+                  ref.invalidate(gamificationFeatureFlagsProvider);
+                  ref.invalidate(trainerClientsLeaderboardProvider);
+                },
+              ),
+            ],
+          ),
+          loading: () => const SizedBox.shrink(),
+          error: (_, __) => const SizedBox.shrink(),
+        ),
       ],
     );
   }

@@ -6,6 +6,7 @@ import 'package:fitflow/core/widgets/empty_state_widget.dart';
 import 'package:fitflow/core/widgets/error_state_widget.dart';
 import 'package:fitflow/features/group_trainings/domain/group_training_models.dart';
 import 'package:fitflow/features/group_trainings/data/group_trainings_repository.dart';
+import 'package:fitflow/features/gamification/presentation/widgets/group_achievement_banner.dart';
 import 'package:fitflow/features/group_trainings/presentation/trainer_group_trainings_providers.dart';
 
 class TrainerGroupTrainingsScreen extends ConsumerStatefulWidget {
@@ -22,6 +23,15 @@ class _TrainerGroupTrainingsScreenState extends ConsumerState<TrainerGroupTraini
     final local = dt.toLocal();
     String two(int v) => v.toString().padLeft(2, '0');
     return '${two(local.day)}.${two(local.month)}.${local.year} ${two(local.hour)}:${two(local.minute)}';
+  }
+
+  int _sessionsNext7Days(List<GroupTraining> list) {
+    final now = DateTime.now();
+    final end = now.add(const Duration(days: 7));
+    return list.where((t) {
+      final s = t.scheduledAt.toLocal();
+      return !s.isBefore(now) && s.isBefore(end);
+    }).length;
   }
 
   @override
@@ -66,38 +76,40 @@ class _TrainerGroupTrainingsScreenState extends ConsumerState<TrainerGroupTraini
           }
           return RefreshIndicator(
             onRefresh: () async => ref.invalidate(trainerTrainingsProvider(_includePast)),
-            child: ListView.separated(
+            child: ListView(
               padding: const EdgeInsets.all(16),
-              itemCount: list.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (_, i) {
-                final t = list[i];
-                return _TrainingTile(
-                  training: t,
-                  formatDateTime: _formatDateTime,
-                  onOpen: () => context.push('/trainer/group-trainings/${t.id}'),
-                  onEdit: () => context.push('/trainer/group-trainings/${t.id}/edit'),
-                  onDelete: () async {
-                    final ok = await showDialog<bool>(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        title: Text(tr('delete')),
-                        content: Text(tr('delete_group_training_confirm')),
-                        actions: [
-                          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(tr('cancel'))),
-                          FilledButton(onPressed: () => Navigator.of(ctx).pop(true), child: Text(tr('delete'))),
-                        ],
-                      ),
-                    );
-                    if (ok != true) return;
-                    await repo.deleteTrainerTraining(t.id);
-                    if (context.mounted) {
-                      ref.invalidate(trainerTrainingsProvider(_includePast));
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('saved'))));
-                    }
-                  },
-                );
-              },
+              children: [
+                GroupAchievementBanner(tr: tr, sessionsNext7Days: _sessionsNext7Days(list)),
+                const SizedBox(height: 12),
+                for (int i = 0; i < list.length; i++) ...[
+                  if (i > 0) const SizedBox(height: 12),
+                  _TrainingTile(
+                    training: list[i],
+                    formatDateTime: _formatDateTime,
+                    onOpen: () => context.push('/trainer/group-trainings/${list[i].id}'),
+                    onEdit: () => context.push('/trainer/group-trainings/${list[i].id}/edit'),
+                    onDelete: () async {
+                      final ok = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: Text(tr('delete')),
+                          content: Text(tr('delete_group_training_confirm')),
+                          actions: [
+                            TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(tr('cancel'))),
+                            FilledButton(onPressed: () => Navigator.of(ctx).pop(true), child: Text(tr('delete'))),
+                          ],
+                        ),
+                      );
+                      if (ok != true) return;
+                      await repo.deleteTrainerTraining(list[i].id);
+                      if (context.mounted) {
+                        ref.invalidate(trainerTrainingsProvider(_includePast));
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('saved'))));
+                      }
+                    },
+                  ),
+                ],
+              ],
             ),
           );
         },

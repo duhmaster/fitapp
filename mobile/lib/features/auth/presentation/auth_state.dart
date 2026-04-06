@@ -11,6 +11,8 @@ import 'package:fitflow/features/templates/templates_provider.dart';
 import 'package:fitflow/features/trainer/my_trainers_screen.dart';
 import 'package:fitflow/features/trainer/trainer_providers.dart';
 import 'package:fitflow/features/trainer/trainer_trainees_screen.dart';
+import 'package:fitflow/features/feed/feed_provider.dart';
+import 'package:fitflow/features/gamification/presentation/gamification_provider.dart';
 import 'package:fitflow/features/workouts/presentation/workouts_provider.dart';
 import 'package:fitflow/core/locale/locale_provider.dart';
 import 'package:fitflow/core/theme/theme_provider.dart';
@@ -94,4 +96,14 @@ void invalidateUserScopedProviders(Ref ref) {
   ref.invalidate(mePreferencesInitProvider);
   ref.invalidate(selectedLocaleCodeInitProvider);
   ref.invalidate(localeStringsProvider);
+  ref.invalidate(gamificationFeatureFlagsProvider);
+  ref.invalidate(gamificationProfileProvider);
+  ref.invalidate(gamificationXpHistoryProvider);
+  ref.invalidate(gamificationHomeMissionProvider);
+  ref.invalidate(gamificationLeaderboardMiniProvider);
+  ref.invalidate(gamificationBadgeWallProvider);
+  ref.invalidate(gamificationMissionsFullProvider);
+  ref.invalidate(gamificationLeaderboardFullProvider);
+  ref.invalidate(trainerClientsLeaderboardProvider);
+  ref.invalidate(feedListProvider);
 }

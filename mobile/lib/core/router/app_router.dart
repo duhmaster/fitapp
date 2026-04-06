@@ -13,10 +13,16 @@ import 'package:fitflow/features/progress/presentation/progress_screen.dart';
 import 'package:fitflow/features/progress/presentation/progress_workouts_screen.dart';
 import 'package:fitflow/features/progress/presentation/progress_exercises_screen.dart';
 import 'package:fitflow/features/progress/presentation/progress_muscles_screen.dart';
+import 'package:fitflow/features/gamification/presentation/achievements_screen.dart';
+import 'package:fitflow/features/gamification/presentation/missions_screen.dart';
+import 'package:fitflow/features/gamification/presentation/leaderboard_screen.dart';
+import 'package:fitflow/features/gamification/presentation/xp_history_screen.dart';
 import 'package:fitflow/features/shell/main_shell_screen.dart';
 import 'package:fitflow/features/trainer/my_trainers_screen.dart';
 import 'package:fitflow/features/trainer/trainer_profile_screen.dart';
 import 'package:fitflow/features/trainer/trainer_profile_edit_screen.dart';
+import 'package:fitflow/features/trainer/presentation/trainer_achievements_screen.dart';
+import 'package:fitflow/features/trainer/presentation/trainer_rankings_screen.dart';
 import 'package:fitflow/features/trainer/trainer_trainees_screen.dart';
 import 'package:fitflow/features/trainer/trainee_profile_screen.dart';
 import 'package:fitflow/features/trainer/trainee_progress_screen.dart';
@@ -29,6 +35,7 @@ import 'package:fitflow/features/group_trainings/presentation/trainer_group_trai
 import 'package:fitflow/features/group_trainings/presentation/trainer_group_training_edit_screen.dart';
 import 'package:fitflow/features/workouts/presentation/active_workout_screen.dart';
 import 'package:fitflow/features/workouts/presentation/workouts_list_screen.dart';
+import 'package:fitflow/features/gamification/domain/gamification_profile.dart';
 import 'package:fitflow/features/workouts/presentation/workout_stats_screen.dart';
 import 'package:fitflow/features/home/home_screen.dart';
 import 'package:fitflow/features/exercises/exercises_screen.dart';
@@ -108,6 +115,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(path: 'current-workout', builder: (_, __) => const CurrentWorkoutScreen()),
               GoRoute(path: 'timers', builder: (_, __) => const TimersScreen()),
               GoRoute(path: 'profile', builder: (_, __) => const ProfileScreen()),
+              GoRoute(path: 'gym', builder: (_, __) => const GymScreen()),
+              GoRoute(
+                path: 'gym/:gymId',
+                builder: (_, state) => GymDetailScreen(
+                  gymId: state.pathParameters['gymId']!,
+                  gymName: state.uri.queryParameters['name'],
+                ),
+              ),
               GoRoute(
                 path: 'progress',
                 builder: (_, __) => const ProgressMenuScreen(),
@@ -116,6 +131,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   GoRoute(path: 'workouts', builder: (_, __) => const ProgressWorkoutsScreen()),
                   GoRoute(path: 'exercises', builder: (_, __) => const ProgressExercisesScreen()),
                   GoRoute(path: 'muscles', builder: (_, __) => const ProgressMusclesScreen()),
+                  GoRoute(path: 'achievements', builder: (_, __) => const AchievementsScreen()),
+                  GoRoute(path: 'missions', builder: (_, __) => const MissionsScreen()),
+                  GoRoute(path: 'leaderboard', builder: (_, __) => const LeaderboardScreen()),
+                  GoRoute(path: 'xp-history', builder: (_, __) => const XpHistoryScreen()),
                 ],
               ),
               GoRoute(path: 'feed', builder: (_, __) => const FeedScreen()),
@@ -149,7 +168,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               ),
               GoRoute(
                 path: 'workout/:id/stats',
-                builder: (_, state) => WorkoutStatsScreen(workoutId: state.pathParameters['id']!),
+                builder: (_, state) => WorkoutStatsScreen(
+                  workoutId: state.pathParameters['id']!,
+                  openRewardFlow: state.uri.queryParameters['reward'] == '1',
+                  profileBeforeWorkout: state.extra is GamificationProfile ? state.extra as GamificationProfile : null,
+                ),
               ),
               GoRoute(
                 path: 'trainer',
@@ -196,6 +219,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                       ),
                     ],
                   ),
+                  GoRoute(path: 'rankings', builder: (_, __) => const TrainerRankingsScreen()),
+                  GoRoute(path: 'achievements', builder: (_, __) => const TrainerAchievementsScreen()),
                   GoRoute(
                     path: 'group-trainings',
                     builder: (_, __) => const TrainerGroupTrainingsScreen(),
@@ -214,14 +239,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 ],
               ),
             ],
-          ),
-          GoRoute(path: 'gym', builder: (_, __) => const GymScreen()),
-          GoRoute(
-            path: 'gym/:gymId',
-            builder: (_, state) => GymDetailScreen(
-              gymId: state.pathParameters['gymId']!,
-              gymName: state.uri.queryParameters['name'],
-            ),
           ),
           GoRoute(path: 'my-trainers', builder: (_, __) => const MyTrainersScreen()),
           GoRoute(path: 'options', builder: (_, __) => const OptionsScreen()),

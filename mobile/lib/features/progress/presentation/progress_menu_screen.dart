@@ -14,6 +14,42 @@ class ProgressMenuScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text(tr('gam_progress_section'), style: Theme.of(context).textTheme.titleSmall),
+          ),
+          _MenuTile(
+            title: tr('gam_menu_achievements'),
+            subtitle: tr('gam_menu_achievements_sub'),
+            icon: Icons.emoji_events_outlined,
+            onTap: () => context.push('/progress/achievements'),
+          ),
+          const SizedBox(height: 12),
+          _MenuTile(
+            title: tr('gam_menu_missions'),
+            subtitle: tr('gam_menu_missions_sub'),
+            icon: Icons.flag_outlined,
+            onTap: () => context.push('/progress/missions'),
+          ),
+          const SizedBox(height: 12),
+          _MenuTile(
+            title: tr('gam_menu_leaderboard'),
+            subtitle: tr('gam_menu_leaderboard_sub'),
+            icon: Icons.leaderboard_outlined,
+            onTap: () => context.push('/progress/leaderboard'),
+          ),
+          const SizedBox(height: 12),
+          _MenuTile(
+            title: tr('gam_menu_xp_history'),
+            subtitle: tr('gam_menu_xp_history_sub'),
+            icon: Icons.history_rounded,
+            onTap: () => context.push('/progress/xp-history'),
+          ),
+          const SizedBox(height: 20),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text(tr('gam_analytics_section'), style: Theme.of(context).textTheme.titleSmall),
+          ),
           _MenuTile(
             title: tr('progress_measurements'),
             subtitle: tr('progress_measurements_subtitle'),

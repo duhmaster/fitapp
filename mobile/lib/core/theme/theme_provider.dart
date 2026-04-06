@@ -27,24 +27,32 @@ final appLightThemeProvider = Provider<ThemeData>((ref) {
   return AppTheme.light;
 });
 
-/// Resolved dark theme for the app (current or dark from JSON).
+/// Resolved dark theme for the app (dark from JSON, or gaming «arena» palette).
 final appDarkThemeProvider = Provider<ThemeData>((ref) {
   final key = ref.watch(selectedThemeKeyProvider);
   final asyncColors = ref.watch(colorsJsonProvider);
-  if (key == 'dark' && asyncColors.hasValue) {
-    final m = asyncColors.value!['darktheme'] as Map<String, dynamic>?;
-    if (m != null) return darkThemeFromMap(m);
+  if (asyncColors.hasValue) {
+    final colors = asyncColors.value!;
+    if (key == 'dark') {
+      final m = colors['darktheme'] as Map<String, dynamic>?;
+      if (m != null) return darkThemeFromMap(m);
+    }
+    if (key == 'gaming') {
+      final m = colors['gamingtheme'] as Map<String, dynamic>?;
+      if (m != null) return gamingThemeFromMap(m);
+    }
   }
   return AppTheme.dark;
 });
 
-/// ThemeMode: system for 'system', light for 'main', dark for 'dark'.
+/// ThemeMode: system for 'system', light for 'main', dark for 'dark' and 'gaming'.
 final appThemeModeProvider = Provider<ThemeMode>((ref) {
   final key = ref.watch(selectedThemeKeyProvider);
   switch (key) {
     case 'main':
       return ThemeMode.light;
     case 'dark':
+    case 'gaming':
       return ThemeMode.dark;
     default:
       return ThemeMode.system;

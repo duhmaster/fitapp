@@ -8,6 +8,8 @@ import (
 	authdomain "github.com/fitflow/fitflow/internal/auth/domain"
 	workoutdomain "github.com/fitflow/fitflow/internal/workout/domain"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // TrainerClientChecker allows workout usecase to verify trainer–client relationship (optional).
@@ -25,7 +27,11 @@ type WorkoutUseCase struct {
 	templates           workoutdomain.WorkoutTemplateRepository
 	templateExercises   workoutdomain.WorkoutTemplateExerciseRepository
 	templateSets        workoutdomain.TemplateExerciseSetRepository
-	trainerChecker      TrainerClientChecker
+	trainerChecker       TrainerClientChecker
+	gamificationOnFinish func(ctx context.Context, userID, workoutID uuid.UUID, volumeKg float64) error
+	finishPool           *pgxpool.Pool
+	gamEnqueue           func(ctx context.Context, tx pgx.Tx, userID, workoutID uuid.UUID, volumeKg float64) error
+	gamProcess           func(ctx context.Context) error
 }
 
 func NewWorkoutUseCase(
@@ -55,6 +61,19 @@ func NewWorkoutUseCase(
 // SetTrainerChecker sets optional checker so trainers can view their trainees' workouts.
 func (uc *WorkoutUseCase) SetTrainerChecker(c TrainerClientChecker) {
 	uc.trainerChecker = c
+}
+
+// SetGamificationOnFinish registers a callback after a workout is finished successfully (volume = sum reps×weight from logs). Errors are ignored.
+// Ignored when SetGamificationOutbox is configured (outbox + same-request processing).
+func (uc *WorkoutUseCase) SetGamificationOnFinish(h func(ctx context.Context, userID, workoutID uuid.UUID, volumeKg float64) error) {
+	uc.gamificationOnFinish = h
+}
+
+// SetGamificationOutbox enqueues workout XP in the same DB transaction as Finish, then runs processing (ledger + Redis).
+func (uc *WorkoutUseCase) SetGamificationOutbox(pool *pgxpool.Pool, enqueue func(ctx context.Context, tx pgx.Tx, userID, workoutID uuid.UUID, volumeKg float64) error, process func(ctx context.Context) error) {
+	uc.finishPool = pool
+	uc.gamEnqueue = enqueue
+	uc.gamProcess = process
 }
 
 func (uc *WorkoutUseCase) canAccessWorkout(ctx context.Context, user *authdomain.User, workoutUserID uuid.UUID) bool {
@@ -199,7 +218,47 @@ func (uc *WorkoutUseCase) FinishWorkout(ctx context.Context, user *authdomain.Us
 	if w.UserID != user.ID {
 		return nil, workoutdomain.ErrWorkoutForbidden
 	}
-	return uc.workouts.Finish(ctx, workoutID, at)
+
+	logs, logErr := uc.logs.ListByWorkoutID(ctx, workoutID)
+	var volume float64
+	if logErr == nil {
+		for _, l := range logs {
+			if l.Reps != nil && l.WeightKg != nil && *l.Reps > 0 {
+				volume += float64(*l.Reps) * *l.WeightKg
+			}
+		}
+	}
+
+	if uc.finishPool != nil && uc.gamEnqueue != nil {
+		tx, err := uc.finishPool.Begin(ctx)
+		if err != nil {
+			return nil, err
+		}
+		defer func() { _ = tx.Rollback(ctx) }()
+		w, err = uc.workouts.FinishTx(ctx, tx, workoutID, at)
+		if err != nil {
+			return nil, err
+		}
+		if err := uc.gamEnqueue(ctx, tx, user.ID, workoutID, volume); err != nil {
+			return nil, err
+		}
+		if err := tx.Commit(ctx); err != nil {
+			return nil, err
+		}
+		if uc.gamProcess != nil {
+			_ = uc.gamProcess(ctx)
+		}
+		return w, nil
+	}
+
+	w, err = uc.workouts.Finish(ctx, workoutID, at)
+	if err != nil {
+		return nil, err
+	}
+	if uc.gamificationOnFinish != nil && logErr == nil {
+		_ = uc.gamificationOnFinish(ctx, user.ID, workoutID, volume)
+	}
+	return w, nil
 }
 
 func (uc *WorkoutUseCase) DeleteWorkout(ctx context.Context, user *authdomain.User, workoutID uuid.UUID) error {

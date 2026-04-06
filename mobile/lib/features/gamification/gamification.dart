@@ -1,0 +1,33 @@
+/// Gamification feature (XP, badges, missions, leaderboards) — stage 1: domain + data + services.
+library fitflow_gamification;
+
+export 'data/gamification_feature_flags.dart';
+export 'data/gamification_repository.dart';
+export 'domain/badge.dart';
+export 'domain/gamification_profile.dart';
+export 'domain/leaderboard_entry.dart';
+export 'domain/level_reward.dart';
+export 'domain/mission.dart';
+export 'domain/workout_reward_result.dart';
+export 'domain/achievement_post_codec.dart';
+export 'domain/xp_event.dart';
+export 'presentation/gamification_provider.dart';
+export 'presentation/achievements_screen.dart';
+export 'presentation/leaderboard_screen.dart';
+export 'presentation/missions_screen.dart';
+export 'presentation/xp_history_screen.dart';
+export 'presentation/workout_reward_sheet.dart';
+export 'presentation/widgets/badge_unlock_popup.dart';
+export 'presentation/widgets/confetti_overlay.dart';
+export 'presentation/widgets/earned_xp_card.dart';
+export 'presentation/widgets/home_gamification_strip.dart';
+export 'presentation/widgets/home_xp_progress.dart';
+export 'presentation/widgets/level_avatar_widget.dart';
+export 'presentation/widgets/level_up_modal.dart';
+export 'presentation/widgets/mini_leaderboard_card.dart';
+export 'presentation/widgets/mission_progress_card.dart';
+export 'services/badge_unlock_service.dart';
+export 'services/post_workout_reward_service.dart';
+export 'services/level_service.dart';
+export 'services/mission_engine.dart';
+export 'services/xp_calculation_service.dart';

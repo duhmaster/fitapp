@@ -30,6 +30,8 @@ type GroupTrainingUseCase struct {
 	registrations domain.GroupTrainingRegistrationRepository
 
 	users authdomain.UserRepository
+
+	gamOnRegister func(ctx context.Context, userID, trainingID uuid.UUID) error
 }
 
 func NewGroupTrainingUseCase(
@@ -46,6 +48,11 @@ func NewGroupTrainingUseCase(
 		registrations: registrations,
 		users:         users,
 	}
+}
+
+// SetGamificationOnRegister is optional; called after successful registration.
+func (uc *GroupTrainingUseCase) SetGamificationOnRegister(f func(ctx context.Context, userID, trainingID uuid.UUID) error) {
+	uc.gamOnRegister = f
 }
 
 func (uc *GroupTrainingUseCase) ListTypes(ctx context.Context) ([]*domain.GroupTrainingType, error) {
@@ -251,7 +258,13 @@ func (uc *GroupTrainingUseCase) RegisterUser(ctx context.Context, userID, traini
 		return domain.ErrGroupTrainingFull
 	}
 
-	return uc.registrations.Add(ctx, userID, trainingID)
+	if err := uc.registrations.Add(ctx, userID, trainingID); err != nil {
+		return err
+	}
+	if uc.gamOnRegister != nil {
+		_ = uc.gamOnRegister(ctx, userID, trainingID)
+	}
+	return nil
 }
 
 func (uc *GroupTrainingUseCase) UnregisterUser(ctx context.Context, userID, trainingID uuid.UUID) error {

@@ -5,6 +5,7 @@ import 'package:fitflow/core/locale/locale_provider.dart';
 import 'package:fitflow/core/widgets/empty_state_widget.dart';
 import 'package:fitflow/core/widgets/error_state_widget.dart';
 import 'package:fitflow/features/group_trainings/domain/group_training_models.dart';
+import 'package:fitflow/features/gamification/presentation/widgets/group_training_engagement_banner.dart';
 import 'package:fitflow/features/group_trainings/presentation/group_trainings_providers.dart';
 
 class MyGroupTrainingsScreen extends ConsumerStatefulWidget {
@@ -62,26 +63,43 @@ class _MyGroupTrainingsScreenState extends ConsumerState<MyGroupTrainingsScreen>
           ),
           data: (list) {
             if (list.isEmpty) {
-              return EmptyStateWidget(
-                message: tr('no_group_trainings_yet'),
-                icon: Icons.groups,
-                actionLabel: tr('available_group_trainings'),
-                onAction: () => context.push('/group-trainings/available'),
+              return ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: [
+                  EmptyStateWidget(
+                    message: tr('no_group_trainings_yet'),
+                    icon: Icons.groups,
+                    actionLabel: tr('available_group_trainings'),
+                    onAction: () => context.push('/group-trainings/available'),
+                  ),
+                ],
               );
             }
-            return ListView.separated(
+            return CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(16),
-              itemCount: list.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (_, i) {
-                final t = list[i];
-                return _TrainingTile(
-                  training: t,
-                  onTap: () => context.push('/group-trainings/${t.id}'),
-                  formatDateTime: _formatDateTime,
-                );
-              },
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                    child: GroupTrainingEngagementBanner(tr: tr, trainings: list),
+                  ),
+                ),
+                SliverPadding(
+                  padding: const EdgeInsets.all(16),
+                  sliver: SliverList.separated(
+                    itemCount: list.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    itemBuilder: (_, i) {
+                      final t = list[i];
+                      return _TrainingTile(
+                        training: t,
+                        onTap: () => context.push('/group-trainings/${t.id}'),
+                        formatDateTime: _formatDateTime,
+                      );
+                    },
+                  ),
+                ),
+              ],
             );
           },
         ),

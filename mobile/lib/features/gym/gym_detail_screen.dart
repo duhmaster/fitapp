@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:fitflow/core/locale/locale_provider.dart';
 import 'package:fitflow/core/widgets/error_state_widget.dart';
+import 'package:fitflow/features/gamification/presentation/widgets/gym_badges_hint_card.dart';
+import 'package:fitflow/features/gamification/presentation/widgets/gym_leaderboard_strip.dart';
 import 'package:fitflow/features/gym/data/gym_repository.dart';
 import 'package:fitflow/features/group_trainings/domain/group_training_models.dart';
 import 'package:fitflow/features/trainer/data/trainer_repository.dart';
@@ -61,11 +63,28 @@ class _GymDetailScreenState extends ConsumerState<GymDetailScreen> with SingleTi
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _TrainersTab(gymId: widget.gymId),
-          _GroupTrainingsTab(gymId: widget.gymId),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                GymLeaderboardStrip(gymId: widget.gymId, tr: tr),
+                GymBadgesHintCard(tr: tr),
+              ],
+            ),
+          ),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _TrainersTab(gymId: widget.gymId),
+                _GroupTrainingsTab(gymId: widget.gymId),
+              ],
+            ),
+          ),
         ],
       ),
     );

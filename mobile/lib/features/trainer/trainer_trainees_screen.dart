@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fitflow/core/locale/locale_provider.dart';
+import 'package:fitflow/features/gamification/presentation/widgets/trainee_success_meter.dart';
 import 'package:fitflow/features/trainer/data/trainer_repository.dart';
 
 /// User-scoped: invalidate on logout.
@@ -23,33 +24,43 @@ class TrainerTraineesScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('${tr('error_label')}: $e')),
         data: (list) {
-          if (list.isEmpty) {
-            return Center(child: Text(tr('no_data_in_range')));
-          }
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: list.length,
-            itemBuilder: (_, i) {
-              final t = list[i];
-              final title = t.displayName?.isNotEmpty == true ? t.displayName! : t.clientId;
-              final subtitle = t.city?.isNotEmpty == true ? t.city : null;
-              return Card(
-                margin: const EdgeInsets.only(bottom: 8),
-                child: ListTile(
-                  leading: CircleAvatar(
-                    child: Text((title.isNotEmpty ? title[0] : '?').toUpperCase()),
-                  ),
-                  title: Text(title),
-                  subtitle: subtitle != null ? Text(subtitle) : null,
-                  trailing: IconButton(
-                    icon: const Icon(Icons.remove_circle_outline),
-                    tooltip: tr('delete'),
-                    onPressed: () => _confirmRemoveTrainee(context, ref, t.clientId, title, tr),
-                  ),
-                  onTap: () => context.push('/trainer/trainees/${t.clientId}'),
-                ),
-              );
-            },
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: TraineeSuccessMeter(tr: tr, traineeCount: list.length),
+              ),
+              Expanded(
+                child: list.isEmpty
+                    ? Center(child: Text(tr('no_data_in_range')))
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: list.length,
+                        itemBuilder: (_, i) {
+                          final t = list[i];
+                          final title = t.displayName?.isNotEmpty == true ? t.displayName! : t.clientId;
+                          final subtitle = t.city?.isNotEmpty == true ? t.city : null;
+                          return Card(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            child: ListTile(
+                              leading: CircleAvatar(
+                                child: Text((title.isNotEmpty ? title[0] : '?').toUpperCase()),
+                              ),
+                              title: Text(title),
+                              subtitle: subtitle != null ? Text(subtitle) : null,
+                              trailing: IconButton(
+                                icon: const Icon(Icons.remove_circle_outline),
+                                tooltip: tr('delete'),
+                                onPressed: () => _confirmRemoveTrainee(context, ref, t.clientId, title, tr),
+                              ),
+                              onTap: () => context.push('/trainer/trainees/${t.clientId}'),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
           );
         },
       ),

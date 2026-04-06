@@ -155,6 +155,18 @@ func (r *WorkoutRepository) Start(ctx context.Context, id uuid.UUID, at time.Tim
 }
 
 func (r *WorkoutRepository) Finish(ctx context.Context, id uuid.UUID, at time.Time) (*workoutdomain.Workout, error) {
+	return r.finishWithQuerier(ctx, r.pool, id, at)
+}
+
+func (r *WorkoutRepository) FinishTx(ctx context.Context, tx pgx.Tx, id uuid.UUID, at time.Time) (*workoutdomain.Workout, error) {
+	return r.finishWithQuerier(ctx, tx, id, at)
+}
+
+type querier interface {
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+}
+
+func (r *WorkoutRepository) finishWithQuerier(ctx context.Context, q querier, id uuid.UUID, at time.Time) (*workoutdomain.Workout, error) {
 	query := `
 		UPDATE workouts
 		SET finished_at = $2
@@ -162,7 +174,7 @@ func (r *WorkoutRepository) Finish(ctx context.Context, id uuid.UUID, at time.Ti
 		RETURNING id, template_id, program_id, user_id, trainer_id, gym_id, scheduled_at, started_at, finished_at, created_at
 	`
 	var w workoutdomain.Workout
-	err := r.pool.QueryRow(ctx, query, id, at).Scan(
+	err := q.QueryRow(ctx, query, id, at).Scan(
 		&w.ID, &w.TemplateID, &w.ProgramID, &w.UserID, &w.TrainerID, &w.GymID, &w.ScheduledAt, &w.StartedAt, &w.FinishedAt, &w.CreatedAt,
 	)
 	if err != nil {

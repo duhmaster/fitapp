@@ -13,5 +13,14 @@
     "accentLime": "#A8FF37",
     "alert": "#FF3E3E",
     "neutralGray": "#333333"
+  },
+  "gamingtheme": {
+    "scaffold": "#1B2533",
+    "card": "#242F3E",
+    "gold": "#FBC02D",
+    "blue": "#3DA7F5",
+    "onSurface": "#FFFFFF",
+    "onSurfaceVariant": "#B0BEC5",
+    "alert": "#FF5252"
   }
 }

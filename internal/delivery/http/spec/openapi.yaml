@@ -233,6 +233,247 @@ paths:
         "200":
           description: List of tags
 
+  /api/v1/gamification/leaderboards/public:
+    get:
+      summary: Public weekly leaderboard (scores only, no PII)
+      security: []
+      tags: [Gamification]
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50, maximum: 100 }
+      responses:
+        "200":
+          description: entries/items with rank and score only
+
+  /api/v1/me/gamification/preferences:
+    get:
+      summary: Per-user gamification UI toggles (defaults on for all users)
+      tags: [Gamification]
+      responses:
+        "200":
+          description: Feature flags
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  xp_enabled: { type: boolean }
+                  badges_enabled: { type: boolean }
+                  leaderboard_enabled: { type: boolean }
+                  trainer_ranking_enabled: { type: boolean }
+    patch:
+      summary: Update gamification toggles (partial; omitted fields unchanged)
+      tags: [Gamification]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                xp_enabled: { type: boolean }
+                badges_enabled: { type: boolean }
+                leaderboard_enabled: { type: boolean }
+                trainer_ranking_enabled: { type: boolean }
+      responses:
+        "200":
+          description: Updated flags
+
+  /api/v1/me/gamification/profile:
+    get:
+      summary: Gamification profile (XP, level)
+      tags: [Gamification]
+      responses:
+        "200":
+          description: Profile
+
+  /api/v1/me/gamification/xp-history:
+    get:
+      summary: XP ledger history
+      tags: [Gamification]
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer }
+        - name: offset
+          in: query
+          schema: { type: integer }
+      responses:
+        "200":
+          description: items / xp_events
+
+  /api/v1/me/gamification/badges/catalog:
+    get:
+      summary: Badge catalog
+      tags: [Gamification]
+      responses:
+        "200":
+          description: badges
+
+  /api/v1/me/gamification/badges:
+    get:
+      summary: User unlocked badges
+      tags: [Gamification]
+      responses:
+        "200":
+          description: user_badges / items
+
+  /api/v1/me/gamification/missions:
+    get:
+      summary: Mission definitions
+      tags: [Gamification]
+      responses:
+        "200":
+          description: missions
+
+  /api/v1/me/gamification/missions/progress:
+    get:
+      summary: User mission progress
+      tags: [Gamification]
+      responses:
+        "200":
+          description: progress
+
+  /api/v1/me/gamification/missions/{mission_id}/claim:
+    post:
+      summary: Claim completed mission reward
+      tags: [Gamification]
+      parameters:
+        - name: mission_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: ok
+
+  /api/v1/me/gamification/leaderboards:
+    get:
+      summary: Leaderboards (JWT)
+      tags: [Gamification]
+      parameters:
+        - name: scope
+          in: query
+          schema: { type: string, enum: [global, gym, trainer_clients] }
+        - name: period
+          in: query
+          schema: { type: string, enum: [weekly, all_time] }
+        - name: gym_id
+          in: query
+          schema: { type: string, format: uuid }
+        - name: limit
+          in: query
+          schema: { type: integer }
+      responses:
+        "200":
+          description: entries / items
+
+  /api/v1/admin/gamification/settings:
+    get:
+      summary: Get gamification settings (e.g. xp_curve)
+      tags: [Gamification, Admin]
+      responses:
+        "200":
+          description: key/value JSON
+
+  /api/v1/admin/gamification/settings/{key}:
+    patch:
+      summary: Upsert a settings key (JSON body.value)
+      tags: [Gamification, Admin]
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [value]
+              properties:
+                value: {}
+      responses:
+        "200":
+          description: ok
+
+  /api/v1/admin/gamification/badges:
+    get:
+      summary: List badge definitions (admin)
+      tags: [Gamification, Admin]
+      responses:
+        "200":
+          description: badges
+    post:
+      summary: Create badge definition
+      tags: [Gamification, Admin]
+      responses:
+        "201":
+          description: Created
+
+  /api/v1/admin/gamification/badges/{id}:
+    patch:
+      summary: Update badge definition
+      tags: [Gamification, Admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: ok
+    delete:
+      summary: Delete badge definition
+      tags: [Gamification, Admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: ok
+
+  /api/v1/admin/gamification/missions:
+    get:
+      summary: List mission definitions (admin)
+      tags: [Gamification, Admin]
+      responses:
+        "200":
+          description: missions
+    post:
+      summary: Create mission definition
+      tags: [Gamification, Admin]
+      responses:
+        "201":
+          description: Created
+
+  /api/v1/admin/gamification/missions/{id}:
+    patch:
+      summary: Update mission definition
+      tags: [Gamification, Admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: ok
+    delete:
+      summary: Delete mission definition
+      tags: [Gamification, Admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: ok
+
 components:
   securitySchemes:
     bearerAuth:
@@ -252,3 +493,7 @@ tags:
     description: User notifications
   - name: Blog
     description: Blog posts and tags
+  - name: Gamification
+    description: XP, badges, missions, leaderboards
+  - name: Admin
+    description: Admin API (JWT role admin)

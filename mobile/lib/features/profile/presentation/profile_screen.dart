@@ -11,6 +11,8 @@ import 'package:fitflow/features/profile/presentation/profile_provider.dart';
 import 'package:fitflow/core/locale/locale_provider.dart';
 import 'package:fitflow/features/profile/presentation/widgets/body_measurements_section.dart';
 import 'package:fitflow/features/profile/presentation/widgets/edit_profile_form.dart';
+import 'package:fitflow/features/gamification/presentation/gamification_provider.dart';
+import 'package:fitflow/features/gamification/presentation/widgets/home_gamification_strip.dart';
 import 'package:fitflow/features/profile/presentation/widgets/profile_header.dart';
 import 'package:fitflow/features/profile/presentation/widgets/profile_stats_card.dart';
 
@@ -113,6 +115,34 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
   }
 
+  Widget _profileGamificationSection(BuildContext context, String Function(String) tr) {
+    final flagsAsync = ref.watch(gamificationFeatureFlagsProvider);
+    return flagsAsync.when(
+      data: (f) {
+        if (!f.xpEnabled && !f.leaderboardEnabled) {
+          return const SizedBox.shrink();
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              tr('gam_progress_section'),
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            const HomeGamificationStrip(padding: EdgeInsets.zero),
+            const SizedBox(height: 24),
+          ],
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+    );
+  }
+
   void _showSnackBar(String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -187,6 +217,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       bodyFatPct: data.bodyFatPct,
                     ),
                     const SizedBox(height: 24),
+                    _profileGamificationSection(context, tr),
                     if (_editMode)
                       EditProfileForm(
                         initialDisplayName: data.displayName,

@@ -18,6 +18,8 @@ type GymUseCase struct {
 	checkIns  gymdomain.CheckInRepository
 	snapshots gymdomain.LoadSnapshotRepository
 	load      LoadService
+
+	gamOnCheckIn func(ctx context.Context, userID, gymID uuid.UUID) error
 }
 
 func NewGymUseCase(
@@ -28,6 +30,11 @@ func NewGymUseCase(
 	load LoadService,
 ) *GymUseCase {
 	return &GymUseCase{gyms: gyms, userGyms: userGyms, checkIns: checkIns, snapshots: snapshots, load: load}
+}
+
+// SetGamificationOnCheckIn is optional; called after a successful check-in DB row is created.
+func (uc *GymUseCase) SetGamificationOnCheckIn(f func(ctx context.Context, userID, gymID uuid.UUID) error) {
+	uc.gamOnCheckIn = f
 }
 
 type CreateGymInput struct {
@@ -124,6 +131,10 @@ func (uc *GymUseCase) CheckIn(ctx context.Context, user *authdomain.User, gymID 
 	ci, err := uc.checkIns.Create(ctx, user.ID, gymID, at)
 	if err != nil {
 		return nil, 0, err
+	}
+
+	if uc.gamOnCheckIn != nil {
+		_ = uc.gamOnCheckIn(ctx, user.ID, gymID)
 	}
 
 	if uc.load == nil {

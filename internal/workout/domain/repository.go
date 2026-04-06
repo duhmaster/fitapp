@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 )
 
 type ExerciseRepository interface {
@@ -33,6 +34,7 @@ type WorkoutRepository interface {
 	CountByTrainerID(ctx context.Context, trainerID uuid.UUID) (int, error)
 	Start(ctx context.Context, id uuid.UUID, at time.Time) (*Workout, error)
 	Finish(ctx context.Context, id uuid.UUID, at time.Time) (*Workout, error)
+	FinishTx(ctx context.Context, tx pgx.Tx, id uuid.UUID, at time.Time) (*Workout, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 }
 
