@@ -35,6 +35,8 @@ type Repository interface {
 
 	GetGamificationSetting(ctx context.Context, key string) ([]byte, error)
 	SetGamificationSetting(ctx context.Context, key string, value []byte) error
+	GetLevelThresholds(ctx context.Context) ([]int, error)
+	SetLevelThresholds(ctx context.Context, thresholds []int) error
 
 	CreateBadgeDefinition(ctx context.Context, code, title string, description *string, rarity string, iconKey *string) (uuid.UUID, error)
 	UpdateBadgeDefinition(ctx context.Context, id uuid.UUID, code, title string, description *string, rarity string, iconKey *string) error
@@ -46,6 +48,9 @@ type Repository interface {
 
 	ApplyGroupTrainingRegistrationReward(ctx context.Context, userID, trainingID uuid.UUID) error
 	ApplyGymCheckInMission(ctx context.Context, userID, gymID uuid.UUID) error
+
+	// ApplyBodyMeasurementReward grants small XP and updates weekly_body_log mission (idempotent per measurement id).
+	ApplyBodyMeasurementReward(ctx context.Context, userID, measurementID uuid.UUID) error
 
 	FetchUserProfilesForLeaderboard(ctx context.Context, userIDs []uuid.UUID) (map[uuid.UUID]LeaderboardProfileRow, error)
 

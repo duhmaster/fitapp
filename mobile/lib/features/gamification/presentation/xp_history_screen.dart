@@ -6,6 +6,23 @@ import 'package:fitflow/core/widgets/error_state_widget.dart';
 import 'package:fitflow/features/gamification/domain/xp_event.dart';
 import 'package:fitflow/features/gamification/presentation/gamification_provider.dart';
 
+String _xpReasonLabel(String Function(String) tr, String reason) {
+  switch (reason) {
+    case 'workout_finished':
+      return tr('gam_xp_reason_workout_finished');
+    case 'workout_pr_bonus':
+      return tr('gam_xp_reason_workout_pr_bonus');
+    case 'body_measurement_log':
+      return tr('gam_xp_reason_body_measurement_log');
+    case 'mission_claim':
+      return tr('gam_xp_reason_mission_claim');
+    case 'group_training_register':
+      return tr('gam_xp_reason_group_training_register');
+    default:
+      return reason;
+  }
+}
+
 class XpHistoryScreen extends ConsumerWidget {
   const XpHistoryScreen({super.key});
 
@@ -78,7 +95,11 @@ class _XpTile extends StatelessWidget {
           ),
         ),
       ),
-      title: Text(event.label ?? event.reason, maxLines: 2, overflow: TextOverflow.ellipsis),
+      title: Text(
+        event.label ?? _xpReasonLabel(tr, event.reason),
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+      ),
       subtitle: Text(dateStr, style: Theme.of(context).textTheme.bodySmall),
       trailing: event.deltaXp >= 0
           ? Icon(Icons.trending_up_rounded, color: scheme.primary)

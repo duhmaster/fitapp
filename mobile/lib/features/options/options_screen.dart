@@ -17,6 +17,15 @@ class OptionsScreen extends ConsumerStatefulWidget {
 class _OptionsScreenState extends ConsumerState<OptionsScreen> {
   String? _savingCode;
   String? _savingThemeKey;
+  final _levelsController = TextEditingController();
+  bool _loadingLevels = false;
+  bool _savingLevels = false;
+
+  @override
+  void dispose() {
+    _levelsController.dispose();
+    super.dispose();
+  }
 
   Future<void> _selectTheme(String key) async {
     if (_savingThemeKey != null) return;
@@ -45,6 +54,55 @@ class _OptionsScreenState extends ConsumerState<OptionsScreen> {
       await auth.patchPreferences(theme: theme, locale: code);
     } catch (_) {}
     if (mounted) setState(() => _savingCode = null);
+  }
+
+  Future<void> _loadLevels() async {
+    setState(() => _loadingLevels = true);
+    try {
+      final thresholds = await ref.read(gamificationRepositoryProvider).fetchAdminLevelThresholds();
+      if (!mounted) return;
+      _levelsController.text = thresholds.join(', ');
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Уровни загружены')));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Не удалось загрузить уровни: $e')));
+    } finally {
+      if (mounted) setState(() => _loadingLevels = false);
+    }
+  }
+
+  Future<void> _saveLevels() async {
+    if (_savingLevels) return;
+    final raw = _levelsController.text
+        .split(',')
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
+    final parsed = <int>[];
+    for (final s in raw) {
+      final v = int.tryParse(s);
+      if (v == null) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Некорректное число: $s')));
+        return;
+      }
+      parsed.add(v);
+    }
+    if (parsed.length < 2) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Нужно минимум 2 порога')));
+      return;
+    }
+    setState(() => _savingLevels = true);
+    try {
+      await ref.read(gamificationRepositoryProvider).saveAdminLevelThresholds(parsed);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Уровни сохранены')));
+      ref.invalidate(gamificationProfileProvider);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Не удалось сохранить уровни: $e')));
+    } finally {
+      if (mounted) setState(() => _savingLevels = false);
+    }
   }
 
   @override
@@ -157,6 +215,47 @@ class _OptionsScreenState extends ConsumerState<OptionsScreen> {
           loading: () => const SizedBox.shrink(),
           error: (_, __) => const SizedBox.shrink(),
         ),
+        const Divider(height: 24),
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text('Админка', style: Theme.of(context).textTheme.titleMedium),
+        ),
+        ListTile(
+          title: const Text('Уровни (пороги XP)'),
+          subtitle: const Text('Формат: 0, 100, 250, 500 ...'),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                tooltip: 'Загрузить',
+                onPressed: _loadingLevels ? null : _loadLevels,
+                icon: _loadingLevels
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.download),
+              ),
+              IconButton(
+                tooltip: 'Сохранить',
+                onPressed: _savingLevels ? null : _saveLevels,
+                icon: _savingLevels
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.save_outlined),
+              ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: TextField(
+            controller: _levelsController,
+            minLines: 1,
+            maxLines: 3,
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+              hintText: '0, 100, 250, 500, 900, ...',
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
       ],
     );
   }

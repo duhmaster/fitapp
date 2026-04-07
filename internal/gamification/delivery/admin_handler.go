@@ -27,6 +27,34 @@ func (h *AdminHandler) GetSettings(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"key": "xp_curve", "value": json.RawMessage(raw)})
 }
 
+func (h *AdminHandler) GetLevels(c *gin.Context) {
+	thresholds, err := h.repo.GetLevelThresholds(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"thresholds": thresholds})
+}
+
+func (h *AdminHandler) PatchLevels(c *gin.Context) {
+	var body struct {
+		Thresholds []int `json:"thresholds"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if len(body.Thresholds) < 2 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "thresholds must contain at least 2 values"})
+		return
+	}
+	if err := h.repo.SetLevelThresholds(c.Request.Context(), body.Thresholds); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
 func (h *AdminHandler) PatchSetting(c *gin.Context) {
 	key := c.Param("key")
 	if key == "" {

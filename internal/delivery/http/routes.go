@@ -5,50 +5,50 @@ import (
 	"time"
 
 	"github.com/fitflow/fitflow/internal/admin"
-	"github.com/fitflow/fitflow/internal/auth/domain"
-	"github.com/fitflow/fitflow/internal/delivery/http/spec"
-	"github.com/fitflow/fitflow/internal/geo"
 	authdelivery "github.com/fitflow/fitflow/internal/auth/delivery"
-	"github.com/fitflow/fitflow/internal/pkg/version"
+	"github.com/fitflow/fitflow/internal/auth/domain"
 	blogdelivery "github.com/fitflow/fitflow/internal/blog/delivery"
+	"github.com/fitflow/fitflow/internal/delivery/http/spec"
+	"github.com/fitflow/fitflow/internal/delivery/middleware"
+	gamificationdelivery "github.com/fitflow/fitflow/internal/gamification/delivery"
+	"github.com/fitflow/fitflow/internal/geo"
+	grouptrainingdelivery "github.com/fitflow/fitflow/internal/grouptraining/delivery"
 	gymdelivery "github.com/fitflow/fitflow/internal/gym/delivery"
+	notificationdelivery "github.com/fitflow/fitflow/internal/notification/delivery"
+	photodelivery "github.com/fitflow/fitflow/internal/photo/delivery"
+	"github.com/fitflow/fitflow/internal/pkg/version"
 	progressdelivery "github.com/fitflow/fitflow/internal/progress/delivery"
 	socialdelivery "github.com/fitflow/fitflow/internal/social/delivery"
-	notificationdelivery "github.com/fitflow/fitflow/internal/notification/delivery"
 	systemmessagedelivery "github.com/fitflow/fitflow/internal/systemmessage/delivery"
 	trainerdelivery "github.com/fitflow/fitflow/internal/trainer/delivery"
 	userdelivery "github.com/fitflow/fitflow/internal/user/delivery"
 	workoutdelivery "github.com/fitflow/fitflow/internal/workout/delivery"
-	grouptrainingdelivery "github.com/fitflow/fitflow/internal/grouptraining/delivery"
-	photodelivery "github.com/fitflow/fitflow/internal/photo/delivery"
-	gamificationdelivery "github.com/fitflow/fitflow/internal/gamification/delivery"
-	"github.com/fitflow/fitflow/internal/delivery/middleware"
 	"github.com/gin-gonic/gin"
 )
 
 // RoutesConfig holds dependencies for route registration.
 type RoutesConfig struct {
 	// AllowedOrigins for CORS; nil = no CORS. Use []string{"*"} to allow all.
-	AllowedOrigins []string
-	HealthHandler  *HealthHandler
-	AuthHandler     *authdelivery.Handler
-	UserHandler     *userdelivery.Handler
-	GymHandler      *gymdelivery.Handler
-	WorkoutHandler  *workoutdelivery.Handler
-	ProgressHandler *progressdelivery.Handler
-	SocialHandler   *socialdelivery.Handler
-	BlogHandler     *blogdelivery.Handler
-	TrainerHandler     *trainerdelivery.Handler
-	NotificationHandler *notificationdelivery.Handler
-	SystemMessageHandler *systemmessagedelivery.Handler
-	GroupTrainingHandler  *grouptrainingdelivery.Handler
-	PhotoHandler         *photodelivery.Handler
+	AllowedOrigins           []string
+	HealthHandler            *HealthHandler
+	AuthHandler              *authdelivery.Handler
+	UserHandler              *userdelivery.Handler
+	GymHandler               *gymdelivery.Handler
+	WorkoutHandler           *workoutdelivery.Handler
+	ProgressHandler          *progressdelivery.Handler
+	SocialHandler            *socialdelivery.Handler
+	BlogHandler              *blogdelivery.Handler
+	TrainerHandler           *trainerdelivery.Handler
+	NotificationHandler      *notificationdelivery.Handler
+	SystemMessageHandler     *systemmessagedelivery.Handler
+	GroupTrainingHandler     *grouptrainingdelivery.Handler
+	PhotoHandler             *photodelivery.Handler
 	GamificationHandler      *gamificationdelivery.Handler
 	GamificationAdminHandler *gamificationdelivery.AdminHandler
 	AdminHandler             *admin.Handler
-	JWTSecret           []byte
-	UploadsPath         string       // local path for serving uploads (e.g. ./uploads)
-	GeoClient           *geo.Client  // 2GIS proxy for cities/organizations (optional)
+	JWTSecret                []byte
+	UploadsPath              string      // local path for serving uploads (e.g. ./uploads)
+	GeoClient                *geo.Client // 2GIS proxy for cities/organizations (optional)
 }
 
 // RegisterRoutes registers all HTTP routes with the given config.
@@ -247,9 +247,9 @@ func (s *Server) RegisterRoutes(cfg *RoutesConfig) {
 					protected.PATCH("/me/trainer/clients/:client_id/status", cfg.TrainerHandler.SetClientStatus)
 					protected.GET("/me/trainer/clients", cfg.TrainerHandler.ListMyClients)
 					protected.DELETE("/me/trainer/clients/:client_id", cfg.TrainerHandler.RemoveClient)
-				protected.GET("/me/trainer/clients/:client_id/profile", cfg.TrainerHandler.GetClientProfile)
-				protected.GET("/me/trainer/clients/:client_id/progress/exercise-ids", cfg.TrainerHandler.GetClientProgressExerciseIDs)
-				protected.GET("/me/trainer/clients/:client_id/progress/exercises/:exercise_id/volume-history", cfg.TrainerHandler.GetClientExerciseVolumeHistory)
+					protected.GET("/me/trainer/clients/:client_id/profile", cfg.TrainerHandler.GetClientProfile)
+					protected.GET("/me/trainer/clients/:client_id/progress/exercise-ids", cfg.TrainerHandler.GetClientProgressExerciseIDs)
+					protected.GET("/me/trainer/clients/:client_id/progress/exercises/:exercise_id/volume-history", cfg.TrainerHandler.GetClientExerciseVolumeHistory)
 					protected.GET("/me/trainer/clients/:client_id/templates", cfg.TrainerHandler.ListClientTemplates)
 					protected.POST("/me/trainer/clients/:client_id/templates", cfg.TrainerHandler.CreateClientTemplate)
 					protected.POST("/me/trainer/clients/:client_id/workouts", cfg.TrainerHandler.CreateClientWorkout)
@@ -325,47 +325,49 @@ func (s *Server) RegisterRoutes(cfg *RoutesConfig) {
 				}
 			}
 
-		if cfg.BlogHandler != nil {
-			blog := v1.Group("/blog-posts")
-			{
-				blog.GET("", cfg.BlogHandler.ListPosts)
-				blog.GET("/:post_id", cfg.BlogHandler.GetPost)
-			}
-			tags := v1.Group("/tags")
-			{
-				tags.GET("", cfg.BlogHandler.ListTags)
-			}
-		}
-
-		if len(cfg.JWTSecret) > 0 && cfg.AuthHandler != nil {
-			admin := v1.Group("/admin")
-			admin.Use(middleware.JWTAuth(cfg.JWTSecret))
-			admin.Use(middleware.RequireRole(domain.RoleAdmin))
-			{
-				admin.GET("/ping", func(c *gin.Context) {
-					c.JSON(http.StatusOK, gin.H{"message": "admin pong"})
-				})
-
-				if cfg.GymHandler != nil {
-					admin.POST("/gyms", cfg.GymHandler.CreateGym)
+			if cfg.BlogHandler != nil {
+				blog := v1.Group("/blog-posts")
+				{
+					blog.GET("", cfg.BlogHandler.ListPosts)
+					blog.GET("/:post_id", cfg.BlogHandler.GetPost)
 				}
-
-				if cfg.GamificationAdminHandler != nil {
-					gam := cfg.GamificationAdminHandler
-					ag := admin.Group("/gamification")
-					ag.GET("/settings", gam.GetSettings)
-					ag.PATCH("/settings/:key", gam.PatchSetting)
-					ag.GET("/badges", gam.ListBadges)
-					ag.POST("/badges", gam.CreateBadge)
-					ag.PATCH("/badges/:id", gam.UpdateBadge)
-					ag.DELETE("/badges/:id", gam.DeleteBadge)
-					ag.GET("/missions", gam.ListMissions)
-					ag.POST("/missions", gam.CreateMission)
-					ag.PATCH("/missions/:id", gam.UpdateMission)
-					ag.DELETE("/missions/:id", gam.DeleteMission)
+				tags := v1.Group("/tags")
+				{
+					tags.GET("", cfg.BlogHandler.ListTags)
 				}
 			}
-		}
+
+			if len(cfg.JWTSecret) > 0 && cfg.AuthHandler != nil {
+				admin := v1.Group("/admin")
+				admin.Use(middleware.JWTAuth(cfg.JWTSecret))
+				admin.Use(middleware.RequireRole(domain.RoleAdmin))
+				{
+					admin.GET("/ping", func(c *gin.Context) {
+						c.JSON(http.StatusOK, gin.H{"message": "admin pong"})
+					})
+
+					if cfg.GymHandler != nil {
+						admin.POST("/gyms", cfg.GymHandler.CreateGym)
+					}
+
+					if cfg.GamificationAdminHandler != nil {
+						gam := cfg.GamificationAdminHandler
+						ag := admin.Group("/gamification")
+						ag.GET("/settings", gam.GetSettings)
+						ag.PATCH("/settings/:key", gam.PatchSetting)
+						ag.GET("/levels", gam.GetLevels)
+						ag.PATCH("/levels", gam.PatchLevels)
+						ag.GET("/badges", gam.ListBadges)
+						ag.POST("/badges", gam.CreateBadge)
+						ag.PATCH("/badges/:id", gam.UpdateBadge)
+						ag.DELETE("/badges/:id", gam.DeleteBadge)
+						ag.GET("/missions", gam.ListMissions)
+						ag.POST("/missions", gam.CreateMission)
+						ag.PATCH("/missions/:id", gam.UpdateMission)
+						ag.DELETE("/missions/:id", gam.DeleteMission)
+					}
+				}
+			}
 		}
 	}
 }

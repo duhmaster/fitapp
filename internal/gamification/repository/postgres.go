@@ -33,7 +33,8 @@ func (r *PG) GetProfile(ctx context.Context, userID uuid.UUID) (*gamdomain.Profi
 	`, userID).Scan(&totalXP, &av)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			into, span := level.Progress(0)
+			t := r.getLevelThresholds(ctx)
+			into, span := level.ProgressWithThresholds(0, t)
 			return &gamdomain.Profile{
 				UserID: userID, TotalXP: 0, Level: 1,
 				XPIntoCurrentLevel: into, XPForNextLevel: span, AvatarTier: 0,
@@ -41,8 +42,9 @@ func (r *PG) GetProfile(ctx context.Context, userID uuid.UUID) (*gamdomain.Profi
 		}
 		return nil, err
 	}
-	lv := level.FromTotalXP(totalXP)
-	into, span := level.Progress(totalXP)
+	t := r.getLevelThresholds(ctx)
+	lv := level.FromTotalXPWithThresholds(totalXP, t)
+	into, span := level.ProgressWithThresholds(totalXP, t)
 	return &gamdomain.Profile{
 		UserID: userID, TotalXP: totalXP, Level: lv,
 		XPIntoCurrentLevel: into, XPForNextLevel: span, AvatarTier: av,
@@ -199,7 +201,7 @@ func (r *PG) ClaimMission(ctx context.Context, userID, missionID uuid.UUID) erro
 	var total int
 	_ = tx.QueryRow(ctx, `SELECT COALESCE(total_xp,0) FROM gamification_profiles WHERE user_id = $1 FOR UPDATE`, userID).Scan(&total)
 	newTotal := total + reward
-	lv := level.FromTotalXP(newTotal)
+	lv := level.FromTotalXPWithThresholds(newTotal, r.getLevelThresholds(ctx))
 	_, err = tx.Exec(ctx, `
 		INSERT INTO gamification_profiles (user_id, total_xp, current_level, updated_at)
 		VALUES ($1, $2, $3, NOW())
@@ -213,6 +215,37 @@ func (r *PG) ClaimMission(ctx context.Context, userID, missionID uuid.UUID) erro
 	}
 	r.incrRedisXP(ctx, userID, reward, nil)
 	return nil
+}
+
+const xpWorkoutPRBonus = 15
+
+// workoutHasPersonalRecord is true if any exercise in this workout has max set weight above all prior finished workouts for that exercise.
+func (r *PG) workoutHasPersonalRecord(ctx context.Context, tx pgx.Tx, userID, workoutID uuid.UUID) (bool, error) {
+	var ok bool
+	err := tx.QueryRow(ctx, `
+		SELECT EXISTS (
+			SELECT 1
+			FROM (
+				SELECT el.exercise_id, MAX(el.weight_kg) AS cur_w
+				FROM exercise_logs el
+				WHERE el.workout_id = $1
+				  AND el.reps IS NOT NULL AND el.reps > 0
+				  AND el.weight_kg IS NOT NULL
+				GROUP BY el.exercise_id
+			) cur
+			LEFT JOIN (
+				SELECT el.exercise_id, MAX(el.weight_kg) AS prev_w
+				FROM exercise_logs el
+				INNER JOIN workouts w ON w.id = el.workout_id
+				WHERE w.user_id = $2 AND w.finished_at IS NOT NULL AND w.id <> $1
+				  AND el.reps IS NOT NULL AND el.reps > 0
+				  AND el.weight_kg IS NOT NULL
+				GROUP BY el.exercise_id
+			) prev ON prev.exercise_id = cur.exercise_id
+			WHERE cur.cur_w > COALESCE(prev.prev_w, 0)
+		)
+	`, workoutID, userID).Scan(&ok)
+	return ok, err
 }
 
 // ApplyWorkoutReward idempotent XP grant for a finished workout (volume matches Flutter preview curve).
@@ -240,6 +273,44 @@ func (r *PG) ApplyWorkoutReward(ctx context.Context, userID, workoutID uuid.UUID
 		return err
 	}
 
+	prBonus := 0
+	hasPR, err := r.workoutHasPersonalRecord(ctx, tx, userID, workoutID)
+	if err != nil {
+		return err
+	}
+	if hasPR {
+		prIDem := fmt.Sprintf("xp:pr_bonus:%s", workoutID.String())
+		var prRow uuid.UUID
+		err = tx.QueryRow(ctx, `
+			INSERT INTO xp_ledger (user_id, delta_xp, reason, source_type, source_id, idempotency_key)
+			VALUES ($1, $2, 'workout_pr_bonus', 'workout', $3, $4)
+			ON CONFLICT (idempotency_key) DO NOTHING
+			RETURNING id
+		`, userID, xpWorkoutPRBonus, workoutID, prIDem).Scan(&prRow)
+		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+			return err
+		}
+		if err == nil {
+			prBonus = xpWorkoutPRBonus
+		}
+		var prCnt int
+		_ = tx.QueryRow(ctx, `SELECT COUNT(*) FROM xp_ledger WHERE user_id = $1 AND reason = 'workout_pr_bonus'`, userID).Scan(&prCnt)
+		if prCnt >= 1 {
+			_, _ = tx.Exec(ctx, `
+				INSERT INTO user_badges (user_id, badge_id, unlocked_at)
+				SELECT $1, id, NOW() FROM badge_definitions WHERE code = 'pr_first'
+				ON CONFLICT DO NOTHING
+			`, userID)
+		}
+		if prCnt >= 10 {
+			_, _ = tx.Exec(ctx, `
+				INSERT INTO user_badges (user_id, badge_id, unlocked_at)
+				SELECT $1, id, NOW() FROM badge_definitions WHERE code = 'pr_veteran'
+				ON CONFLICT DO NOTHING
+			`, userID)
+		}
+	}
+
 	var totalXP int
 	err = tx.QueryRow(ctx, `SELECT COALESCE(total_xp, 0) FROM gamification_profiles WHERE user_id = $1 FOR UPDATE`, userID).Scan(&totalXP)
 	if err != nil {
@@ -248,8 +319,8 @@ func (r *PG) ApplyWorkoutReward(ctx context.Context, userID, workoutID uuid.UUID
 		}
 		totalXP = 0
 	}
-	newTotal := totalXP + deltaXP
-	lv := level.FromTotalXP(newTotal)
+	newTotal := totalXP + deltaXP + prBonus
+	lv := level.FromTotalXPWithThresholds(newTotal, r.getLevelThresholds(ctx))
 	_, err = tx.Exec(ctx, `
 		INSERT INTO gamification_profiles (user_id, total_xp, current_level, avatar_tier, updated_at)
 		VALUES ($1, $2, $3, 0, NOW())
@@ -307,7 +378,7 @@ func (r *PG) ApplyWorkoutReward(ctx context.Context, userID, workoutID uuid.UUID
 	if err := tx.Commit(ctx); err != nil {
 		return err
 	}
-	r.postXPLeaderboards(ctx, userID, deltaXP, workoutID)
+	r.postXPLeaderboards(ctx, userID, deltaXP+prBonus, workoutID)
 	return nil
 }
 

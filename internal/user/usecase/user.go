@@ -19,6 +19,12 @@ type UserUseCase struct {
 	metricRepo          userdomain.MetricRepository
 	bodyMeasurementRepo userdomain.BodyMeasurementRepository
 	store               storage.Store
+	onBodyMeasurement   func(ctx context.Context, userID, measurementID uuid.UUID) error
+}
+
+// SetGamificationOnBodyMeasurement registers a hook after a successful body measurement create (optional).
+func (uc *UserUseCase) SetGamificationOnBodyMeasurement(h func(ctx context.Context, userID, measurementID uuid.UUID) error) {
+	uc.onBodyMeasurement = h
 }
 
 // NewUserUseCase creates a new UserUseCase.
@@ -30,9 +36,9 @@ func NewUserUseCase(
 ) *UserUseCase {
 	return &UserUseCase{
 		profileRepo:         profileRepo,
-		metricRepo:         metricRepo,
+		metricRepo:          metricRepo,
 		bodyMeasurementRepo: bodyMeasurementRepo,
-		store:              store,
+		store:               store,
 	}
 }
 
@@ -145,7 +151,14 @@ func (uc *UserUseCase) GetMetricHistory(ctx context.Context, user *authdomain.Us
 
 // CreateBodyMeasurement adds a body measurement record.
 func (uc *UserUseCase) CreateBodyMeasurement(ctx context.Context, user *authdomain.User, recordedAt time.Time, weightKg float64, bodyFatPct, heightCm *float64) (*userdomain.BodyMeasurement, error) {
-	return uc.bodyMeasurementRepo.Create(ctx, user.ID, recordedAt, weightKg, bodyFatPct, heightCm)
+	m, err := uc.bodyMeasurementRepo.Create(ctx, user.ID, recordedAt, weightKg, bodyFatPct, heightCm)
+	if err != nil {
+		return nil, err
+	}
+	if uc.onBodyMeasurement != nil {
+		_ = uc.onBodyMeasurement(ctx, user.ID, m.ID)
+	}
+	return m, nil
 }
 
 // ListBodyMeasurements returns body measurements for the user.

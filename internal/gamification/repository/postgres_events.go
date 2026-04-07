@@ -47,7 +47,7 @@ func (r *PG) ApplyGroupTrainingRegistrationReward(ctx context.Context, userID, t
 		totalXP = 0
 	}
 	newTotal := totalXP + delta
-	lv := level.FromTotalXP(newTotal)
+	lv := level.FromTotalXPWithThresholds(newTotal, r.getLevelThresholds(ctx))
 	_, err = tx.Exec(ctx, `
 		INSERT INTO gamification_profiles (user_id, total_xp, current_level, avatar_tier, updated_at)
 		VALUES ($1, $2, $3, 0, NOW())

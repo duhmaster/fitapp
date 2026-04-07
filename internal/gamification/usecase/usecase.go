@@ -72,6 +72,11 @@ func (u *UseCase) ApplyGymCheckInMission(ctx context.Context, userID, gymID uuid
 	return u.repo.ApplyGymCheckInMission(ctx, userID, gymID)
 }
 
+// ApplyBodyMeasurementReward is called after POST /users/me/body-measurements (idempotent per measurement id).
+func (u *UseCase) ApplyBodyMeasurementReward(ctx context.Context, userID, measurementID uuid.UUID) error {
+	return u.repo.ApplyBodyMeasurementReward(ctx, userID, measurementID)
+}
+
 // PublicLeaderboardScores returns top weekly global scores without PII (Redis); falls back to SQL aggregates.
 func (u *UseCase) PublicLeaderboardScores(ctx context.Context, limit int) ([]PublicScoreRow, error) {
 	if limit <= 0 || limit > 100 {

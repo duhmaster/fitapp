@@ -165,6 +165,9 @@ func run() error {
 	gymUC.SetGamificationOnCheckIn(func(ctx context.Context, userID, gymID uuid.UUID) error {
 		return gamUC.ApplyGymCheckInMission(ctx, userID, gymID)
 	})
+	userUC.SetGamificationOnBodyMeasurement(func(ctx context.Context, userID, measurementID uuid.UUID) error {
+		return gamUC.ApplyBodyMeasurementReward(ctx, userID, measurementID)
+	})
 
 	// Workout module
 	exerciseRepo := workoutrepository.NewExerciseRepository(db)
