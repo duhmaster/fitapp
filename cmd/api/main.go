@@ -14,40 +14,43 @@ import (
 	"github.com/fitflow/fitflow/internal/admin"
 	authdelivery "github.com/fitflow/fitflow/internal/auth/delivery"
 	authrepository "github.com/fitflow/fitflow/internal/auth/repository"
+	authusecase "github.com/fitflow/fitflow/internal/auth/usecase"
 	blogdelivery "github.com/fitflow/fitflow/internal/blog/delivery"
 	blogrepository "github.com/fitflow/fitflow/internal/blog/repository"
 	blogusecase "github.com/fitflow/fitflow/internal/blog/usecase"
-	authusecase "github.com/fitflow/fitflow/internal/auth/usecase"
 	"github.com/fitflow/fitflow/internal/config"
-	"github.com/fitflow/fitflow/internal/geo"
-	"github.com/fitflow/fitflow/internal/delivery/middleware"
 	httpdelivery "github.com/fitflow/fitflow/internal/delivery/http"
+	"github.com/fitflow/fitflow/internal/delivery/middleware"
+	gamificationdelivery "github.com/fitflow/fitflow/internal/gamification/delivery"
+	gamleaderboard "github.com/fitflow/fitflow/internal/gamification/leaderboard"
+	gamificationrepository "github.com/fitflow/fitflow/internal/gamification/repository"
+	gamificationusecase "github.com/fitflow/fitflow/internal/gamification/usecase"
+	"github.com/fitflow/fitflow/internal/geo"
+	grouptrainingdelivery "github.com/fitflow/fitflow/internal/grouptraining/delivery"
+	grouptrainingrepository "github.com/fitflow/fitflow/internal/grouptraining/repository"
+	grouptrainingusecase "github.com/fitflow/fitflow/internal/grouptraining/usecase"
+	gymdelivery "github.com/fitflow/fitflow/internal/gym/delivery"
+	gymdomain "github.com/fitflow/fitflow/internal/gym/domain"
+	gymrepository "github.com/fitflow/fitflow/internal/gym/repository"
+	gymusecase "github.com/fitflow/fitflow/internal/gym/usecase"
+	notificationdelivery "github.com/fitflow/fitflow/internal/notification/delivery"
+	notificationrepository "github.com/fitflow/fitflow/internal/notification/repository"
+	notificationusecase "github.com/fitflow/fitflow/internal/notification/usecase"
+	photodelivery "github.com/fitflow/fitflow/internal/photo/delivery"
+	photorepository "github.com/fitflow/fitflow/internal/photo/repository"
+	photousecase "github.com/fitflow/fitflow/internal/photo/usecase"
 	"github.com/fitflow/fitflow/internal/pkg/logger"
 	"github.com/fitflow/fitflow/internal/pkg/postgres"
 	"github.com/fitflow/fitflow/internal/pkg/redis"
 	"github.com/fitflow/fitflow/internal/pkg/storage"
-	gymdomain "github.com/fitflow/fitflow/internal/gym/domain"
-	gymdelivery "github.com/fitflow/fitflow/internal/gym/delivery"
-	gymrepository "github.com/fitflow/fitflow/internal/gym/repository"
-	gymusecase "github.com/fitflow/fitflow/internal/gym/usecase"
-	"github.com/google/uuid"
 	progressdelivery "github.com/fitflow/fitflow/internal/progress/delivery"
 	progressrepository "github.com/fitflow/fitflow/internal/progress/repository"
 	progressusecase "github.com/fitflow/fitflow/internal/progress/usecase"
 	socialdelivery "github.com/fitflow/fitflow/internal/social/delivery"
 	socialrepository "github.com/fitflow/fitflow/internal/social/repository"
 	socialusecase "github.com/fitflow/fitflow/internal/social/usecase"
-	notificationdelivery "github.com/fitflow/fitflow/internal/notification/delivery"
-	notificationrepository "github.com/fitflow/fitflow/internal/notification/repository"
-	notificationusecase "github.com/fitflow/fitflow/internal/notification/usecase"
-	grouptrainingdelivery "github.com/fitflow/fitflow/internal/grouptraining/delivery"
-	grouptrainingrepository "github.com/fitflow/fitflow/internal/grouptraining/repository"
-	grouptrainingusecase "github.com/fitflow/fitflow/internal/grouptraining/usecase"
-	photodelivery "github.com/fitflow/fitflow/internal/photo/delivery"
-	photorepository "github.com/fitflow/fitflow/internal/photo/repository"
-	photousecase "github.com/fitflow/fitflow/internal/photo/usecase"
-	systemmessagedomain "github.com/fitflow/fitflow/internal/systemmessage/domain"
 	systemmessagedelivery "github.com/fitflow/fitflow/internal/systemmessage/delivery"
+	systemmessagedomain "github.com/fitflow/fitflow/internal/systemmessage/domain"
 	systemmessagerepository "github.com/fitflow/fitflow/internal/systemmessage/repository"
 	systemmessageusecase "github.com/fitflow/fitflow/internal/systemmessage/usecase"
 	trainerdelivery "github.com/fitflow/fitflow/internal/trainer/delivery"
@@ -56,14 +59,11 @@ import (
 	userdelivery "github.com/fitflow/fitflow/internal/user/delivery"
 	userrepository "github.com/fitflow/fitflow/internal/user/repository"
 	userusecase "github.com/fitflow/fitflow/internal/user/usecase"
+	"github.com/fitflow/fitflow/internal/workers"
 	workoutdelivery "github.com/fitflow/fitflow/internal/workout/delivery"
 	workoutrepository "github.com/fitflow/fitflow/internal/workout/repository"
 	workoutusecase "github.com/fitflow/fitflow/internal/workout/usecase"
-	gamificationdelivery "github.com/fitflow/fitflow/internal/gamification/delivery"
-	gamificationrepository "github.com/fitflow/fitflow/internal/gamification/repository"
-	gamificationusecase "github.com/fitflow/fitflow/internal/gamification/usecase"
-	"github.com/fitflow/fitflow/internal/workers"
-	gamleaderboard "github.com/fitflow/fitflow/internal/gamification/leaderboard"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -250,7 +250,9 @@ func run() error {
 		return p.DisplayName, p.City, p.AvatarURL
 	})
 	trainerHandler.SetPublicProfileDeps(
-		func(ctx context.Context, trainerID uuid.UUID) (int, error) { return workoutUC.CountByTrainerID(ctx, trainerID) },
+		func(ctx context.Context, trainerID uuid.UUID) (int, error) {
+			return workoutUC.CountByTrainerID(ctx, trainerID)
+		},
 		func(ctx context.Context, userID uuid.UUID) ([]trainerdelivery.PublicProfileGym, error) {
 			gyms, err := gymUC.ListGymsByUserID(ctx, userID)
 			if err != nil {
@@ -395,57 +397,57 @@ func run() error {
 	var adminHandler *admin.Handler
 	if cfg.AdminPassword != "" {
 		adminDeps := &admin.Deps{
-			AdminUsername:  cfg.AdminUsername,
-			AdminPassword:  cfg.AdminPassword,
-			SessionSecret:  cfg.AdminPassword,
-			UsersList:      authUserRepo.List,
-			UsersGet:       authUserRepo.GetByID,
+			AdminUsername:   cfg.AdminUsername,
+			AdminPassword:   cfg.AdminPassword,
+			SessionSecret:   cfg.AdminPassword,
+			UsersList:       authUserRepo.List,
+			UsersGet:        authUserRepo.GetByID,
 			UsersUpdateRole: authUserRepo.UpdateRole,
-			GymsSearch:     func(ctx context.Context, q, city string, lat, lng *float64, limit, offset int) ([]*gymdomain.Gym, error) {
+			GymsSearch: func(ctx context.Context, q, city string, lat, lng *float64, limit, offset int) ([]*gymdomain.Gym, error) {
 				return gymRepo.Search(ctx, q, city, lat, lng, limit, offset)
 			},
-			GymsCreate:     func(ctx context.Context, name string, lat, lng *float64, address string) (*gymdomain.Gym, error) {
+			GymsCreate: func(ctx context.Context, name string, lat, lng *float64, address string) (*gymdomain.Gym, error) {
 				return gymRepo.Create(ctx, name, "", address, "", "", lat, lng)
 			},
-			GymsGet:    gymRepo.GetByID,
+			GymsGet: gymRepo.GetByID,
 			GymsUpdate: func(ctx context.Context, id uuid.UUID, name string, lat, lng *float64, address string) (*gymdomain.Gym, error) {
 				return gymRepo.Update(ctx, id, name, "", address, "", "", lat, lng)
 			},
-			GymsDelete: gymRepo.SoftDelete,
+			GymsDelete:      gymRepo.SoftDelete,
 			ExercisesList:   exerciseRepo.List,
 			ExercisesCount:  exerciseRepo.Count,
-			ExercisesGet:   exerciseRepo.GetByID,
+			ExercisesGet:    exerciseRepo.GetByID,
 			ExercisesCreate: exerciseRepo.Create,
 			ExercisesUpdate: exerciseRepo.Update,
 			ExercisesDelete: exerciseRepo.Delete,
-			ProgramsList:   programRepo.List,
-			ProgramsGet:    programRepo.GetByID,
-			ProgramsCreate: programRepo.Create,
-			ProgramsUpdate: programRepo.Update,
-			ProgramsDelete: programRepo.Delete,
-			TagsList:       tagRepo.List,
-			TagsGet:        tagRepo.GetByID,
-			TagsCreate:     tagRepo.Create,
-			TagsDelete:     tagRepo.Delete,
+			ProgramsList:    programRepo.List,
+			ProgramsGet:     programRepo.GetByID,
+			ProgramsCreate:  programRepo.Create,
+			ProgramsUpdate:  programRepo.Update,
+			ProgramsDelete:  programRepo.Delete,
+			TagsList:        tagRepo.List,
+			TagsGet:         tagRepo.GetByID,
+			TagsCreate:      tagRepo.Create,
+			TagsDelete:      tagRepo.Delete,
 			BlogPostsList:   blogPostRepo.List,
-			BlogPostsGet:   blogPostRepo.GetByID,
+			BlogPostsGet:    blogPostRepo.GetByID,
 			BlogPostsCreate: blogPostRepo.Create,
 			BlogPostsUpdate: blogPostRepo.Update,
 			BlogPostsDelete: blogPostRepo.SoftDelete,
 			SystemMessagesList: func(ctx context.Context, limit, offset int) ([]*systemmessagedomain.SystemMessage, error) {
 				return systemMessageRepo.List(ctx, false, limit, offset)
 			},
-			SystemMessagesGet: systemMessageRepo.GetByID,
+			SystemMessagesGet:    systemMessageRepo.GetByID,
 			SystemMessagesCreate: systemMessageRepo.Create,
 			SystemMessagesUpdate: systemMessageRepo.Update,
 			SystemMessagesDelete: systemMessageRepo.Delete,
-			BucketsList:   bucketRepo.List,
-			BucketsGet:    bucketRepo.GetByID,
-			BucketsCreate: bucketRepo.Create,
-			BucketsUpdate: bucketRepo.Update,
-			BucketsDelete: bucketRepo.Delete,
-			PhotosList: photoRepo.List,
-			PhotosGet:  photoUC.GetByID,
+			BucketsList:          bucketRepo.List,
+			BucketsGet:           bucketRepo.GetByID,
+			BucketsCreate:        bucketRepo.Create,
+			BucketsUpdate:        bucketRepo.Update,
+			BucketsDelete:        bucketRepo.Delete,
+			PhotosList:           photoRepo.List,
+			PhotosGet:            photoUC.GetByID,
 			PhotosUpload: func(ctx context.Context, bucketName string, r io.Reader, contentType string) (uuid.UUID, string, error) {
 				res, err := photoUC.Upload(ctx, bucketName, "admin", r, contentType, nil)
 				if err != nil {
@@ -453,7 +455,9 @@ func run() error {
 				}
 				return res.PhotoID, res.URL, nil
 			},
-			PhotosDelete: photoUC.Delete,
+			PhotosDelete:                   photoUC.Delete,
+			GamificationGetLevelThresholds: gamRepo.GetLevelThresholds,
+			GamificationSetLevelThresholds: gamRepo.SetLevelThresholds,
 		}
 		adminHandler = admin.NewHandler(adminDeps)
 	}
@@ -462,26 +466,26 @@ func run() error {
 	healthHandler := httpdelivery.NewHealthHandler(db, rdb)
 	srv := httpdelivery.New(log)
 	srv.RegisterRoutes(&httpdelivery.RoutesConfig{
-		AllowedOrigins:     middleware.ParseCORSOrigins(cfg.CORSAllowedOrigins),
-		HealthHandler:     healthHandler,
-		AuthHandler:       authHandler,
-		UserHandler:       userHandler,
-		GeoClient:         geo.NewClient(cfg.DADATAAPIKey, cfg.DADATASecretKey),
-		GymHandler:        gymHandler,
-		WorkoutHandler:    workoutHandler,
-		ProgressHandler:   progressHandler,
-		SocialHandler:     socialHandler,
-		BlogHandler:       blogHandler,
-		TrainerHandler:    trainerHandler,
-		NotificationHandler: notificationHandler,
-		SystemMessageHandler: systemMessageHandler,
-		GroupTrainingHandler: groupTrainingHandler,
-		PhotoHandler:         photodelivery.NewHandler(photoUC),
+		AllowedOrigins:           middleware.ParseCORSOrigins(cfg.CORSAllowedOrigins),
+		HealthHandler:            healthHandler,
+		AuthHandler:              authHandler,
+		UserHandler:              userHandler,
+		GeoClient:                geo.NewClient(cfg.DADATAAPIKey, cfg.DADATASecretKey),
+		GymHandler:               gymHandler,
+		WorkoutHandler:           workoutHandler,
+		ProgressHandler:          progressHandler,
+		SocialHandler:            socialHandler,
+		BlogHandler:              blogHandler,
+		TrainerHandler:           trainerHandler,
+		NotificationHandler:      notificationHandler,
+		SystemMessageHandler:     systemMessageHandler,
+		GroupTrainingHandler:     groupTrainingHandler,
+		PhotoHandler:             photodelivery.NewHandler(photoUC),
 		GamificationHandler:      gamificationHandler,
 		GamificationAdminHandler: gamificationAdminHandler,
 		AdminHandler:             adminHandler,
-		JWTSecret:         []byte(cfg.JWTSecret),
-		UploadsPath:       cfg.StoragePath,
+		JWTSecret:                []byte(cfg.JWTSecret),
+		UploadsPath:              cfg.StoragePath,
 	})
 
 	// Background workers (in-process for now; split into separate worker cmd later)

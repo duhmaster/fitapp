@@ -347,7 +347,6 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
             ListTile(
               leading: const Icon(Icons.dynamic_feed),
               title: Text(tr('feed')),
-              subtitle: Text(tr('home_feed_subtitle')),
               onTap: () => _drawerNavigate(context, () => _go(context, '/feed')),
             ),
             ListTile(
@@ -401,7 +400,6 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
             ListTile(
               leading: const Icon(Icons.dynamic_feed),
               title: Text(tr('feed')),
-              subtitle: Text(tr('home_feed_subtitle')),
               onTap: () => _drawerNavigate(context, () => _go(context, '/feed')),
             ),
             _drawerSectionHeader(context, tr('nav_drawer_section_trainer_groups')),

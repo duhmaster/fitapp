@@ -88,5 +88,9 @@ func RegisterRoutes(g *gin.RouterGroup, h *Handler) {
 		admin.POST("/entities/photos/create", h.PhotosCreate)
 		admin.GET("/entities/photos/:id", h.PhotosView)
 		admin.POST("/entities/photos/delete/:id", h.PhotosDelete)
+
+		// Gamification
+		admin.GET("/entities/gamification/levels", h.GamificationLevelsEdit)
+		admin.POST("/entities/gamification/levels/update", h.GamificationLevelsUpdate)
 	}
 }

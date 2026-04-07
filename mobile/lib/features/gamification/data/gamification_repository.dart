@@ -19,7 +19,6 @@ class GamificationRepository {
   final Dio dio;
 
   static const _base = '/api/v1/me/gamification';
-  static const _adminBase = '/api/v1/admin/gamification';
 
   Future<GamificationFeatureFlags> fetchFeaturePreferences() async {
     try {
@@ -159,16 +158,4 @@ class GamificationRepository {
     }
   }
 
-  Future<List<int>> fetchAdminLevelThresholds() async {
-    final res = await dio.get<Map<String, dynamic>>('$_adminBase/levels');
-    final raw = res.data?['thresholds'] as List<dynamic>? ?? const [];
-    return raw.map((e) => (e as num).toInt()).toList();
-  }
-
-  Future<void> saveAdminLevelThresholds(List<int> thresholds) async {
-    await dio.patch<Map<String, dynamic>>(
-      '$_adminBase/levels',
-      data: <String, dynamic>{'thresholds': thresholds},
-    );
-  }
 }

@@ -45,6 +45,7 @@ const (
     <a href="/admin/entities/system_messages">System messages</a>
     <a href="/admin/entities/buckets">Buckets</a>
     <a href="/admin/entities/photos">Photos</a>
+    <a href="/admin/entities/gamification/levels">Gamification levels</a>
     <form action="/admin/logout" method="post" style="margin-left:auto;">
       <button type="submit" class="btn btn-sm">Logout</button>
     </form>
@@ -82,6 +83,7 @@ const (
   <p><a href="/admin/entities/system_messages">System messages</a> – list, CRUD</p>
   <p><a href="/admin/entities/buckets">Buckets</a> – S3 storage reference, CRUD</p>
   <p><a href="/admin/entities/photos">Photos</a> – uploaded images, list, upload, delete</p>
+  <p><a href="/admin/entities/gamification/levels">Gamification levels</a> – edit XP thresholds for levels</p>
 </div>
 {{end}}`
 

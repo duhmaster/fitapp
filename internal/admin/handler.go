@@ -25,7 +25,7 @@ type ListRow struct {
 
 // ListData for list template.
 type ListData struct {
-	Title            string
+	Title             string
 	Headers           []string
 	Rows              []ListRow
 	ListPath          string
@@ -106,6 +106,68 @@ func (h *Handler) LogoutPost(c *gin.Context) {
 // Dashboard renders dashboard.
 func (h *Handler) Dashboard(c *gin.Context) {
 	h.renderOK(c, dashboardHTML, gin.H{"ShowBar": true})
+}
+
+// GamificationLevelsEdit renders level thresholds editor.
+func (h *Handler) GamificationLevelsEdit(c *gin.Context) {
+	if h.Deps.GamificationGetLevelThresholds == nil {
+		c.String(http.StatusNotImplemented, "gamification levels are not configured")
+		return
+	}
+	thresholds, err := h.Deps.GamificationGetLevelThresholds(c.Request.Context())
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+	values := make([]string, 0, len(thresholds))
+	for _, v := range thresholds {
+		values = append(values, strconv.Itoa(v))
+	}
+	fields := `<label>XP thresholds</label>
+<textarea name="thresholds" rows="6" placeholder="0, 100, 250, 500">` + template.HTMLEscaper(strings.Join(values, ", ")) + `</textarea>
+<p class="muted">Comma or newline separated. Must start with 0 and be strictly increasing.</p>`
+	h.renderOK(c, formHTML, gin.H{
+		"ShowBar":     true,
+		"Title":       "Gamification levels",
+		"Action":      "/admin/entities/gamification/levels/update",
+		"FieldsHTML":  template.HTML(fields),
+		"SubmitLabel": "Save",
+		"CancelURL":   "/admin/dashboard",
+	})
+}
+
+// GamificationLevelsUpdate saves thresholds from admin form.
+func (h *Handler) GamificationLevelsUpdate(c *gin.Context) {
+	if h.Deps.GamificationSetLevelThresholds == nil {
+		c.String(http.StatusNotImplemented, "gamification levels are not configured")
+		return
+	}
+	raw := c.PostForm("thresholds")
+	raw = strings.ReplaceAll(raw, ";", ",")
+	raw = strings.ReplaceAll(raw, "\n", ",")
+	parts := strings.Split(raw, ",")
+	thresholds := make([]int, 0, len(parts))
+	for _, p := range parts {
+		s := strings.TrimSpace(p)
+		if s == "" {
+			continue
+		}
+		n, err := strconv.Atoi(s)
+		if err != nil {
+			c.Redirect(http.StatusFound, "/admin/entities/gamification/levels?flash="+url.QueryEscape("Invalid number: "+s))
+			return
+		}
+		thresholds = append(thresholds, n)
+	}
+	if len(thresholds) < 2 {
+		c.Redirect(http.StatusFound, "/admin/entities/gamification/levels?flash="+url.QueryEscape("Provide at least 2 thresholds"))
+		return
+	}
+	if err := h.Deps.GamificationSetLevelThresholds(c.Request.Context(), thresholds); err != nil {
+		c.Redirect(http.StatusFound, "/admin/entities/gamification/levels?flash="+url.QueryEscape("Save failed: "+err.Error()))
+		return
+	}
+	c.Redirect(http.StatusFound, "/admin/entities/gamification/levels?flash=Updated")
 }
 
 // Index redirects /admin to dashboard or login.
