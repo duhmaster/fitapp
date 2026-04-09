@@ -230,6 +230,12 @@
       "languageVersion": "3.9"
     },
     {
+      "name": "flutter_driver",
+      "rootUri": "file:///Users/duhmaster/dev/flutter/packages/flutter_driver",
+      "packageUri": "lib/",
+      "languageVersion": "3.9"
+    },
+    {
       "name": "flutter_lints",
       "rootUri": "file:///Users/duhmaster/.pub-cache/hosted/pub.dev/flutter_lints-4.0.0",
       "packageUri": "lib/",
@@ -276,6 +282,12 @@
       "rootUri": "file:///Users/duhmaster/.pub-cache/hosted/pub.dev/frontend_server_client-4.0.0",
       "packageUri": "lib/",
       "languageVersion": "3.0"
+    },
+    {
+      "name": "fuchsia_remote_debug_protocol",
+      "rootUri": "file:///Users/duhmaster/dev/flutter/packages/fuchsia_remote_debug_protocol",
+      "packageUri": "lib/",
+      "languageVersion": "3.9"
     },
     {
       "name": "glob",
@@ -360,6 +372,12 @@
       "rootUri": "file:///Users/duhmaster/.pub-cache/hosted/pub.dev/image_picker_windows-0.2.2",
       "packageUri": "lib/",
       "languageVersion": "3.6"
+    },
+    {
+      "name": "integration_test",
+      "rootUri": "file:///Users/duhmaster/dev/flutter/packages/integration_test",
+      "packageUri": "lib/",
+      "languageVersion": "3.9"
     },
     {
       "name": "intl",
@@ -486,6 +504,12 @@
       "rootUri": "file:///Users/duhmaster/.pub-cache/hosted/pub.dev/pool-1.5.2",
       "packageUri": "lib/",
       "languageVersion": "3.4"
+    },
+    {
+      "name": "process",
+      "rootUri": "file:///Users/duhmaster/.pub-cache/hosted/pub.dev/process-5.0.5",
+      "packageUri": "lib/",
+      "languageVersion": "3.5"
     },
     {
       "name": "pub_semver",
@@ -626,6 +650,12 @@
       "languageVersion": "3.1"
     },
     {
+      "name": "sync_http",
+      "rootUri": "file:///Users/duhmaster/.pub-cache/hosted/pub.dev/sync_http-0.3.1",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
       "name": "term_glyph",
       "rootUri": "file:///Users/duhmaster/.pub-cache/hosted/pub.dev/term_glyph-1.2.2",
       "packageUri": "lib/",
@@ -690,6 +720,12 @@
       "rootUri": "file:///Users/duhmaster/.pub-cache/hosted/pub.dev/web_socket_channel-3.0.3",
       "packageUri": "lib/",
       "languageVersion": "3.3"
+    },
+    {
+      "name": "webdriver",
+      "rootUri": "file:///Users/duhmaster/.pub-cache/hosted/pub.dev/webdriver-3.1.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.1"
     },
     {
       "name": "xdg_directories",
