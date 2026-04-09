@@ -1,0 +1,9 @@
+version: "Apple Swift version 5.7.2 (swiftlang-5.7.2.135.5 clang-1400.0.29.51)"
+options: "b864306357008cf037a06d983514e41c11930c83e3b49a1a40ce6e34b028c476"
+build_start_time: [1775721996, 929824829]
+build_end_time: [1775722002, 132776975]
+inputs:
+  ? "/Users/duhmaster/.pub-cache/hosted/pub.dev/file_selector_macos-0.9.5/macos/file_selector_macos/Sources/file_selector_macos/FileSelectorPlugin.swift"
+  : [1772631174, 95128536]
+  ? "/Users/duhmaster/.pub-cache/hosted/pub.dev/file_selector_macos-0.9.5/macos/file_selector_macos/Sources/file_selector_macos/messages.g.swift"
+  : [1772631174, 94810485]

@@ -1,0 +1,8 @@
+version: "Apple Swift version 5.7.2 (swiftlang-5.7.2.135.5 clang-1400.0.29.51)"
+options: "f489f18ae9693d4db95896ca0fb3be9f8e2b188fa1e383760a9897eb3a0566ed"
+build_start_time: [1775722009, 347557067]
+build_end_time: [1775722014, 254539966]
+inputs:
+  "/Users/duhmaster/dev/golang/fitapp/fitapp/mobile/macos/Flutter/GeneratedPluginRegistrant.swift": [1775719041, 410687923]
+  "/Users/duhmaster/dev/golang/fitapp/fitapp/mobile/macos/Runner/AppDelegate.swift": [1772582032, 0]
+  "/Users/duhmaster/dev/golang/fitapp/fitapp/mobile/macos/Runner/MainFlutterWindow.swift": [1772582032, 0]
