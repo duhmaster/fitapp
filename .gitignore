@@ -20,10 +20,10 @@ Thumbs.db
 # Test and coverage
 coverage.out
 *.test
+tests/visual/
 
 # Build
 /dist/
-/build/
 
 # K8s secrets (do not commit)
 deployments/k8s/secret.yaml

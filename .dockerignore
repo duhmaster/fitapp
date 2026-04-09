@@ -25,6 +25,13 @@ docs
 *.md
 !migrations/*.sql
 
+# Flutter / frontend (not needed for API build)
+mobile
+
+# Large data and scripts (not needed at runtime)
+files
+scripts
+
 # Docker (avoid recursive copy)
 Dockerfile
 docker-compose*.yml
