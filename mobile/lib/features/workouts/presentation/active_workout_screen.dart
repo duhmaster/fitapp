@@ -12,12 +12,14 @@ import 'package:fitflow/features/workouts/presentation/workouts_provider.dart';
 import 'package:fitflow/features/templates/template_edit_screen.dart';
 
 class ActiveWorkoutScreen extends ConsumerStatefulWidget {
-  const ActiveWorkoutScreen({super.key, required this.workoutId, this.readOnly = false});
+  const ActiveWorkoutScreen(
+      {super.key, required this.workoutId, this.readOnly = false});
   final String workoutId;
   final bool readOnly;
 
   @override
-  ConsumerState<ActiveWorkoutScreen> createState() => _ActiveWorkoutScreenState();
+  ConsumerState<ActiveWorkoutScreen> createState() =>
+      _ActiveWorkoutScreenState();
 }
 
 class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
@@ -56,7 +58,9 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
     final tr = ref.watch(trProvider);
     final detailAsync = ref.watch(workoutDetailProvider(widget.workoutId));
     final templateId = detailAsync.valueOrNull?.workout.templateId;
-    final templateAsync = templateId != null ? ref.watch(templateDetailProvider(templateId)) : null;
+    final templateAsync = templateId != null
+        ? ref.watch(templateDetailProvider(templateId))
+        : null;
 
     return Scaffold(
       body: detailAsync.when(
@@ -69,14 +73,16 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
           return templateAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (_, __) => _buildWithoutTemplate(context, tr, detail),
-            data: (templateDetail) => _buildWithTemplate(context, tr, detail, templateDetail),
+            data: (templateDetail) =>
+                _buildWithTemplate(context, tr, detail, templateDetail),
           );
         },
       ),
     );
   }
 
-  Widget _buildWithoutTemplate(BuildContext context, String Function(String) tr, WorkoutDetail detail) {
+  Widget _buildWithoutTemplate(
+      BuildContext context, String Function(String) tr, WorkoutDetail detail) {
     final title = detail.templateName ??
         (widget.readOnly ? tr('workout_detail') : tr('active_workout'));
     return Column(
@@ -88,14 +94,18 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
               TextButton(
                 onPressed: _finishing ? null : () => _finishWorkout(tr),
                 child: _finishing
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2))
                     : Text(tr('finish_workout')),
               ),
             if (detail.workout.isCompleted)
               IconButton(
                 icon: const Icon(Icons.show_chart_rounded),
                 tooltip: tr('stat'),
-                onPressed: () => context.push('/workout/${detail.workout.id}/stats'),
+                onPressed: () =>
+                    context.push('/workout/${detail.workout.id}/stats'),
               ),
           ],
         ),
@@ -104,7 +114,8 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
             child: Center(
               child: Padding(
                 padding: const EdgeInsets.all(24),
-                child: Text(tr('no_exercises_in_workout'), textAlign: TextAlign.center),
+                child: Text(tr('no_exercises_in_workout'),
+                    textAlign: TextAlign.center),
               ),
             ),
           )
@@ -122,10 +133,13 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                         ),
                   ),
                   const SizedBox(height: 8),
-                  Text('${tr('volume_completed')}: ${detail.volumeKg.toStringAsFixed(0)} kg'),
+                  Text(
+                      '${tr('volume_completed')}: ${detail.volumeKg.toStringAsFixed(0)} kg'),
                   const SizedBox(height: 16),
                   ...detail.exercises.map((ex) {
-                    final logsForEx = detail.logs.where((l) => l.exerciseId == ex.exerciseId).toList()
+                    final logsForEx = detail.logs
+                        .where((l) => l.exerciseId == ex.exerciseId)
+                        .toList()
                       ..sort((a, b) => a.setNumber.compareTo(b.setNumber));
                     return Card(
                       margin: const EdgeInsets.only(bottom: 12),
@@ -135,14 +149,19 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              ex.exerciseId.length > 8 ? ex.exerciseId.substring(0, 8) : ex.exerciseId,
+                              ex.exerciseId.length > 8
+                                  ? ex.exerciseId.substring(0, 8)
+                                  : ex.exerciseId,
                               style: Theme.of(context).textTheme.titleMedium,
                             ),
                             if (logsForEx.isEmpty)
                               Padding(
                                 padding: const EdgeInsets.only(top: 8),
                                 child: Text(tr('not_started'),
-                                    style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                                    style: TextStyle(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurfaceVariant)),
                               )
                             else
                               ...logsForEx.map((log) {
@@ -151,11 +170,15 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                                   dense: true,
                                   contentPadding: EdgeInsets.zero,
                                   leading: Icon(
-                                    isCompleted ? Icons.check_circle : Icons.cancel,
-                                    color: isCompleted ? Colors.green : Colors.red,
+                                    isCompleted
+                                        ? Icons.check_circle
+                                        : Icons.cancel,
+                                    color:
+                                        isCompleted ? Colors.green : Colors.red,
                                     size: 20,
                                   ),
-                                  title: Text('${tr('set_number')} ${log.setNumber}'),
+                                  title: Text(
+                                      '${tr('set_number')} ${log.setNumber}'),
                                   trailing: Text(
                                     '${log.weightKg?.toStringAsFixed(0) ?? "—"} kg × ${log.reps ?? "—"}',
                                   ),
@@ -190,23 +213,31 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
     final currentPlanned = planned[_currentExerciseIndex];
     final setCount = currentPlanned.sets.length;
     _currentSetIndex = _currentSetIndex.clamp(0, setCount);
-    final logsForExercise = detail.logs.where((l) => l.exerciseId == currentPlanned.exerciseId).toList();
+    final logsForExercise = detail.logs
+        .where((l) => l.exerciseId == currentPlanned.exerciseId)
+        .toList();
     final nextSetToLog = _nextSetIndex(logsForExercise, setCount);
     final showSetPanel = nextSetToLog < setCount && _restSecondsRemaining == 0;
-    final defaultWeight = nextSetToLog < setCount ? (currentPlanned.sets[nextSetToLog].weightKg ?? 0) : 0;
-    final defaultReps = nextSetToLog < setCount ? (currentPlanned.sets[nextSetToLog].reps ?? 0) : 0;
+    final defaultWeight = nextSetToLog < setCount
+        ? (currentPlanned.sets[nextSetToLog].weightKg ?? 0)
+        : 0;
+    final defaultReps = nextSetToLog < setCount
+        ? (currentPlanned.sets[nextSetToLog].reps ?? 0)
+        : 0;
     final prefillKey = '${currentPlanned.exerciseId}_$nextSetToLog';
     if (showSetPanel && prefillKey != _lastPrefilledKey) {
       _lastPrefilledKey = prefillKey;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        _weightController.text = defaultWeight > 0 ? defaultWeight.toString() : '';
+        _weightController.text =
+            defaultWeight > 0 ? defaultWeight.toString() : '';
         _repsController.text = defaultReps > 0 ? defaultReps.toString() : '';
         setState(() {});
       });
     }
 
-    final exercisesDone = planned.where((p) => _exerciseCompleted(p, detail.logs)).length;
+    final exercisesDone =
+        planned.where((p) => _exerciseCompleted(p, detail.logs)).length;
     final totalExercises = planned.length;
     final progress = totalExercises > 0 ? exercisesDone / totalExercises : 0.0;
 
@@ -219,14 +250,18 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
               TextButton(
                 onPressed: _finishing ? null : () => _finishWorkout(tr),
                 child: _finishing
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2))
                     : Text(tr('finish_workout')),
               ),
             if (detail.workout.isCompleted)
               IconButton(
                 icon: const Icon(Icons.show_chart_rounded),
                 tooltip: tr('stat'),
-                onPressed: () => context.push('/workout/${detail.workout.id}/stats'),
+                onPressed: () =>
+                    context.push('/workout/${detail.workout.id}/stats'),
               ),
           ],
         ),
@@ -244,11 +279,13 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                       ),
                 ),
                 const SizedBox(height: 8),
-                Text('${tr('progress_exercises')}: $exercisesDone / $totalExercises'),
+                Text(
+                    '${tr('progress_exercises')}: $exercisesDone / $totalExercises'),
                 const SizedBox(height: 4),
                 LinearProgressIndicator(value: progress),
                 const SizedBox(height: 8),
-                Text('${tr('volume_completed')}: ${detail.volumeKg.toStringAsFixed(0)} kg'),
+                Text(
+                    '${tr('volume_completed')}: ${detail.volumeKg.toStringAsFixed(0)} kg'),
               ],
             ),
           ),
@@ -261,7 +298,8 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
               final p = planned[i];
               final completed = _exerciseCompleted(p, detail.logs);
               final isCurrent = i == _currentExerciseIndex;
-              final exerciseName = p.exercise?.name ?? p.exerciseId.substring(0, 8);
+              final exerciseName =
+                  p.exercise?.name ?? p.exerciseId.substring(0, 8);
               return Padding(
                 padding: const EdgeInsets.only(right: 8),
                 child: InkWell(
@@ -274,10 +312,16 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                   }),
                   child: Chip(
                     avatar: Icon(
-                      completed ? Icons.check_circle : (isCurrent ? Icons.play_circle_filled : Icons.schedule),
+                      completed
+                          ? Icons.check_circle
+                          : (isCurrent
+                              ? Icons.play_circle_filled
+                              : Icons.schedule),
                       color: completed
                           ? Colors.green
-                          : (isCurrent ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurfaceVariant),
+                          : (isCurrent
+                              ? Theme.of(context).colorScheme.primary
+                              : Theme.of(context).colorScheme.onSurfaceVariant),
                       size: 20,
                     ),
                     label: ConstrainedBox(
@@ -286,7 +330,13 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                         exerciseName,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: completed ? Colors.green : (isCurrent ? null : Theme.of(context).colorScheme.onSurfaceVariant),
+                          color: completed
+                              ? Colors.green
+                              : (isCurrent
+                                  ? null
+                                  : Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant),
                           fontWeight: isCurrent ? FontWeight.bold : null,
                         ),
                       ),
@@ -308,13 +358,15 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                   children: [
                     Expanded(
                       child: Text(
-                        currentPlanned.exercise?.name ?? currentPlanned.exerciseId,
+                        currentPlanned.exercise?.name ??
+                            currentPlanned.exerciseId,
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                     ),
                     IconButton(
                       icon: const Icon(Icons.help_outline),
-                      onPressed: () => _showExerciseDescription(context, currentPlanned.exercise, tr),
+                      onPressed: () => _showExerciseDescription(
+                          context, currentPlanned.exercise, tr),
                     ),
                   ],
                 ),
@@ -322,25 +374,48 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                 Text(tr('sets'), style: Theme.of(context).textTheme.titleSmall),
                 const SizedBox(height: 8),
                 ...List.generate(setCount, (i) {
-                  final log = logsForExercise.where((l) => l.setNumber == i + 1).firstOrNull;
+                  final log = logsForExercise
+                      .where((l) => l.setNumber == i + 1)
+                      .firstOrNull;
                   final isCompleted = log != null && (log.reps ?? 0) > 0;
                   final isSkipped = log != null && (log.reps ?? 0) == 0;
                   final defaultW = currentPlanned.sets[i].weightKg;
                   final defaultR = currentPlanned.sets[i].reps;
+                  final cs = Theme.of(context).colorScheme;
+                  final tileColor = isCompleted
+                      ? cs.primaryContainer.withValues(alpha: 0.45)
+                      : (isSkipped
+                          ? cs.errorContainer.withValues(alpha: 0.45)
+                          : cs.surfaceContainerHighest.withValues(alpha: 0.55));
+                  final iconColor = isCompleted
+                      ? cs.primary
+                      : (isSkipped ? cs.error : cs.onSurfaceVariant);
                   return Card(
-                    color: isCompleted
-                        ? Colors.green.shade50
-                        : (isSkipped ? Colors.red.shade50 : null),
+                    color: tileColor,
                     margin: const EdgeInsets.only(bottom: 8),
                     child: ListTile(
                       leading: Icon(
-                        isCompleted ? Icons.check_circle : (isSkipped ? Icons.cancel : Icons.radio_button_unchecked),
-                        color: isCompleted ? Colors.green : (isSkipped ? Colors.red : null),
+                        isCompleted
+                            ? Icons.check_circle
+                            : (isSkipped
+                                ? Icons.cancel
+                                : Icons.radio_button_unchecked),
+                        color: iconColor,
                       ),
-                      title: Text('${tr('set_number')} ${i + 1}'),
+                      title: Text(
+                        '${tr('set_number')} ${i + 1}',
+                        style: TextStyle(
+                            color: cs.onSurface, fontWeight: FontWeight.w600),
+                      ),
                       trailing: log != null
-                          ? Text('${log.weightKg?.toStringAsFixed(0) ?? "—"} kg × ${log.reps ?? "—"}')
-                          : Text('${defaultW?.toStringAsFixed(0) ?? "—"} kg × ${defaultR ?? "—"}'),
+                          ? Text(
+                              '${log.weightKg?.toStringAsFixed(0) ?? "—"} kg × ${log.reps ?? "—"}',
+                              style: TextStyle(color: cs.onSurfaceVariant),
+                            )
+                          : Text(
+                              '${defaultW?.toStringAsFixed(0) ?? "—"} kg × ${defaultR ?? "—"}',
+                              style: TextStyle(color: cs.onSurfaceVariant),
+                            ),
                     ),
                   );
                 }),
@@ -349,13 +424,16 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                   Center(
                     child: Column(
                       children: [
-                        Text(tr('rest_seconds'), style: Theme.of(context).textTheme.titleMedium),
-                        Text('$_restSecondsRemaining', style: Theme.of(context).textTheme.headlineLarge),
+                        Text(tr('rest_seconds'),
+                            style: Theme.of(context).textTheme.titleMedium),
+                        Text('$_restSecondsRemaining',
+                            style: Theme.of(context).textTheme.headlineLarge),
                       ],
                     ),
                   ),
                 ] else if (nextSetToLog >= setCount && setCount > 0) ...[
-                  Text(tr('exercise_completed'), style: Theme.of(context).textTheme.titleMedium),
+                  Text(tr('exercise_completed'),
+                      style: Theme.of(context).textTheme.titleMedium),
                   if (!widget.readOnly) ...[
                     const SizedBox(height: 12),
                     if (_currentExerciseIndex < planned.length - 1)
@@ -400,11 +478,15 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text(tr('weight_kg'), style: Theme.of(context).textTheme.titleSmall),
+                              Text(tr('weight_kg'),
+                                  style:
+                                      Theme.of(context).textTheme.titleSmall),
                               const SizedBox(height: 4),
                               TextField(
                                 controller: _weightController,
-                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                        decimal: true),
                                 decoration: InputDecoration(
                                   border: const OutlineInputBorder(),
                                   suffixText: tr('kg_suffix'),
@@ -421,12 +503,15 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text(tr('reps'), style: Theme.of(context).textTheme.titleSmall),
+                              Text(tr('reps'),
+                                  style:
+                                      Theme.of(context).textTheme.titleSmall),
                               const SizedBox(height: 4),
                               TextField(
                                 controller: _repsController,
                                 keyboardType: TextInputType.number,
-                                decoration: const InputDecoration(border: OutlineInputBorder()),
+                                decoration: const InputDecoration(
+                                    border: OutlineInputBorder()),
                                 onChanged: (_) => setState(() {}),
                               ),
                             ],
@@ -439,7 +524,13 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                       children: [
                         Expanded(
                           child: FilledButton.icon(
-                            onPressed: () => _saveSet(tr, detail, currentPlanned, nextSetToLog, setCount, template),
+                            onPressed: () => _saveSet(
+                                tr,
+                                detail,
+                                currentPlanned,
+                                nextSetToLog,
+                                setCount,
+                                template),
                             icon: const Icon(Icons.check),
                             label: Text(tr('save')),
                           ),
@@ -447,7 +538,8 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: OutlinedButton.icon(
-                            onPressed: () => _skipSet(tr, detail, currentPlanned, nextSetToLog, setCount),
+                            onPressed: () => _skipSet(tr, detail,
+                                currentPlanned, nextSetToLog, setCount),
                             icon: const Icon(Icons.skip_next),
                             label: Text(tr('skip')),
                           ),
@@ -463,22 +555,26 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
     );
   }
 
-  List<_PlannedExercise> _plannedExercisesWithSets(TemplateDetail templateDetail, WorkoutDetail detail) {
-    final sorted = List<WorkoutExercise>.from(detail.exercises)..sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
+  List<_PlannedExercise> _plannedExercisesWithSets(
+      TemplateDetail templateDetail, WorkoutDetail detail) {
+    final sorted = List<WorkoutExercise>.from(detail.exercises)
+      ..sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
     final orderIds = sorted.map((e) => e.exerciseId).toList();
     final byId = {for (var te in templateDetail.exercises) te.exerciseId: te};
     return orderIds
         .map((id) => byId[id])
         .whereType<TemplateExercise>()
         .map((te) {
-          final sets = List<TemplateExerciseSet>.from(te.sets)..sort((a, b) => a.setOrder.compareTo(b.setOrder));
-          return _PlannedExercise(exerciseId: te.exerciseId, exercise: te.exercise, sets: sets);
-        })
-        .toList();
+      final sets = List<TemplateExerciseSet>.from(te.sets)
+        ..sort((a, b) => a.setOrder.compareTo(b.setOrder));
+      return _PlannedExercise(
+          exerciseId: te.exerciseId, exercise: te.exercise, sets: sets);
+    }).toList();
   }
 
   bool _exerciseCompleted(_PlannedExercise p, List<ExerciseLog> logs) {
-    final exerciseLogs = logs.where((l) => l.exerciseId == p.exerciseId).toList();
+    final exerciseLogs =
+        logs.where((l) => l.exerciseId == p.exerciseId).toList();
     if (exerciseLogs.length < p.sets.length) return false;
     return p.sets.every((_) => true);
   }
@@ -498,7 +594,9 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
     int setCount,
     WorkoutTemplate template,
   ) async {
-    final weight = double.tryParse(_weightController.text.trim().replaceAll(',', '.')) ?? 0.0;
+    final weight =
+        double.tryParse(_weightController.text.trim().replaceAll(',', '.')) ??
+            0.0;
     final reps = int.tryParse(_repsController.text.trim());
     if (reps == null || reps < 0) return;
     setState(() {
@@ -534,7 +632,9 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
         ref.invalidate(workoutDetailProvider(widget.workoutId));
       }
     } on AppException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if (mounted)
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message)));
     }
   }
 
@@ -562,17 +662,23 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
         }
       });
     } on AppException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if (mounted)
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message)));
     }
   }
 
-  void _showExerciseDescription(BuildContext context, Exercise? exercise, String Function(String) tr) {
+  void _showExerciseDescription(
+      BuildContext context, Exercise? exercise, String Function(String) tr) {
     if (exercise == null) {
       showDialog<void>(
         context: context,
         builder: (ctx) => AlertDialog(
           content: Text(tr('no_exercises_added')),
-          actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: Text(tr('close')))],
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx), child: Text(tr('close')))
+          ],
         ),
       );
       return;
@@ -612,9 +718,12 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                 Wrap(
                   spacing: 8,
                   children: [
-                    if (e.muscleGroup != null) Chip(label: Text(e.muscleGroup!)),
-                    if (e.difficultyLevel != null) Chip(label: Text(e.difficultyLevel!)),
-                    if (e.tags.isNotEmpty) ...e.tags.take(3).map((t) => Chip(label: Text(t))),
+                    if (e.muscleGroup != null)
+                      Chip(label: Text(e.muscleGroup!)),
+                    if (e.difficultyLevel != null)
+                      Chip(label: Text(e.difficultyLevel!)),
+                    if (e.tags.isNotEmpty)
+                      ...e.tags.take(3).map((t) => Chip(label: Text(t))),
                   ],
                 ),
               ],
@@ -637,13 +746,20 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                 const SizedBox(height: 16),
                 Text(tr('formula'), style: theme.textTheme.titleMedium),
                 const SizedBox(height: 4),
-                SelectableText(e.formula!, style: theme.textTheme.bodyMedium?.copyWith(fontFamily: 'monospace')),
+                SelectableText(e.formula!,
+                    style: theme.textTheme.bodyMedium
+                        ?.copyWith(fontFamily: 'monospace')),
               ],
               if (e.equipment.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 Text(tr('equipment'), style: theme.textTheme.titleMedium),
                 const SizedBox(height: 4),
-                Wrap(spacing: 4, runSpacing: 4, children: e.equipment.map((eq) => Chip(label: Text(eq))).toList()),
+                Wrap(
+                    spacing: 4,
+                    runSpacing: 4,
+                    children: e.equipment
+                        .map((eq) => Chip(label: Text(eq)))
+                        .toList()),
               ],
               const SizedBox(height: 24),
             ],
@@ -667,13 +783,16 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
         ref.invalidate(gamificationProfileProvider);
         ref.invalidate(gamificationXpHistoryProvider);
         if (flags.xpEnabled) {
-          context.go('/workout/${widget.workoutId}/stats?reward=1', extra: profileBefore);
+          context.go('/workout/${widget.workoutId}/stats?reward=1',
+              extra: profileBefore);
         } else {
           context.go('/home');
         }
       }
     } on AppException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if (mounted)
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message)));
     } finally {
       if (mounted) setState(() => _finishing = false);
     }
@@ -689,7 +808,8 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
 }
 
 class _PlannedExercise {
-  _PlannedExercise({required this.exerciseId, this.exercise, required this.sets});
+  _PlannedExercise(
+      {required this.exerciseId, this.exercise, required this.sets});
   final String exerciseId;
   final Exercise? exercise;
   final List<TemplateExerciseSet> sets;

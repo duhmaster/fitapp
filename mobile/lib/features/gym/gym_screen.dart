@@ -30,8 +30,12 @@ class _GymScreenState extends ConsumerState<GymScreen> {
         title: Text(tr('delete')),
         content: Text('${tr('gym')}: ${gym.name}'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tr('cancel'))),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(tr('delete'))),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(tr('cancel'))),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(tr('delete'))),
         ],
       ),
     );
@@ -39,9 +43,13 @@ class _GymScreenState extends ConsumerState<GymScreen> {
     try {
       await ref.read(gymRepositoryProvider).removeMyGym(gym.id);
       await _refresh();
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('saved'))));
+      if (mounted)
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(tr('saved'))));
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+      if (mounted)
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.toString())));
     }
   }
 
@@ -85,9 +93,11 @@ class _GymScreenState extends ConsumerState<GymScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.fitness_center, size: 64, color: Theme.of(context).colorScheme.outline),
+                  Icon(Icons.fitness_center,
+                      size: 64, color: Theme.of(context).colorScheme.outline),
                   const SizedBox(height: 16),
-                  Text(tr('gym_optional'), style: Theme.of(context).textTheme.bodyLarge),
+                  Text(tr('gym_optional'),
+                      style: Theme.of(context).textTheme.bodyLarge),
                   const SizedBox(height: 16),
                   FilledButton.icon(
                     onPressed: _openAddGym,
@@ -108,14 +118,17 @@ class _GymScreenState extends ConsumerState<GymScreen> {
                 return Card(
                   child: ListTile(
                     title: Text(g.name),
-                    subtitle: Text([if (g.city != null && g.city!.isNotEmpty) g.city, g.address].where((e) => e != null && e.isNotEmpty).join(' • ') ),
+                    subtitle: Text([
+                      if (g.city != null && g.city!.isNotEmpty) g.city,
+                      g.address
+                    ].where((e) => e != null && e.isNotEmpty).join(' • ')),
                     trailing: IconButton(
                       icon: const Icon(Icons.delete_outline),
                       onPressed: () => _removeGym(g),
                     ),
                     onTap: () => context.push(
-                          '/gym/${g.id}?name=${Uri.encodeQueryComponent(g.name)}',
-                        ),
+                      '/gym/${g.id}?name=${Uri.encodeQueryComponent(g.name)}',
+                    ),
                   ),
                 );
               },
@@ -179,13 +192,18 @@ class _AddGymByNameDialogState extends State<_AddGymByNameDialog> {
       city: _selectedCity,
       limit: 10,
     );
-    if (mounted) setState(() { _suggestions = list; _loading = false; });
+    if (mounted)
+      setState(() {
+        _suggestions = list;
+        _loading = false;
+      });
   }
 
   void _selectSuggestion(Gym gym) {
     setState(() {
       _selectedGym = gym;
       _nameController.text = gym.name;
+      _suggestions = [];
     });
   }
 
@@ -204,7 +222,9 @@ class _AddGymByNameDialogState extends State<_AddGymByNameDialog> {
       }
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+      if (mounted)
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.toString())));
     }
   }
 
@@ -245,7 +265,9 @@ class _AddGymByNameDialogState extends State<_AddGymByNameDialog> {
                     border: OutlineInputBorder(),
                     suffixIcon: Icon(Icons.arrow_drop_down),
                   ),
-                  child: Text(_selectedCity?.isNotEmpty == true ? _selectedCity! : tr('gym_optional')),
+                  child: Text(_selectedCity?.isNotEmpty == true
+                      ? _selectedCity!
+                      : tr('gym_optional')),
                 ),
               ),
               const SizedBox(height: 16),
@@ -265,15 +287,23 @@ class _AddGymByNameDialogState extends State<_AddGymByNameDialog> {
                 ),
                 autofocus: true,
                 onChanged: (v) {
+                  final normalized = v.trim().toLowerCase();
                   setState(() {
-                    if (_selectedGym != null && _selectedGym!.name != v) _selectedGym = null;
+                    final selectedName =
+                        _selectedGym?.name.trim().toLowerCase();
+                    if (_selectedGym != null && selectedName != normalized) {
+                      _selectedGym = null;
+                    }
                   });
                   Future.delayed(const Duration(milliseconds: 300), () {
                     if (_nameController.text == v) _search(v.trim());
                   });
                 },
               ),
-              if (_loading) const Padding(padding: EdgeInsets.only(top: 8), child: LinearProgressIndicator()),
+              if (_loading)
+                const Padding(
+                    padding: EdgeInsets.only(top: 8),
+                    child: LinearProgressIndicator()),
               if (_suggestions.isNotEmpty && _selectedGym == null) ...[
                 const SizedBox(height: 8),
                 ConstrainedBox(
@@ -286,7 +316,9 @@ class _AddGymByNameDialogState extends State<_AddGymByNameDialog> {
                       return ListTile(
                         dense: true,
                         title: Text(g.name),
-                        subtitle: (g.city != null && g.city!.isNotEmpty) ? Text(g.city!) : null,
+                        subtitle: (g.city != null && g.city!.isNotEmpty)
+                            ? Text(g.city!)
+                            : null,
                         onTap: () => _selectSuggestion(g),
                       );
                     },
@@ -298,11 +330,10 @@ class _AddGymByNameDialogState extends State<_AddGymByNameDialog> {
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: Text(tr('cancel'))),
+        TextButton(
+            onPressed: () => Navigator.pop(context), child: Text(tr('cancel'))),
         FilledButton(
-          onPressed: _nameController.text.trim().isEmpty
-              ? null
-              : _submit,
+          onPressed: _nameController.text.trim().isEmpty ? null : _submit,
           child: Text(tr('add_gym')),
         ),
       ],
@@ -349,7 +380,11 @@ class _CitySearchDialogState extends State<_CitySearchDialog> {
     }
     setState(() => _loading = true);
     final list = await widget.onSearch(q);
-    if (mounted) setState(() { _items = list; _loading = false; });
+    if (mounted)
+      setState(() {
+        _items = list;
+        _loading = false;
+      });
   }
 
   @override

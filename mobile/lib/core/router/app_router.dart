@@ -64,7 +64,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         authNotifier.check();
         return null;
       }
-      final isAuthRoute = state.matchedLocation == '/login' || state.matchedLocation == '/register';
+      final isAuthRoute = state.matchedLocation == '/login' ||
+          state.matchedLocation == '/register';
       final isLoadingRoute = state.matchedLocation == '/loading';
       if (isLoadingRoute) return authNotifier.isLoggedIn ? '/home' : '/login';
       if (!authNotifier.isLoggedIn &&
@@ -95,26 +96,35 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               child: child,
             ),
             routes: [
-              GoRoute(path: 'home', builder: (_, __) => const WorkoutsListScreen()),
-              GoRoute(path: 'calendar', builder: (_, __) => const CalendarScreen()),
-              GoRoute(path: 'exercises', builder: (_, __) => const ExercisesScreen()),
+              GoRoute(
+                  path: 'home', builder: (_, __) => const WorkoutsListScreen()),
+              GoRoute(
+                  path: 'calendar', builder: (_, __) => const CalendarScreen()),
+              GoRoute(
+                  path: 'exercises',
+                  builder: (_, __) => const ExercisesScreen()),
               GoRoute(
                 path: 'templates',
                 builder: (_, __) => const TemplatesScreen(),
                 routes: [
                   GoRoute(
                     path: ':id/edit',
-                    builder: (_, state) => TemplateEditScreen(templateId: state.pathParameters['id']!),
+                    builder: (_, state) => TemplateEditScreen(
+                        templateId: state.pathParameters['id']!),
                   ),
                   GoRoute(
                     path: ':id/pick-exercise',
-                    builder: (_, state) => ExercisePickerScreen(templateId: state.pathParameters['id']!),
+                    builder: (_, state) => ExercisePickerScreen(
+                        templateId: state.pathParameters['id']!),
                   ),
                 ],
               ),
-              GoRoute(path: 'current-workout', builder: (_, __) => const CurrentWorkoutScreen()),
+              GoRoute(
+                  path: 'current-workout',
+                  builder: (_, __) => const CurrentWorkoutScreen()),
               GoRoute(path: 'timers', builder: (_, __) => const TimersScreen()),
-              GoRoute(path: 'profile', builder: (_, __) => const ProfileScreen()),
+              GoRoute(
+                  path: 'profile', builder: (_, __) => const ProfileScreen()),
               GoRoute(path: 'gym', builder: (_, __) => const GymScreen()),
               GoRoute(
                 path: 'gym/:gymId',
@@ -127,19 +137,39 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 path: 'progress',
                 builder: (_, __) => const ProgressMenuScreen(),
                 routes: [
-                  GoRoute(path: 'measurements', builder: (_, __) => const ProgressScreen()),
-                  GoRoute(path: 'workouts', builder: (_, __) => const ProgressWorkoutsScreen()),
-                  GoRoute(path: 'exercises', builder: (_, __) => const ProgressExercisesScreen()),
-                  GoRoute(path: 'muscles', builder: (_, __) => const ProgressMusclesScreen()),
-                  GoRoute(path: 'achievements', builder: (_, __) => const AchievementsScreen()),
-                  GoRoute(path: 'missions', builder: (_, __) => const MissionsScreen()),
-                  GoRoute(path: 'leaderboard', builder: (_, __) => const LeaderboardScreen()),
-                  GoRoute(path: 'xp-history', builder: (_, __) => const XpHistoryScreen()),
+                  GoRoute(
+                      path: 'measurements',
+                      builder: (_, __) => const ProgressScreen()),
+                  GoRoute(
+                      path: 'workouts',
+                      builder: (_, __) => const ProgressWorkoutsScreen()),
+                  GoRoute(
+                      path: 'exercises',
+                      builder: (_, __) => const ProgressExercisesScreen()),
+                  GoRoute(
+                      path: 'muscles',
+                      builder: (_, __) => const ProgressMusclesScreen()),
+                  GoRoute(
+                      path: 'achievements',
+                      builder: (_, __) => const AchievementsScreen()),
+                  GoRoute(
+                      path: 'missions',
+                      builder: (_, __) => const MissionsScreen()),
+                  GoRoute(
+                      path: 'leaderboard',
+                      builder: (_, __) => const LeaderboardScreen()),
+                  GoRoute(
+                      path: 'xp-history',
+                      builder: (_, __) => const XpHistoryScreen()),
                 ],
               ),
               GoRoute(path: 'feed', builder: (_, __) => const FeedScreen()),
-              GoRoute(path: 'system-messages', builder: (_, __) => const SystemMessagesScreen()),
-              GoRoute(path: 'group-trainings', builder: (_, __) => const MyGroupTrainingsScreen()),
+              GoRoute(
+                  path: 'system-messages',
+                  builder: (_, __) => const SystemMessagesScreen()),
+              GoRoute(
+                  path: 'group-trainings',
+                  builder: (_, __) => const MyGroupTrainingsScreen()),
               // Статический путь должен быть выше :trainingId, иначе "available" попадёт в параметр.
               GoRoute(
                 path: 'group-trainings/available',
@@ -147,7 +177,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               ),
               GoRoute(
                 path: 'group-trainings/:trainingId',
-                builder: (_, state) => GroupTrainingDetailScreen(trainingId: state.pathParameters['trainingId']!),
+                builder: (_, state) => GroupTrainingDetailScreen(
+                    trainingId: state.pathParameters['trainingId']!),
               ),
               GoRoute(
                 path: 'help',
@@ -155,7 +186,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 routes: [
                   GoRoute(
                     path: ':topicId',
-                    builder: (_, state) => HelpTopicScreen(topicId: state.pathParameters['topicId']!),
+                    builder: (_, state) => HelpTopicScreen(
+                        topicId: state.pathParameters['topicId']!),
                   ),
                 ],
               ),
@@ -171,7 +203,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 builder: (_, state) => WorkoutStatsScreen(
                   workoutId: state.pathParameters['id']!,
                   openRewardFlow: state.uri.queryParameters['reward'] == '1',
-                  profileBeforeWorkout: state.extra is GamificationProfile ? state.extra as GamificationProfile : null,
+                  profileBeforeWorkout: state.extra is GamificationProfile
+                      ? state.extra as GamificationProfile
+                      : null,
                 ),
               ),
               GoRoute(
@@ -183,7 +217,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     path: 'profile',
                     builder: (_, __) => const TrainerProfileScreen(),
                     routes: [
-                      GoRoute(path: 'edit', builder: (_, __) => const TrainerProfileEditScreen()),
+                      GoRoute(
+                          path: 'edit',
+                          builder: (_, __) => const TrainerProfileEditScreen()),
                     ],
                   ),
                   GoRoute(
@@ -207,32 +243,53 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                       ),
                     ],
                   ),
-                  GoRoute(path: 'calendar', builder: (_, __) => const TrainerCalendarScreen()),
+                  GoRoute(
+                      path: 'calendar',
+                      builder: (_, __) => const TrainerCalendarScreen()),
                   GoRoute(
                     path: 'group-training-templates',
-                    builder: (_, __) => const TrainerGroupTrainingTemplatesScreen(),
+                    builder: (_, __) =>
+                        const TrainerGroupTrainingTemplatesScreen(),
                     routes: [
-                      GoRoute(path: 'new', builder: (_, __) => const TrainerGroupTrainingTemplateEditScreen(templateIdOrNull: null)),
+                      GoRoute(
+                          path: 'new',
+                          builder: (_, __) =>
+                              const TrainerGroupTrainingTemplateEditScreen(
+                                  templateIdOrNull: null)),
                       GoRoute(
                         path: ':templateId',
-                        builder: (_, state) => TrainerGroupTrainingTemplateEditScreen(templateIdOrNull: state.pathParameters['templateId']!),
+                        builder: (_, state) =>
+                            TrainerGroupTrainingTemplateEditScreen(
+                                templateIdOrNull:
+                                    state.pathParameters['templateId']!),
                       ),
                     ],
                   ),
-                  GoRoute(path: 'rankings', builder: (_, __) => const TrainerRankingsScreen()),
-                  GoRoute(path: 'achievements', builder: (_, __) => const TrainerAchievementsScreen()),
+                  GoRoute(
+                      path: 'rankings',
+                      builder: (_, __) => const TrainerRankingsScreen()),
+                  GoRoute(
+                      path: 'achievements',
+                      builder: (_, __) => const TrainerAchievementsScreen()),
                   GoRoute(
                     path: 'group-trainings',
                     builder: (_, __) => const TrainerGroupTrainingsScreen(),
                     routes: [
-                      GoRoute(path: 'new', builder: (_, __) => const TrainerGroupTrainingEditScreen(trainingIdOrNull: null)),
+                      GoRoute(
+                          path: 'new',
+                          builder: (_, __) =>
+                              const TrainerGroupTrainingEditScreen(
+                                  trainingIdOrNull: null)),
                       GoRoute(
                         path: ':trainingId',
-                        builder: (_, state) => TrainerGroupTrainingDetailScreen(trainingId: state.pathParameters['trainingId']!),
+                        builder: (_, state) => TrainerGroupTrainingDetailScreen(
+                            trainingId: state.pathParameters['trainingId']!),
                       ),
                       GoRoute(
                         path: ':trainingId/edit',
-                        builder: (_, state) => TrainerGroupTrainingEditScreen(trainingIdOrNull: state.pathParameters['trainingId']!),
+                        builder: (_, state) => TrainerGroupTrainingEditScreen(
+                            trainingIdOrNull:
+                                state.pathParameters['trainingId']!),
                       ),
                     ],
                   ),
@@ -240,17 +297,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
-          GoRoute(path: 'my-trainers', builder: (_, __) => const MyTrainersScreen()),
+          GoRoute(
+              path: 'my-trainers',
+              builder: (_, __) => const MyTrainersScreen()),
           GoRoute(path: 'options', builder: (_, __) => const OptionsScreen()),
         ],
       ),
       GoRoute(
         path: '/t/:userId',
-        builder: (_, state) => TrainerPublicScreen(userId: state.pathParameters['userId']!),
+        builder: (_, state) =>
+            TrainerPublicScreen(userId: state.pathParameters['userId']!),
       ),
       GoRoute(
         path: '/g/:trainingId',
-        builder: (_, state) => GroupTrainingPublicScreen(trainingId: state.pathParameters['trainingId']!),
+        builder: (_, state) => GroupTrainingPublicScreen(
+            trainingId: state.pathParameters['trainingId']!),
       ),
     ],
   );

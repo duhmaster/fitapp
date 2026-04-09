@@ -47,7 +47,8 @@ final Map<String, String> _fallbackStringsRu = {
   'sign_in': 'Войти',
   'create_account': 'Создать аккаунт',
   'login_landing_headline': 'GymMore — трекер тренировок',
-  'login_landing_body': 'Шаблоны тренировок, запись подходов и понятная статистика — всё в одном месте.',
+  'login_landing_body':
+      'Шаблоны тренировок, запись подходов и понятная статистика — всё в одном месте.',
   'login_form_subtitle': 'Войдите, чтобы продолжить',
   'login_feature_templates': 'Шаблоны тренировок',
   'login_feature_statistics': 'Статистика и графики',
@@ -69,7 +70,8 @@ final Map<String, String> _fallbackStringsRu = {
   'weight_kg': 'Вес (кг)',
   'body_fat_pct': 'Жир (%)',
   'no_name_set': 'Имя не задано',
-  'tap_edit_to_update': 'Нажмите «Изменить», чтобы обновить имя, рост, вес и жир.',
+  'tap_edit_to_update':
+      'Нажмите «Изменить», чтобы обновить имя, рост, вес и жир.',
   'height': 'Рост',
   'weight': 'Вес',
   'body_fat': 'Жир',
@@ -81,6 +83,7 @@ final Map<String, String> _fallbackStringsRu = {
   'no_workouts_match': 'Нет подходящих тренировок.',
   'no_workouts_yet': 'Тренировок пока нет. Создайте первую.',
   'create_workout': 'Создать тренировку',
+  'home_quick_actions': 'Быстрые действия',
   'in_progress': 'В процессе',
   'completed_status': 'Завершена',
   'not_started': 'Не начата',
@@ -129,6 +132,7 @@ final Map<String, String> _fallbackStringsRu = {
   'no_volume_history': 'Нет данных по объёму.',
   'exercise_volume_list': 'Объём по тренировкам',
   'latest_weight': 'Последний вес',
+  'last_measurement_analytics': 'Аналитика последнего замера',
   'body_fat_pct_label': 'Жир',
   'min_weight': 'Мин. вес',
   'max_weight': 'Макс. вес',
@@ -146,23 +150,30 @@ final Map<String, String> _fallbackStringsRu = {
   'mode_my_workouts': 'Тренировки',
   'mode_i_am_trainer': 'Я тренер',
   'help_workouts_title': 'Тренировки',
-  'help_workouts_body': 'Раздел «Тренировки» — это список ваших тренировок и вход в экран тренировки.\n\n[[img:help_workouts_list]]\n\nЧтобы потренироваться:\n- Откройте «Тренировки».\n- Если есть активная тренировка (карточка с play) — нажмите на карточку или на play, чтобы открыть тренировку.\n- Если активной тренировки нет — нажмите «Создать тренировку» и выберите шаблон.\n- На экране тренировки последовательно проходите упражнения и подходы.\n\n[[img:help_workouts_open_active]]\n[[img:help_workouts_create_and_pick_template]]\n[[img:help_workouts_workout_screen]]\n\nДействия на странице «Тренировки»:\n- Поиск (поле сверху): вводите часть названия/даты, чтобы быстрее найти нужную тренировку.\n- Фильтры: чипы «Все / Активные / Завершённые».\n- Карточки тренировок: нажмите на карточку, чтобы открыть тренировку.\n- На широком экране в карточке доступны: «Статистика», «Редактировать» и «Удалить» (с подтверждением).\n\nЧто делать внутри тренировки:\n- Для каждого подхода введите вес и повторения.\n- Нажмите «Сохранить», чтобы записать подход, или «Пропустить», чтобы перейти дальше.\n- После выполнения всех подходов упражнения показывается следующее упражнение.\n- Завершите тренировку кнопкой в шапке.\n\nСтатистика по тренировке:\n- После завершения тренировки можно открыть экран статистики по её итогам.\n- В списке тренировок на широком экране у завершённой тренировки доступна кнопка «Статистика».',
+  'help_workouts_body':
+      'Раздел «Тренировки» — это список ваших тренировок и вход в экран тренировки.\n\n[[img:help_workouts_list]]\n\nЧтобы потренироваться:\n- Откройте «Тренировки».\n- Если есть активная тренировка (карточка с play) — нажмите на карточку или на play, чтобы открыть тренировку.\n- Если активной тренировки нет — нажмите «Создать тренировку» и выберите шаблон.\n- На экране тренировки последовательно проходите упражнения и подходы.\n\n[[img:help_workouts_open_active]]\n[[img:help_workouts_create_and_pick_template]]\n[[img:help_workouts_workout_screen]]\n\nДействия на странице «Тренировки»:\n- Поиск (поле сверху): вводите часть названия/даты, чтобы быстрее найти нужную тренировку.\n- Фильтры: чипы «Все / Активные / Завершённые».\n- Карточки тренировок: нажмите на карточку, чтобы открыть тренировку.\n- На широком экране в карточке доступны: «Статистика», «Редактировать» и «Удалить» (с подтверждением).\n\nЧто делать внутри тренировки:\n- Для каждого подхода введите вес и повторения.\n- Нажмите «Сохранить», чтобы записать подход, или «Пропустить», чтобы перейти дальше.\n- После выполнения всех подходов упражнения показывается следующее упражнение.\n- Завершите тренировку кнопкой в шапке.\n\nСтатистика по тренировке:\n- После завершения тренировки можно открыть экран статистики по её итогам.\n- В списке тренировок на широком экране у завершённой тренировки доступна кнопка «Статистика».',
   'help_templates_title': 'Шаблоны тренировок',
-  'help_templates_body': 'Шаблоны тренировок помогают заранее собрать план: название, упражнения и подходы (вес/повторы).\n\n[[img:help_templates_list]]\n\nКак создать шаблон:\n- Нажмите «Создать шаблон».\n- Введите название и нажмите «Создать».\n- Откройте шаблон для редактирования.\n\n[[img:help_templates_create_dialog]]\n\nДействия в режиме редактирования шаблона:\n[[img:help_templates_edit]]\n- Поле «Название» — меняет имя шаблона.\n- Переключатель «Таймер отдыха» — включает паузу между подходами.\n- Поле/слайдер «Секунды отдыха» — задаёт длительность (1–600).\n- Блок «Упражнения»:\n- Нажмите «Добавить упражнение», чтобы открыть подбор упражнений для шаблона.\n- Список упражнений можно переупорядочить (drag handle).\n- Для каждого упражнения отображаются подходы как чипы «вес × повторы».\n- Кнопка «Добавить подход» добавляет новый подход через диалог.\n- Крестик на чипе удаляет подход.\n- Корзина у упражнения удаляет упражнение из шаблона.\n\n[[img:help_templates_sets_dialog]]\n\nСтарт тренировки из шаблона:\n- На странице «Шаблоны» нажмите ▶️ рядом с нужным шаблоном.\n- Система создаст тренировку-копию с вашими упражнениями и подходами.',
+  'help_templates_body':
+      'Шаблоны тренировок помогают заранее собрать план: название, упражнения и подходы (вес/повторы).\n\n[[img:help_templates_list]]\n\nКак создать шаблон:\n- Нажмите «Создать шаблон».\n- Введите название и нажмите «Создать».\n- Откройте шаблон для редактирования.\n\n[[img:help_templates_create_dialog]]\n\nДействия в режиме редактирования шаблона:\n[[img:help_templates_edit]]\n- Поле «Название» — меняет имя шаблона.\n- Переключатель «Таймер отдыха» — включает паузу между подходами.\n- Поле/слайдер «Секунды отдыха» — задаёт длительность (1–600).\n- Блок «Упражнения»:\n- Нажмите «Добавить упражнение», чтобы открыть подбор упражнений для шаблона.\n- Список упражнений можно переупорядочить (drag handle).\n- Для каждого упражнения отображаются подходы как чипы «вес × повторы».\n- Кнопка «Добавить подход» добавляет новый подход через диалог.\n- Крестик на чипе удаляет подход.\n- Корзина у упражнения удаляет упражнение из шаблона.\n\n[[img:help_templates_sets_dialog]]\n\nСтарт тренировки из шаблона:\n- На странице «Шаблоны» нажмите ▶️ рядом с нужным шаблоном.\n- Система создаст тренировку-копию с вашими упражнениями и подходами.',
   'help_current_workout_title': 'Текущая тренировка',
-  'help_current_workout_body': 'Раздел «Текущая тренировка» показывает только одну активную тренировку.\n\n[[img:help_current_workout_card]]\n\nЕсли активная тренировка есть:\n- Карточка отображает статус и (при наличии) объём.\n- Нажмите на карточку или кнопку «Продолжить», чтобы открыть экран тренировки.\n\nЕсли активной тренировки нет:\n- Вы увидите пустое состояние.\n- Нажмите «Начать из шаблона» и выберите шаблон через окно выбора.\n\n[[img:help_current_workout_empty]]',
+  'help_current_workout_body':
+      'Раздел «Текущая тренировка» показывает только одну активную тренировку.\n\n[[img:help_current_workout_card]]\n\nЕсли активная тренировка есть:\n- Карточка отображает статус и (при наличии) объём.\n- Нажмите на карточку или кнопку «Продолжить», чтобы открыть экран тренировки.\n\nЕсли активной тренировки нет:\n- Вы увидите пустое состояние.\n- Нажмите «Начать из шаблона» и выберите шаблон через окно выбора.\n\n[[img:help_current_workout_empty]]',
   'help_progress_title': 'Статистика',
-  'help_progress_body': '«Статистика» помогает отслеживать изменения и результаты тренировок.\n\n[[img:help_progress_menu]]\n\nГлавное меню «Статистика»:\n- «Статистика измерений» — графики веса, жира и ИМТ.\n- «Статистика тренировок» — объём по тренировкам для выбранного шаблона.\n- «Статистика упражнений» — объём по тренировкам для выбранного упражнения.\n- «Статистика по мышцам» — распределение нагрузки по группам мышц; учитываются завершённые тренировки в выбранном диапазоне дат.\n\n[[img:help_progress_measurements]]\n\nСтатистика измерений (страница измерений):\n- Сегмент-кнопки «7/30/90 дней» меняют период.\n- Карточки сверху показывают последние значения и диапазон (минимум/максимум).\n- Линейные графики отображают динамику веса и процента жира.\n- Если доступно достаточно данных, показываются интерпретации FFMI/BMI.\n- Потяните вниз, чтобы обновить данные.\n\n[[img:help_progress_workouts]]\n\nСтатистика тренировок:\n- Выпадающий список «Шаблон» выбирает шаблон.\n- График показывает динамику объёма по тренировкам выбранного шаблона.\n- Ниже отображается список тренировок по датам с объёмом.\n\n[[img:help_progress_exercises]]\n\nСтатистика упражнений:\n- Выпадающий список «Упражнение» выбирает упражнение.\n- График показывает динамику объёма по тренировкам.\n- Ниже отображается список тренировок по датам и объёму.\n\nСтатистика по мышцам:\n- Поля дат «с» и «по» задают период: в расчёт попадают только тренировки в этом интервале.\n- Диаграмма и список показывают долю нагрузки по группам мышц.',
+  'help_progress_body':
+      '«Статистика» помогает отслеживать изменения и результаты тренировок.\n\n[[img:help_progress_menu]]\n\nГлавное меню «Статистика»:\n- «Статистика измерений» — графики веса, жира и ИМТ.\n- «Статистика тренировок» — объём по тренировкам для выбранного шаблона.\n- «Статистика упражнений» — объём по тренировкам для выбранного упражнения.\n- «Статистика по мышцам» — распределение нагрузки по группам мышц; учитываются завершённые тренировки в выбранном диапазоне дат.\n\n[[img:help_progress_measurements]]\n\nСтатистика измерений (страница измерений):\n- Сегмент-кнопки «7/30/90 дней» меняют период.\n- Карточки сверху показывают последние значения и диапазон (минимум/максимум).\n- Линейные графики отображают динамику веса и процента жира.\n- Если доступно достаточно данных, показываются интерпретации FFMI/BMI.\n- Потяните вниз, чтобы обновить данные.\n\n[[img:help_progress_workouts]]\n\nСтатистика тренировок:\n- Выпадающий список «Шаблон» выбирает шаблон.\n- График показывает динамику объёма по тренировкам выбранного шаблона.\n- Ниже отображается список тренировок по датам с объёмом.\n\n[[img:help_progress_exercises]]\n\nСтатистика упражнений:\n- Выпадающий список «Упражнение» выбирает упражнение.\n- График показывает динамику объёма по тренировкам.\n- Ниже отображается список тренировок по датам и объёму.\n\nСтатистика по мышцам:\n- Поля дат «с» и «по» задают период: в расчёт попадают только тренировки в этом интервале.\n- Диаграмма и список показывают долю нагрузки по группам мышц.',
   'workout_settings': 'Настройки тренировок',
   'trainer_profile': 'Профиль тренера',
   'trainees': 'Подопечные',
   'my_trainers': 'Мои тренеры',
   'help_profile_title': 'Профиль',
-  'help_profile_body': 'Профиль — место, где вы храните данные тела и редактируете настройки.\n\n[[img:help_profile_screen]]\n\nЧто вы видите на экране:\n- Аватар и контактные данные.\n- Карточки статистики (рост/вес/жир).\n- История замеров.\n\nИз бокового меню также открываются «Мои залы» и «Мои тренеры» (см. раздел справки «Залы, тренеры и групповые»).\n\nДействия:\n- Нажмите значок «✏️» (Редактировать) в шапке, чтобы включить режим редактирования.\n- Нажмите на аватар, чтобы загрузить фото из галереи.\n\nВ режиме редактирования:\n- Измените «Отображаемое имя».\n- Укажите «Город» (подсказки при вводе) и параметры тела (рост/вес/жир).\n- Нажмите «Сохранить», чтобы применить изменения, или «Отмена», чтобы выйти без сохранения.\n\n[[img:help_profile_measurements]]\n\nЗамеры:\n- Кнопка «Добавить замер» открывает диалог и сохраняет новый замер.\n- В таблице:\n- Нажмите ✏️, чтобы изменить замер.\n- Нажмите корзину, чтобы удалить замер (с подтверждением).',
+  'help_profile_body':
+      'Профиль — место, где вы храните данные тела и редактируете настройки.\n\n[[img:help_profile_screen]]\n\nЧто вы видите на экране:\n- Аватар и контактные данные.\n- Карточки статистики (рост/вес/жир).\n- История замеров.\n\nИз бокового меню также открываются «Мои залы» и «Мои тренеры» (см. раздел справки «Залы, тренеры и групповые»).\n\nДействия:\n- Нажмите значок «✏️» (Редактировать) в шапке, чтобы включить режим редактирования.\n- Нажмите на аватар, чтобы загрузить фото из галереи.\n\nВ режиме редактирования:\n- Измените «Отображаемое имя».\n- Укажите «Город» (подсказки при вводе) и параметры тела (рост/вес/жир).\n- Нажмите «Сохранить», чтобы применить изменения, или «Отмена», чтобы выйти без сохранения.\n\n[[img:help_profile_measurements]]\n\nЗамеры:\n- Кнопка «Добавить замер» открывает диалог и сохраняет новый замер.\n- В таблице:\n- Нажмите ✏️, чтобы изменить замер.\n- Нажмите корзину, чтобы удалить замер (с подтверждением).',
   'help_exercises_title': 'Упражнения',
-  'help_exercises_body': 'Каталог «Упражнения» помогает найти упражнение и посмотреть детали.\n\n[[img:help_exercises_list]]\n\nДействия на странице:\n- Фильтры: чипы групп мышц (верхний ряд) и сложности (нижний ряд).\n- Карточки упражнений показывают название и информацию (группа/сложность/теги).\n- Нажмите на карточку, чтобы открыть нижний лист с описанием.\n\n[[img:help_exercises_detail]]\n\nЧто вы увидите в деталях:\n- Описание (если оно заполнено).\n- Инструкция — список шагов.\n- Формула (если есть).\n- Оборудование — список чипов.\n- Если у упражнения несколько групп мышц, в карточке и в деталях отображаются все указанные группы.\n\nВажно: добавить упражнение в шаблон можно не на этой странице, а в «Шаблоны тренировок» → редактирование шаблона → «Добавить упражнение».',
+  'help_exercises_body':
+      'Каталог «Упражнения» помогает найти упражнение и посмотреть детали.\n\n[[img:help_exercises_list]]\n\nДействия на странице:\n- Фильтры: чипы групп мышц (верхний ряд) и сложности (нижний ряд).\n- Карточки упражнений показывают название и информацию (группа/сложность/теги).\n- Нажмите на карточку, чтобы открыть нижний лист с описанием.\n\n[[img:help_exercises_detail]]\n\nЧто вы увидите в деталях:\n- Описание (если оно заполнено).\n- Инструкция — список шагов.\n- Формула (если есть).\n- Оборудование — список чипов.\n- Если у упражнения несколько групп мышц, в карточке и в деталях отображаются все указанные группы.\n\nВажно: добавить упражнение в шаблон можно не на этой странице, а в «Шаблоны тренировок» → редактирование шаблона → «Добавить упражнение».',
   'help_gyms_trainers_groups_title': 'Залы, тренеры и групповые',
-  'help_gyms_trainers_groups_body': 'Здесь описаны «Мои залы», страница зала, «Мои тренеры» и групповые тренировки.\n\nМои залы:\n- Откройте раздел через боковое меню.\n- Добавьте зал: поиск по названию и городу, затем выбор из результатов.\n- Откройте зал из списка, чтобы перейти на его страницу.\n\nСтраница зала:\n- Вкладка «Тренеры»: карточки с фото (если есть в профиле), именем и кратким текстом; «Открыть» ведёт на публичную страницу тренера.\n- Вкладка «Групповые тренировки»: список только предстоящих занятий в этом зале, по дате. Если фото нет — показывается значок-заглушка.\n\nМои тренеры:\n- Список ваших тренеров в том же стиле карточек, что и в зале.\n- «Открыть» — профиль тренера; при необходимости связь можно убрать из списка.\n\nГрупповые тренировки:\n- «Мои групповые» — ваши записи; фильтр «Будущие», детали занятия, переход к списку «Доступные групповые» для новой записи.\n- «Доступные групповые» — открытые занятия, на которые можно записаться.\n- На карточке: дата, зал, тренер; изображение из шаблона при наличии, иначе иконка.\n\nРежим «Я тренер»:\n- Создание групповых тренировок и шаблонов — в кабинете тренера; для шаблона групповой тренировки фото можно загрузить с устройства.',
+  'help_gyms_trainers_groups_body':
+      'Здесь описаны «Мои залы», страница зала, «Мои тренеры» и групповые тренировки.\n\nМои залы:\n- Откройте раздел через боковое меню.\n- Добавьте зал: поиск по названию и городу, затем выбор из результатов.\n- Откройте зал из списка, чтобы перейти на его страницу.\n\nСтраница зала:\n- Вкладка «Тренеры»: карточки с фото (если есть в профиле), именем и кратким текстом; «Открыть» ведёт на публичную страницу тренера.\n- Вкладка «Групповые тренировки»: список только предстоящих занятий в этом зале, по дате. Если фото нет — показывается значок-заглушка.\n\nМои тренеры:\n- Список ваших тренеров в том же стиле карточек, что и в зале.\n- «Открыть» — профиль тренера; при необходимости связь можно убрать из списка.\n\nГрупповые тренировки:\n- «Мои групповые» — ваши записи; фильтр «Будущие», детали занятия, переход к списку «Доступные групповые» для новой записи.\n- «Доступные групповые» — открытые занятия, на которые можно записаться.\n- На карточке: дата, зал, тренер; изображение из шаблона при наличии, иначе иконка.\n\nРежим «Я тренер»:\n- Создание групповых тренировок и шаблонов — в кабинете тренера; для шаблона групповой тренировки фото можно загрузить с устройства.',
   'theme': 'Тема',
   'theme_current': 'Текущая (системная)',
   'theme_main': 'Основная',
@@ -258,7 +269,8 @@ final Map<String, String> _fallbackStringsRu = {
   'ffmi_good': '20–21: Хороший, спортивный уровень',
   'ffmi_excellent': '22–23: Отличная мускулатура (атлет)',
   'ffmi_natural_limit': '24–25: Предельный уровень для натурального тренинга',
-  'ffmi_very_high': '25+: Обычно свидетельствует об использовании стероидов или исключительной генетике',
+  'ffmi_very_high':
+      '25+: Обычно свидетельствует об использовании стероидов или исключительной генетике',
   'ffmi_no_height': '— (укажите рост в профиле)',
   'bmi_no_height': '— (укажите рост в профиле)',
   'bmi_severe_underweight': '16 и менее: Выраженный дефицит массы тела',
@@ -270,7 +282,8 @@ final Map<String, String> _fallbackStringsRu = {
   'bmi_obese_3': '40 и более: Ожирение 3 степени',
   'no_measurements_yet': 'Записей пока нет.',
   'timers': 'Таймеры',
-  'timers_placeholder': 'Раздел таймеров. Скоро здесь появятся таймеры тренировок и отдыха.',
+  'timers_placeholder':
+      'Раздел таймеров. Скоро здесь появятся таймеры тренировок и отдыха.',
   'subscription_free': 'Бесплатное использование',
   'subscription_until': 'Подписка до',
   'subscription_status': 'Подписка',
@@ -310,8 +323,10 @@ final Map<String, String> _fallbackStringsRu = {
   'future_group_trainings': 'Будущие',
   'open_group_trainings': 'Открытые групповые тренировки',
   'available_group_trainings': 'Доступные групповые',
-  'no_group_trainings_yet': 'Пока нет групповых тренировок. Запишитесь на доступные.',
-  'no_available_group_trainings_yet': 'Доступных групповых тренировок пока нет.',
+  'no_group_trainings_yet':
+      'Пока нет групповых тренировок. Запишитесь на доступные.',
+  'no_available_group_trainings_yet':
+      'Доступных групповых тренировок пока нет.',
   'group_training_detail': 'Детали групповой тренировки',
   'participants': 'Участники',
   'no_participants_yet': 'Пока нет участников.',
@@ -323,6 +338,15 @@ final Map<String, String> _fallbackStringsRu = {
   'my_group_training_calendar': 'Моя групповая тренировка',
   'group_training_calendar': 'Групповая тренировка',
   'create_group_training': 'Создать групповую',
+  'wizard_step_template': 'Шаг 1: Шаблон',
+  'wizard_step_schedule': 'Шаг 2: Дата и зал',
+  'wizard_step_review': 'Шаг 3: Проверка',
+  'next_step': 'Далее',
+  'back_step': 'Назад',
+  'workout_done_title': 'Тренировка завершена',
+  'workout_done_subtitle': 'Отличная работа. Что делаем дальше?',
+  'workout_open_stats': 'Открыть статистику',
+  'workout_save_as_template': 'Сохранить как шаблон',
   'enroll_group_training': 'Записаться на групповую',
   'group_status_label': 'Групповая',
   'create_for_trainee': 'Подопечному',
@@ -350,7 +374,8 @@ final Map<String, String> _fallbackStringsRu = {
   'city_min_chars': 'Введите минимум 2 символа',
   'city_no_results': 'Ничего не найдено',
   'workout_statistics_title': 'Статистика тренировки',
-  'stats_only_after_completion': 'Статистика доступна только после завершения тренировки.',
+  'stats_only_after_completion':
+      'Статистика доступна только после завершения тренировки.',
   'volume_and_completion': 'Объем и выполнение',
   'planned_volume': 'Планируемый объем',
   'from_template': 'из шаблона',
@@ -358,7 +383,8 @@ final Map<String, String> _fallbackStringsRu = {
   'completion': 'Выполнение',
   'compared_to_plan': 'в сравнении с планом',
   'muscle_groups_load': 'Нагрузка на группы мышц',
-  'no_muscle_group_data_for_workout': 'Нет данных по группам мышц для этой тренировки.',
+  'no_muscle_group_data_for_workout':
+      'Нет данных по группам мышц для этой тренировки.',
   'of_volume': 'от объема',
   'kg_short': 'kg',
   'from': 'От',
@@ -374,14 +400,17 @@ final Map<String, String> _fallbackStringsRu = {
   'photo_optional': 'Фото (опционально)',
   'group_template_photos_hint': 'Не более 3 фотографий.',
   'trainer_photos_hint': 'Не более 3 фотографий.',
-  'trainer_photos_max': 'В профиле тренера можно загрузить не более 3 фотографий.',
-  'group_template_photos_max': 'В шаблоне групповой тренировки можно не более 3 фотографий.',
+  'trainer_photos_max':
+      'В профиле тренера можно загрузить не более 3 фотографий.',
+  'group_template_photos_max':
+      'В шаблоне групповой тренировки можно не более 3 фотографий.',
   'delete_photo_confirm': 'Удалить это фото?',
   'remove_all_photos_confirm': 'Убрать все фото?',
   'remove_avatar_confirm': 'Убрать фото профиля?',
   'scheduled_at': 'Запланировано на',
   'no_trainees': 'Нет подопечных',
-  'templates_manage_hint': 'Чтобы изменить или добавить шаблоны перейдите на страницу «Шаблоны тренировок»',
+  'templates_manage_hint':
+      'Чтобы изменить или добавить шаблоны перейдите на страницу «Шаблоны тренировок»',
   'workout_created': 'Тренировка создана',
   'gam_reward_title': 'Награда за тренировку',
   'gam_xp_earned': 'Получено опыта',
@@ -397,7 +426,8 @@ final Map<String, String> _fallbackStringsRu = {
   'gam_mission_empty': 'Нет активных миссий. Скоро здесь появятся задания.',
   'gam_mission_daily': 'Миссия дня',
   'gam_leaderboard_mini_title': 'Лидерборд',
-  'gam_leaderboard_empty': 'Пока нет данных. Сыграйте в сезоне, чтобы попасть в топ.',
+  'gam_leaderboard_empty':
+      'Пока нет данных. Сыграйте в сезоне, чтобы попасть в топ.',
   'gam_leaderboard_weekly_hint': 'Неделя · глобально',
   'gam_enable_lb': 'Таблица лидеров',
   'gam_enable_lb_subtitle': 'Показывать мини-лидерборд на главной',
@@ -414,8 +444,10 @@ final Map<String, String> _fallbackStringsRu = {
   'gam_menu_xp_history': 'История XP',
   'gam_menu_xp_history_sub': 'Начисления опыта',
   'gam_achievements_title': 'Достижения',
-  'gam_feature_disabled_badges': 'Включите «Бейджи» в Настройках, чтобы видеть коллекцию.',
-  'gam_achievements_empty': 'Каталог бейджей пока пуст. Данные появятся с сервера.',
+  'gam_feature_disabled_badges':
+      'Включите «Бейджи» в Настройках, чтобы видеть коллекцию.',
+  'gam_achievements_empty':
+      'Каталог бейджей пока пуст. Данные появятся с сервера.',
   'gam_badge_locked': 'Закрыто',
   'gam_badge_unlocked_at': 'Получено:',
   'gam_share_collection': 'Поделиться коллекцией',
@@ -456,17 +488,21 @@ final Map<String, String> _fallbackStringsRu = {
   'gam_trainer_rankings_title': 'Рейтинг тренера',
   'gam_trainer_rankings_disabled': 'Включите «Ранг тренера» в Настройках.',
   'gam_trainer_achievements_title': 'Достижения тренера',
-  'gam_trainer_achievements_empty': 'В каталоге пока нет бейджей с префиксом trainer_. Полная коллекция — в разделе «Прогресс».',
+  'gam_trainer_achievements_empty':
+      'В каталоге пока нет бейджей с префиксом trainer_. Полная коллекция — в разделе «Прогресс».',
   'gam_trainer_achievements_all_link': 'Все достижения',
   'gam_trainer_rank_card_title': 'Ранг среди клиентов',
   'gam_trainer_rank_card_place': 'Место {n} в недельном рейтинге',
   'gam_trainer_rank_card_no_data': 'Нет данных рейтинга (или вы вне топа)',
   'gam_trainee_meter_title': 'Сеть подопечных',
-  'gam_trainee_meter_hint': 'Ориентир по числу активных клиентов (до следующей отметки на шкале).',
+  'gam_trainee_meter_hint':
+      'Ориентир по числу активных клиентов (до следующей отметки на шкале).',
   'gam_group_achievement_banner_title': 'Групповые на этой неделе',
-  'gam_group_achievement_banner_sub': 'Запланировано занятий в ближайшие 7 дней: {n}',
+  'gam_group_achievement_banner_sub':
+      'Запланировано занятий в ближайшие 7 дней: {n}',
   'gam_enable_trainer_rank': 'Ранг тренера',
-  'gam_enable_trainer_rank_subtitle': 'Лидерборд среди подопечных и виджеты в кабинете тренера',
+  'gam_enable_trainer_rank_subtitle':
+      'Лидерборд среди подопечных и виджеты в кабинете тренера',
   'gam_trainer_menu_rankings': 'Рейтинг',
   'gam_trainer_menu_achievements': 'Достижения тренера',
   'gam_gym_lb_title': 'Топ зала (неделя)',
@@ -476,10 +512,14 @@ final Map<String, String> _fallbackStringsRu = {
   'gam_group_engagement_title': 'Ваши групповые',
   'gam_group_engagement_upcoming': 'Предстоящие записи: {n}',
   'gam_group_engagement_past': 'Уже прошли: {n}',
-  'gam_group_engagement_streak': 'Подряд недель с занятиями (оценка на устройстве): {n}',
-  'gam_group_engagement_footnote': 'Точные бейджи событий и XP — с сервера; здесь только локальная сводка.',
-  'gam_available_gam_hint': 'Запись и посещение групповых могут учитываться в XP и бейджах (когда включено на сервере).',
-  'gam_gym_badges_hint': 'События и коллекция бейджей — в «Прогресс → Достижения»',
+  'gam_group_engagement_streak':
+      'Подряд недель с занятиями (оценка на устройстве): {n}',
+  'gam_group_engagement_footnote':
+      'Точные бейджи событий и XP — с сервера; здесь только локальная сводка.',
+  'gam_available_gam_hint':
+      'Запись и посещение групповых могут учитываться в XP и бейджах (когда включено на сервере).',
+  'gam_gym_badges_hint':
+      'События и коллекция бейджей — в «Прогресс → Достижения»',
 };
 
 /// List of available locale codes (from server, or default [en, ru]).
@@ -493,7 +533,8 @@ final Map<String, String> _fallbackStrings = {
   'sign_in': 'Sign in',
   'create_account': 'Create account',
   'login_landing_headline': 'GymMore — train consistently and track progress',
-  'login_landing_body': 'Workout templates, set logging, and clear statistics — all in one place.',
+  'login_landing_body':
+      'Workout templates, set logging, and clear statistics — all in one place.',
   'login_form_subtitle': 'Sign in to continue',
   'login_feature_templates': 'Workout templates',
   'login_feature_statistics': 'Statistics & charts',
@@ -515,7 +556,8 @@ final Map<String, String> _fallbackStrings = {
   'weight_kg': 'Weight (kg)',
   'body_fat_pct': 'Body fat (%)',
   'no_name_set': 'No name set',
-  'tap_edit_to_update': 'Tap edit to update name, height, weight, and body fat.',
+  'tap_edit_to_update':
+      'Tap edit to update name, height, weight, and body fat.',
   'height': 'Height',
   'weight': 'Weight',
   'body_fat': 'Body fat',
@@ -527,6 +569,7 @@ final Map<String, String> _fallbackStrings = {
   'no_workouts_match': 'No workouts match.',
   'no_workouts_yet': 'No workouts yet. Create one to start.',
   'create_workout': 'Create workout',
+  'home_quick_actions': 'Quick actions',
   'in_progress': 'In progress',
   'completed_status': 'Completed',
   'not_started': 'Not started',
@@ -543,12 +586,14 @@ final Map<String, String> _fallbackStrings = {
   'sets_logged': 'Sets logged',
   'exercises_count': 'Exercises',
   'create': 'Create',
-  'no_exercises_added': 'No exercises added. Add exercises from the exercise list.',
+  'no_exercises_added':
+      'No exercises added. Add exercises from the exercise list.',
   'start_session': 'Start session',
   'starting': 'Starting...',
   'active_workout': 'Active workout',
   'finish': 'Finish',
-  'no_exercises_in_workout': 'No exercises in this workout. Add exercises from the workout detail.',
+  'no_exercises_in_workout':
+      'No exercises in this workout. Add exercises from the workout detail.',
   'reps': 'Reps',
   'log_set': 'Log set',
   'progress': 'Statistics',
@@ -575,12 +620,14 @@ final Map<String, String> _fallbackStrings = {
   'no_volume_history': 'No volume history.',
   'exercise_volume_list': 'Volume by workout',
   'latest_weight': 'Latest weight',
+  'last_measurement_analytics': 'Latest measurement analytics',
   'body_fat_pct_label': 'Body fat',
   'min_weight': 'Min weight',
   'max_weight': 'Max weight',
   'weight_chart': 'Weight',
   'body_fat_chart': 'Body fat %',
-  'no_data_in_range': 'No data in this date range. Record weight or body fat in Profile.',
+  'no_data_in_range':
+      'No data in this date range. Record weight or body fat in Profile.',
   'home_profile_subtitle': 'View and edit your profile',
   'home_gym_subtitle': 'Search gyms, check-in',
   'home_workout_subtitle': 'Builder and active workout',
@@ -596,19 +643,26 @@ final Map<String, String> _fallbackStrings = {
   'trainees': 'Trainees',
   'my_trainers': 'My trainers',
   'help_workouts_title': 'Workouts',
-  'help_workouts_body': 'The Workouts section shows your workout list and is the entry point to the workout screen.\n\n[[img:help_workouts_list]]\n\nTo start training:\n- Open “Workouts”.\n- If you have an active workout (card with play) — tap the card or the play icon.\n- If there is no active workout — tap “Create workout” and choose a template.\n- On the workout screen, go through exercises and sets in order.\n\n[[img:help_workouts_open_active]]\n[[img:help_workouts_create_and_pick_template]]\n[[img:help_workouts_workout_screen]]\n\nActions on the Workouts page:\n- Search (top field): type part of the name/date to find the right workout faster.\n- Filters: chips “All / Active / Completed”.\n- Workout cards: tap to open a workout.\n- On wide screens, each card includes buttons: “Stats”, “Edit”, and “Delete” (with confirmation).\n\nInside the workout:\n- For each set, enter weight and reps.\n- Tap “Save” to record the set, or “Skip” to move on.\n- After all sets of an exercise are done, the next exercise appears.\n- Finish the workout using the header button.\n\nWorkout statistics:\n- After you finish a workout, you can open a statistics screen for that session.\n- In the workout list on wide layouts, completed workouts have a “Stats” button.',
+  'help_workouts_body':
+      'The Workouts section shows your workout list and is the entry point to the workout screen.\n\n[[img:help_workouts_list]]\n\nTo start training:\n- Open “Workouts”.\n- If you have an active workout (card with play) — tap the card or the play icon.\n- If there is no active workout — tap “Create workout” and choose a template.\n- On the workout screen, go through exercises and sets in order.\n\n[[img:help_workouts_open_active]]\n[[img:help_workouts_create_and_pick_template]]\n[[img:help_workouts_workout_screen]]\n\nActions on the Workouts page:\n- Search (top field): type part of the name/date to find the right workout faster.\n- Filters: chips “All / Active / Completed”.\n- Workout cards: tap to open a workout.\n- On wide screens, each card includes buttons: “Stats”, “Edit”, and “Delete” (with confirmation).\n\nInside the workout:\n- For each set, enter weight and reps.\n- Tap “Save” to record the set, or “Skip” to move on.\n- After all sets of an exercise are done, the next exercise appears.\n- Finish the workout using the header button.\n\nWorkout statistics:\n- After you finish a workout, you can open a statistics screen for that session.\n- In the workout list on wide layouts, completed workouts have a “Stats” button.',
   'help_templates_title': 'Workout templates',
-  'help_templates_body': 'Workout templates help you plan in advance: name, exercises, and sets (weight/reps).\n\n[[img:help_templates_list]]\n\nHow to create a template:\n- Tap “Create template”.\n- Enter a name and tap “Create”.\n- Open the template for editing.\n\n[[img:help_templates_create_dialog]]\n\nActions in template edit mode:\n[[img:help_templates_edit]]\n- The “Name” field changes the template name.\n- The “Rest timer” switch enables rest pauses between sets.\n- The “Rest seconds” field/slider sets duration (1–600).\n- The “Exercises” section:\n- Tap “Add exercise” to open the exercise picker for this template.\n- Reorder exercises using the drag handle.\n- Each exercise shows its sets as chips “weight × reps”.\n- “Add set” opens a dialog to create a new set.\n- The chip close icon removes a set.\n- The trash icon removes an exercise from the template.\n\n[[img:help_templates_sets_dialog]]\n\nStart a workout from a template:\n- On the Templates page, tap ▶️ next to the template.\n- A workout copy is created with your exercises and planned sets.',
+  'help_templates_body':
+      'Workout templates help you plan in advance: name, exercises, and sets (weight/reps).\n\n[[img:help_templates_list]]\n\nHow to create a template:\n- Tap “Create template”.\n- Enter a name and tap “Create”.\n- Open the template for editing.\n\n[[img:help_templates_create_dialog]]\n\nActions in template edit mode:\n[[img:help_templates_edit]]\n- The “Name” field changes the template name.\n- The “Rest timer” switch enables rest pauses between sets.\n- The “Rest seconds” field/slider sets duration (1–600).\n- The “Exercises” section:\n- Tap “Add exercise” to open the exercise picker for this template.\n- Reorder exercises using the drag handle.\n- Each exercise shows its sets as chips “weight × reps”.\n- “Add set” opens a dialog to create a new set.\n- The chip close icon removes a set.\n- The trash icon removes an exercise from the template.\n\n[[img:help_templates_sets_dialog]]\n\nStart a workout from a template:\n- On the Templates page, tap ▶️ next to the template.\n- A workout copy is created with your exercises and planned sets.',
   'help_current_workout_title': 'Current workout',
-  'help_current_workout_body': 'The Current workout section shows only one active workout.\n\n[[img:help_current_workout_card]]\n\nIf you have an active workout:\n- The card shows status and (when available) total volume.\n- Tap the card or “Continue” to open the workout screen.\n\nIf there is no active workout:\n- You’ll see an empty state.\n- Tap “Start from template” and pick a template.\n\n[[img:help_current_workout_empty]]',
+  'help_current_workout_body':
+      'The Current workout section shows only one active workout.\n\n[[img:help_current_workout_card]]\n\nIf you have an active workout:\n- The card shows status and (when available) total volume.\n- Tap the card or “Continue” to open the workout screen.\n\nIf there is no active workout:\n- You’ll see an empty state.\n- Tap “Start from template” and pick a template.\n\n[[img:help_current_workout_empty]]',
   'help_progress_title': 'Statistics',
-  'help_progress_body': 'Statistics helps you track changes and training results.\n\n[[img:help_progress_menu]]\n\nStatistics main menu:\n- Measurement statistics — weight, body fat, and BMI over time.\n- Workout statistics — volume by workouts for a selected template.\n- Exercise statistics — volume by workouts for a selected exercise.\n- Muscle statistics — training load split by muscle group; only completed workouts in the selected date range are included.\n\n[[img:help_progress_measurements]]\n\nMeasurement statistics screen:\n- The segmented control (7/30/90 days) changes the date range.\n- Top cards show latest values and min/max range.\n- Line charts show weight and body fat % dynamics.\n- If enough data is available, FFMI/BMI interpretations are shown.\n- Pull to refresh to reload data.\n\n[[img:help_progress_workouts]]\n\nWorkout statistics:\n- Use the “Template” dropdown to select a template.\n- The chart shows volume over time.\n- Below, you see a list of workouts by date with the volume.\n\n[[img:help_progress_exercises]]\n\nExercise statistics:\n- Use the “Exercise” dropdown to select an exercise.\n- The chart shows volume over time.\n- Below, you see a list of workout dates with the volume.\n\nMuscle statistics:\n- Use the “from” and “to” date fields to limit which workouts are included.\n- The chart and list show how load is distributed across muscle groups.',
+  'help_progress_body':
+      'Statistics helps you track changes and training results.\n\n[[img:help_progress_menu]]\n\nStatistics main menu:\n- Measurement statistics — weight, body fat, and BMI over time.\n- Workout statistics — volume by workouts for a selected template.\n- Exercise statistics — volume by workouts for a selected exercise.\n- Muscle statistics — training load split by muscle group; only completed workouts in the selected date range are included.\n\n[[img:help_progress_measurements]]\n\nMeasurement statistics screen:\n- The segmented control (7/30/90 days) changes the date range.\n- Top cards show latest values and min/max range.\n- Line charts show weight and body fat % dynamics.\n- If enough data is available, FFMI/BMI interpretations are shown.\n- Pull to refresh to reload data.\n\n[[img:help_progress_workouts]]\n\nWorkout statistics:\n- Use the “Template” dropdown to select a template.\n- The chart shows volume over time.\n- Below, you see a list of workouts by date with the volume.\n\n[[img:help_progress_exercises]]\n\nExercise statistics:\n- Use the “Exercise” dropdown to select an exercise.\n- The chart shows volume over time.\n- Below, you see a list of workout dates with the volume.\n\nMuscle statistics:\n- Use the “from” and “to” date fields to limit which workouts are included.\n- The chart and list show how load is distributed across muscle groups.',
   'help_profile_title': 'Profile',
-  'help_profile_body': 'Profile is where you manage your body data and settings.\n\n[[img:help_profile_screen]]\n\nOn this screen:\n- Avatar and basic info.\n- Stats cards (height/weight/body fat).\n- Measurement history.\n\nFrom the drawer you can also open “My gyms” and “My trainers” (see the help topic “Gyms, trainers & group classes”).\n\nActions:\n- Tap the ✏️ edit icon in the header to enter edit mode.\n- Tap the avatar to upload a photo from the gallery.\n\nIn edit mode:\n- Change “Display name”.\n- Update “City” (search suggestions) and body parameters (height/weight/body fat).\n- Tap “Save” to apply changes, or “Cancel” to exit.\n\n[[img:help_profile_measurements]]\n\nMeasurements:\n- Tap “Add measurement” to open the dialog and save a new measurement.\n- In the table for each row:\n- Tap ✏️ to edit.\n- Tap the trash icon to delete (with confirmation).',
+  'help_profile_body':
+      'Profile is where you manage your body data and settings.\n\n[[img:help_profile_screen]]\n\nOn this screen:\n- Avatar and basic info.\n- Stats cards (height/weight/body fat).\n- Measurement history.\n\nFrom the drawer you can also open “My gyms” and “My trainers” (see the help topic “Gyms, trainers & group classes”).\n\nActions:\n- Tap the ✏️ edit icon in the header to enter edit mode.\n- Tap the avatar to upload a photo from the gallery.\n\nIn edit mode:\n- Change “Display name”.\n- Update “City” (search suggestions) and body parameters (height/weight/body fat).\n- Tap “Save” to apply changes, or “Cancel” to exit.\n\n[[img:help_profile_measurements]]\n\nMeasurements:\n- Tap “Add measurement” to open the dialog and save a new measurement.\n- In the table for each row:\n- Tap ✏️ to edit.\n- Tap the trash icon to delete (with confirmation).',
   'help_exercises_title': 'Exercises',
-  'help_exercises_body': 'The “Exercises” catalog helps you find an exercise and view its details.\n\n[[img:help_exercises_list]]\n\nActions on the page:\n- Filters: muscle group chips (top row) and difficulty chips (bottom row).\n- Exercise cards show name and tags (muscle group/difficulty).\n- Tap a card to open a bottom sheet with details.\n\n[[img:help_exercises_detail]]\n\nIn the details sheet:\n- Description (if provided).\n- Instructions — a list of steps.\n- Formula (if available).\n- Equipment — shown as chips.\n- If an exercise targets several muscle groups, all of them are shown on the card and in the details.\n\nNote: to add exercises to templates, use Templates → edit template → “Add exercise”.',
+  'help_exercises_body':
+      'The “Exercises” catalog helps you find an exercise and view its details.\n\n[[img:help_exercises_list]]\n\nActions on the page:\n- Filters: muscle group chips (top row) and difficulty chips (bottom row).\n- Exercise cards show name and tags (muscle group/difficulty).\n- Tap a card to open a bottom sheet with details.\n\n[[img:help_exercises_detail]]\n\nIn the details sheet:\n- Description (if provided).\n- Instructions — a list of steps.\n- Formula (if available).\n- Equipment — shown as chips.\n- If an exercise targets several muscle groups, all of them are shown on the card and in the details.\n\nNote: to add exercises to templates, use Templates → edit template → “Add exercise”.',
   'help_gyms_trainers_groups_title': 'Gyms, trainers & group classes',
-  'help_gyms_trainers_groups_body': 'This topic covers My gyms, the gym page, My trainers, and group classes.\n\nMy gyms:\n- Open the section from the app drawer.\n- Add a gym: search by name and city, then pick a result.\n- Open a gym from the list to view its page.\n\nGym page:\n- Trainers tab: cards with a photo (if the trainer has one), name, and short text; “Open” goes to the trainer’s public profile.\n- Group classes tab: upcoming sessions at this gym only, sorted by date. If there is no photo, a placeholder icon is shown.\n\nMy trainers:\n- Your trainers in the same card style as on the gym page.\n- “Open” shows the trainer profile; you can remove the link from the list when available.\n\nGroup classes:\n- “My group classes” — your enrollments; “Upcoming” filter, session details, and a shortcut to “Available group classes” to book more.\n- “Available group classes” — open sessions you can join.\n- Each card shows date, gym, and trainer; the template image is used when present, otherwise an icon.\n\n“I am a trainer” mode:\n- Create group classes and templates from the trainer dashboard; for a group class template you can upload a photo from your device.',
+  'help_gyms_trainers_groups_body':
+      'This topic covers My gyms, the gym page, My trainers, and group classes.\n\nMy gyms:\n- Open the section from the app drawer.\n- Add a gym: search by name and city, then pick a result.\n- Open a gym from the list to view its page.\n\nGym page:\n- Trainers tab: cards with a photo (if the trainer has one), name, and short text; “Open” goes to the trainer’s public profile.\n- Group classes tab: upcoming sessions at this gym only, sorted by date. If there is no photo, a placeholder icon is shown.\n\nMy trainers:\n- Your trainers in the same card style as on the gym page.\n- “Open” shows the trainer profile; you can remove the link from the list when available.\n\nGroup classes:\n- “My group classes” — your enrollments; “Upcoming” filter, session details, and a shortcut to “Available group classes” to book more.\n- “Available group classes” — open sessions you can join.\n- Each card shows date, gym, and trainer; the template image is used when present, otherwise an icon.\n\n“I am a trainer” mode:\n- Create group classes and templates from the trainer dashboard; for a group class template you can upload a photo from your device.',
   'theme': 'Theme',
   'theme_current': 'Current (system)',
   'theme_main': 'Main theme',
@@ -635,7 +689,8 @@ final Map<String, String> _fallbackStrings = {
   'at_least_6_chars': 'At least 6 characters',
   'system_messages': 'Messages',
   'no_system_messages': 'No messages',
-  'no_system_messages_subtitle': 'There are no active system messages right now.',
+  'no_system_messages_subtitle':
+      'There are no active system messages right now.',
   'error_label': 'Error',
   'exercises': 'Exercises',
   'exercises_base': 'Exercise database',
@@ -756,7 +811,8 @@ final Map<String, String> _fallbackStrings = {
   'future_group_trainings': 'Future',
   'open_group_trainings': 'Open group trainings',
   'available_group_trainings': 'Available group trainings',
-  'no_group_trainings_yet': 'No group trainings yet. Enroll in an available one.',
+  'no_group_trainings_yet':
+      'No group trainings yet. Enroll in an available one.',
   'no_available_group_trainings_yet': 'No available group trainings right now.',
   'group_training_detail': 'Group training details',
   'participants': 'Participants',
@@ -769,6 +825,15 @@ final Map<String, String> _fallbackStrings = {
   'my_group_training_calendar': 'My group training',
   'group_training_calendar': 'Group training',
   'create_group_training': 'Create group training',
+  'wizard_step_template': 'Step 1: Template',
+  'wizard_step_schedule': 'Step 2: Schedule & gym',
+  'wizard_step_review': 'Step 3: Review',
+  'next_step': 'Next',
+  'back_step': 'Back',
+  'workout_done_title': 'Workout completed',
+  'workout_done_subtitle': 'Great job. What would you like to do next?',
+  'workout_open_stats': 'Open statistics',
+  'workout_save_as_template': 'Save as template',
   'enroll_group_training': 'Enroll in group training',
   'group_status_label': 'Group',
   'create_for_trainee': 'For trainee',
@@ -796,7 +861,8 @@ final Map<String, String> _fallbackStrings = {
   'city_min_chars': 'Enter at least 2 characters',
   'city_no_results': 'Nothing found',
   'workout_statistics_title': 'Workout statistics',
-  'stats_only_after_completion': 'Statistics are available only after workout completion.',
+  'stats_only_after_completion':
+      'Statistics are available only after workout completion.',
   'volume_and_completion': 'Volume and completion',
   'planned_volume': 'Planned volume',
   'from_template': 'from template',
@@ -821,13 +887,15 @@ final Map<String, String> _fallbackStrings = {
   'group_template_photos_hint': 'Up to 3 photos.',
   'trainer_photos_hint': 'Up to 3 photos.',
   'trainer_photos_max': 'Trainer profile allows at most 3 photos.',
-  'group_template_photos_max': 'Group training template allows at most 3 photos.',
+  'group_template_photos_max':
+      'Group training template allows at most 3 photos.',
   'delete_photo_confirm': 'Delete this photo?',
   'remove_all_photos_confirm': 'Remove all photos?',
   'remove_avatar_confirm': 'Remove profile photo?',
   'scheduled_at': 'Scheduled at',
   'no_trainees': 'No trainees',
-  'templates_manage_hint': 'To edit or add templates, open the “Workout templates” page',
+  'templates_manage_hint':
+      'To edit or add templates, open the “Workout templates” page',
   'workout_created': 'Workout created',
   'gam_reward_title': 'Workout reward',
   'gam_xp_earned': 'Experience gained',
@@ -860,7 +928,8 @@ final Map<String, String> _fallbackStrings = {
   'gam_menu_xp_history': 'XP history',
   'gam_menu_xp_history_sub': 'Experience log',
   'gam_achievements_title': 'Achievements',
-  'gam_feature_disabled_badges': 'Enable “Badges” in Settings to see the collection.',
+  'gam_feature_disabled_badges':
+      'Enable “Badges” in Settings to see the collection.',
   'gam_achievements_empty': 'No badges in the catalog yet.',
   'gam_badge_locked': 'Locked',
   'gam_badge_unlocked_at': 'Unlocked:',
@@ -902,17 +971,20 @@ final Map<String, String> _fallbackStrings = {
   'gam_trainer_rankings_title': 'Trainer rankings',
   'gam_trainer_rankings_disabled': 'Enable “Trainer rank” in Settings.',
   'gam_trainer_achievements_title': 'Trainer achievements',
-  'gam_trainer_achievements_empty': 'No trainer_* badges in the catalog yet. Open the full collection under Progress.',
+  'gam_trainer_achievements_empty':
+      'No trainer_* badges in the catalog yet. Open the full collection under Progress.',
   'gam_trainer_achievements_all_link': 'All achievements',
   'gam_trainer_rank_card_title': 'Rank among clients',
   'gam_trainer_rank_card_place': 'Place {n} this week',
-  'gam_trainer_rank_card_no_data': 'No ranking data yet (or you are outside the top)',
+  'gam_trainer_rank_card_no_data':
+      'No ranking data yet (or you are outside the top)',
   'gam_trainee_meter_title': 'Trainee roster',
   'gam_trainee_meter_hint': 'A simple bench toward your next roster milestone.',
   'gam_group_achievement_banner_title': 'Group classes this week',
   'gam_group_achievement_banner_sub': 'Scheduled in the next 7 days: {n}',
   'gam_enable_trainer_rank': 'Trainer rank',
-  'gam_enable_trainer_rank_subtitle': 'Leaderboard among trainees and trainer dashboard widgets',
+  'gam_enable_trainer_rank_subtitle':
+      'Leaderboard among trainees and trainer dashboard widgets',
   'gam_trainer_menu_rankings': 'Rankings',
   'gam_trainer_menu_achievements': 'Trainer achievements',
   'gam_gym_lb_title': 'Gym top (week)',
@@ -922,9 +994,12 @@ final Map<String, String> _fallbackStrings = {
   'gam_group_engagement_title': 'Your group classes',
   'gam_group_engagement_upcoming': 'Upcoming bookings: {n}',
   'gam_group_engagement_past': 'Already held: {n}',
-  'gam_group_engagement_streak': 'Weeks in a row with a session (on-device estimate): {n}',
-  'gam_group_engagement_footnote': 'Event badges and XP come from the server; this is a local summary.',
-  'gam_available_gam_hint': 'Booking and attending group classes may count toward XP and badges (when enabled on the server).',
+  'gam_group_engagement_streak':
+      'Weeks in a row with a session (on-device estimate): {n}',
+  'gam_group_engagement_footnote':
+      'Event badges and XP come from the server; this is a local summary.',
+  'gam_available_gam_hint':
+      'Booking and attending group classes may count toward XP and badges (when enabled on the server).',
   'gam_gym_badges_hint': 'Events & badge collection — Progress → Achievements',
 };
 

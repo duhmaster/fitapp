@@ -10,11 +10,12 @@ import 'package:fitflow/features/auth/data/auth_repository.dart';
 import 'package:fitflow/features/auth/domain/auth_models.dart';
 
 /// Theme key: system (default light/dark), main (from colors.json maintheme), dark (from colors.json darktheme).
-/// По умолчанию светлая тема.
-final selectedThemeKeyProvider = StateProvider<String>((ref) => 'main');
+/// Default for new users is gaming ("arena") theme.
+final selectedThemeKeyProvider = StateProvider<String>((ref) => 'gaming');
 
 /// Loads colors.json once.
-final colorsJsonProvider = FutureProvider<Map<String, dynamic>>((ref) => loadColorsJson());
+final colorsJsonProvider =
+    FutureProvider<Map<String, dynamic>>((ref) => loadColorsJson());
 
 /// Resolved light theme for the app (current or main from JSON).
 final appLightThemeProvider = Provider<ThemeData>((ref) {
@@ -89,13 +90,15 @@ final mePreferencesInitProvider = FutureProvider<void>((ref) async {
   if (!await auth.isLoggedIn()) return;
   try {
     final me = await auth.getMe().timeout(
-      const Duration(seconds: 10),
-      onTimeout: () => throw TimeoutException('getMe'),
-    );
+          const Duration(seconds: 10),
+          onTimeout: () => throw TimeoutException('getMe'),
+        );
     await applyMePreferences(
       me,
-      setTheme: (key) => ref.read(selectedThemeKeyProvider.notifier).update((_) => key),
-      setLocale: (code) => ref.read(selectedLocaleCodeProvider.notifier).update((_) => code),
+      setTheme: (key) =>
+          ref.read(selectedThemeKeyProvider.notifier).update((_) => key),
+      setLocale: (code) =>
+          ref.read(selectedLocaleCodeProvider.notifier).update((_) => code),
       localeRepo: ref.read(localeRepositoryProvider),
     );
   } on TimeoutException {

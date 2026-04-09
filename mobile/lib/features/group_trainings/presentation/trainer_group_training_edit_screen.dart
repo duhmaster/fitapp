@@ -9,18 +9,22 @@ import 'package:fitflow/features/group_trainings/domain/group_training_models.da
 import 'package:fitflow/features/group_trainings/presentation/trainer_group_trainings_providers.dart';
 
 class TrainerGroupTrainingEditScreen extends ConsumerStatefulWidget {
-  const TrainerGroupTrainingEditScreen({super.key, required this.trainingIdOrNull});
+  const TrainerGroupTrainingEditScreen(
+      {super.key, required this.trainingIdOrNull});
   final String? trainingIdOrNull;
 
   @override
-  ConsumerState<TrainerGroupTrainingEditScreen> createState() => _TrainerGroupTrainingEditScreenState();
+  ConsumerState<TrainerGroupTrainingEditScreen> createState() =>
+      _TrainerGroupTrainingEditScreenState();
 }
 
-class _TrainerGroupTrainingEditScreenState extends ConsumerState<TrainerGroupTrainingEditScreen> {
+class _TrainerGroupTrainingEditScreenState
+    extends ConsumerState<TrainerGroupTrainingEditScreen> {
   String? _selectedTemplateId;
   String? _selectedGymId;
   DateTime _scheduledAt = DateTime.now().toUtc();
   bool _saving = false;
+  int _createStep = 0;
 
   final _scheduledAtController = TextEditingController();
 
@@ -37,18 +41,25 @@ class _TrainerGroupTrainingEditScreenState extends ConsumerState<TrainerGroupTra
     final gymsAsync = ref.watch(myGymsProvider);
 
     final trainingId = widget.trainingIdOrNull;
-    final trainingAsync = trainingId == null ? null : ref.watch(trainerTrainingDetailProvider(trainingId));
+    final trainingAsync = trainingId == null
+        ? null
+        : ref.watch(trainerTrainingDetailProvider(trainingId));
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(trainingId == null ? tr('create') : tr('edit')),
+        title:
+            Text(trainingId == null ? tr('create_group_training') : tr('edit')),
         actions: [
           if (_saving)
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 16),
-              child: Center(child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))),
+              child: Center(
+                  child: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2))),
             )
-          else
+          else if (trainingId != null)
             TextButton(
               onPressed: () => _save(tr),
               child: Text(tr('save')),
@@ -59,7 +70,8 @@ class _TrainerGroupTrainingEditScreenState extends ConsumerState<TrainerGroupTra
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('${tr('error_label')}: $e')),
         data: (templates) {
-          final firstTemplate = templates.isNotEmpty ? templates.first.id : null;
+          final firstTemplate =
+              templates.isNotEmpty ? templates.first.id : null;
           if (_selectedTemplateId == null && firstTemplate != null) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (!mounted) return;
@@ -81,20 +93,23 @@ class _TrainerGroupTrainingEditScreenState extends ConsumerState<TrainerGroupTra
 
               if (trainingAsync == null) {
                 _scheduledAtController.text = _formatScheduledAt(_scheduledAt);
-                return _buildForm(tr, templates, gyms);
+                return _buildCreateWizard(tr, templates, gyms);
               }
               return trainingAsync.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Center(child: Text('${tr('error_label')}: $e')),
+                error: (e, _) =>
+                    Center(child: Text('${tr('error_label')}: $e')),
                 data: (detail) {
                   WidgetsBinding.instance.addPostFrameCallback((_) {
                     if (!mounted) return;
-                    if (_selectedTemplateId == null || _selectedTemplateId != detail.training.templateId) {
+                    if (_selectedTemplateId == null ||
+                        _selectedTemplateId != detail.training.templateId) {
                       setState(() {
                         _selectedTemplateId = detail.training.templateId;
                         _selectedGymId = detail.training.gymId;
                         _scheduledAt = detail.training.scheduledAt.toUtc();
-                        _scheduledAtController.text = _formatScheduledAt(_scheduledAt);
+                        _scheduledAtController.text =
+                            _formatScheduledAt(_scheduledAt);
                       });
                     }
                   });
@@ -114,7 +129,6 @@ class _TrainerGroupTrainingEditScreenState extends ConsumerState<TrainerGroupTra
   }
 
   Future<void> _pickDateTime(BuildContext context) async {
-    final tr = ref.read(trProvider);
     final initial = _scheduledAt.toLocal();
     final date = await showDatePicker(
       context: context,
@@ -128,22 +142,28 @@ class _TrainerGroupTrainingEditScreenState extends ConsumerState<TrainerGroupTra
       initialTime: TimeOfDay(hour: initial.hour, minute: initial.minute),
     );
     if (time == null || !context.mounted) return;
-    final pickedLocal = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+    final pickedLocal =
+        DateTime(date.year, date.month, date.day, time.hour, time.minute);
     setState(() {
       _scheduledAt = pickedLocal.toUtc();
       _scheduledAtController.text = _formatScheduledAt(_scheduledAt);
     });
   }
 
-  Widget _buildForm(String Function(String) tr, List<GroupTrainingTemplate> templates, List<Gym> gyms) {
+  Widget _buildForm(String Function(String) tr,
+      List<GroupTrainingTemplate> templates, List<Gym> gyms) {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
         DropdownButtonFormField<String>(
           value: _selectedTemplateId,
-          items: templates.map((t) => DropdownMenuItem(value: t.id, child: Text(t.name))).toList(),
+          items: templates
+              .map((t) => DropdownMenuItem(value: t.id, child: Text(t.name)))
+              .toList(),
           onChanged: (v) => setState(() => _selectedTemplateId = v),
-          decoration: InputDecoration(labelText: tr('group_training_templates'), border: const OutlineInputBorder()),
+          decoration: InputDecoration(
+              labelText: tr('group_training_templates'),
+              border: const OutlineInputBorder()),
         ),
         const SizedBox(height: 12),
         TextField(
@@ -152,15 +172,153 @@ class _TrainerGroupTrainingEditScreenState extends ConsumerState<TrainerGroupTra
           decoration: InputDecoration(
             labelText: tr('scheduled_at'),
             border: const OutlineInputBorder(),
-            suffixIcon: IconButton(icon: const Icon(Icons.edit_calendar), onPressed: () => _pickDateTime(context)),
+            suffixIcon: IconButton(
+                icon: const Icon(Icons.edit_calendar),
+                onPressed: () => _pickDateTime(context)),
           ),
         ),
         const SizedBox(height: 12),
         DropdownButtonFormField<String>(
           value: _selectedGymId,
-          items: gyms.map((g) => DropdownMenuItem(value: g.id, child: Text(g.name))).toList(),
+          items: gyms
+              .map((g) => DropdownMenuItem(value: g.id, child: Text(g.name)))
+              .toList(),
           onChanged: (v) => setState(() => _selectedGymId = v),
-          decoration: InputDecoration(labelText: tr('gym'), border: const OutlineInputBorder()),
+          decoration: InputDecoration(
+              labelText: tr('gym'), border: const OutlineInputBorder()),
+        ),
+      ],
+    );
+  }
+
+  bool _templateStepValid() =>
+      _selectedTemplateId != null && _selectedTemplateId!.isNotEmpty;
+  bool _scheduleStepValid() =>
+      _selectedGymId != null &&
+      _selectedGymId!.isNotEmpty &&
+      _scheduledAt
+          .isAfter(DateTime.now().toUtc().subtract(const Duration(minutes: 1)));
+
+  Widget _buildCreateWizard(String Function(String) tr,
+      List<GroupTrainingTemplate> templates, List<Gym> gyms) {
+    String selectedTemplateName() {
+      for (final t in templates) {
+        if (t.id == _selectedTemplateId) return t.name;
+      }
+      return '—';
+    }
+
+    String selectedGymName() {
+      for (final g in gyms) {
+        if (g.id == _selectedGymId) return g.name;
+      }
+      return '—';
+    }
+
+    return Stepper(
+      currentStep: _createStep,
+      onStepTapped: (value) => setState(() => _createStep = value),
+      controlsBuilder: (context, details) {
+        final isLast = _createStep == 2;
+        return Padding(
+          padding: const EdgeInsets.only(top: 12),
+          child: Row(
+            children: [
+              if (!isLast)
+                FilledButton(
+                  onPressed: () {
+                    if (_createStep == 0 && !_templateStepValid()) return;
+                    if (_createStep == 1 && !_scheduleStepValid()) return;
+                    setState(() => _createStep = (_createStep + 1).clamp(0, 2));
+                  },
+                  child: Text(tr('next_step')),
+                )
+              else
+                FilledButton(
+                  onPressed:
+                      _saving || !_templateStepValid() || !_scheduleStepValid()
+                          ? null
+                          : () => _save(tr),
+                  child: Text(tr('create')),
+                ),
+              if (_createStep > 0) ...[
+                const SizedBox(width: 8),
+                OutlinedButton(
+                  onPressed: () => setState(
+                      () => _createStep = (_createStep - 1).clamp(0, 2)),
+                  child: Text(tr('back_step')),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+      steps: [
+        Step(
+          isActive: _createStep >= 0,
+          state: _templateStepValid() ? StepState.complete : StepState.indexed,
+          title: Text(tr('wizard_step_template')),
+          content: DropdownButtonFormField<String>(
+            value: _selectedTemplateId,
+            items: templates
+                .map((t) => DropdownMenuItem(value: t.id, child: Text(t.name)))
+                .toList(),
+            onChanged: (v) => setState(() => _selectedTemplateId = v),
+            decoration: InputDecoration(
+                labelText: tr('group_training_templates'),
+                border: const OutlineInputBorder()),
+          ),
+        ),
+        Step(
+          isActive: _createStep >= 1,
+          state: _scheduleStepValid() ? StepState.complete : StepState.indexed,
+          title: Text(tr('wizard_step_schedule')),
+          content: Column(
+            children: [
+              TextField(
+                controller: _scheduledAtController,
+                readOnly: true,
+                decoration: InputDecoration(
+                  labelText: tr('scheduled_at'),
+                  border: const OutlineInputBorder(),
+                  suffixIcon: IconButton(
+                      icon: const Icon(Icons.edit_calendar),
+                      onPressed: () => _pickDateTime(context)),
+                ),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: _selectedGymId,
+                items: gyms
+                    .map((g) =>
+                        DropdownMenuItem(value: g.id, child: Text(g.name)))
+                    .toList(),
+                onChanged: (v) => setState(() => _selectedGymId = v),
+                decoration: InputDecoration(
+                    labelText: tr('gym'), border: const OutlineInputBorder()),
+              ),
+            ],
+          ),
+        ),
+        Step(
+          isActive: _createStep >= 2,
+          title: Text(tr('wizard_step_review')),
+          content: Card(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                      '${tr('group_training_templates')}: ${selectedTemplateName()}'),
+                  const SizedBox(height: 6),
+                  Text('${tr('scheduled_at')}: ${_scheduledAtController.text}'),
+                  const SizedBox(height: 6),
+                  Text('${tr('gym')}: ${selectedGymName()}'),
+                ],
+              ),
+            ),
+          ),
         ),
       ],
     );
@@ -193,16 +351,18 @@ class _TrainerGroupTrainingEditScreenState extends ConsumerState<TrainerGroupTra
       if (!mounted) return;
       ref.invalidate(trainerTrainingsProvider(false));
       ref.invalidate(trainerTrainingsProvider(true));
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('saved'))));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(tr('saved'))));
       context.pop();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString()), backgroundColor: Theme.of(context).colorScheme.error),
+        SnackBar(
+            content: Text(e.toString()),
+            backgroundColor: Theme.of(context).colorScheme.error),
       );
     } finally {
       if (mounted) setState(() => _saving = false);
     }
   }
 }
-

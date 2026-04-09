@@ -11,9 +11,16 @@ import 'package:fitflow/features/gamification/presentation/widgets/mission_progr
 /// Home (`/home`) block: XP + avatar, optional mission, optional mini leaderboard.
 /// Use [padding] `EdgeInsets.zero` when embedding inside screens that already apply horizontal padding (e.g. profile).
 class HomeGamificationStrip extends ConsumerWidget {
-  const HomeGamificationStrip({super.key, this.padding = const EdgeInsets.fromLTRB(16, 0, 16, 8)});
+  const HomeGamificationStrip({
+    super.key,
+    this.padding = const EdgeInsets.fromLTRB(16, 0, 16, 8),
+    this.showLeaderboard = true,
+    this.dashboardLayout = false,
+  });
 
   final EdgeInsetsGeometry padding;
+  final bool showLeaderboard;
+  final bool dashboardLayout;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -25,21 +32,23 @@ class HomeGamificationStrip extends ConsumerWidget {
         if (!flags.xpEnabled && !flags.leaderboardEnabled) {
           return const SizedBox.shrink();
         }
-        final profileAsync = flags.xpEnabled ? ref.watch(gamificationProfileProvider) : null;
-        final missionAsync = flags.xpEnabled ? ref.watch(gamificationHomeMissionProvider) : null;
-        final lbAsync = flags.leaderboardEnabled ? ref.watch(gamificationLeaderboardMiniProvider) : null;
+        final profileAsync =
+            flags.xpEnabled ? ref.watch(gamificationProfileProvider) : null;
+        final missionAsync =
+            flags.xpEnabled ? ref.watch(gamificationHomeMissionProvider) : null;
+        final lbAsync = flags.leaderboardEnabled && showLeaderboard
+            ? ref.watch(gamificationLeaderboardMiniProvider)
+            : null;
 
-        return Padding(
-          padding: padding,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (flags.xpEnabled && profileAsync != null)
-                profileAsync.when(
-                  loading: () => const LoadingSkeleton(height: 88, borderRadius: 12),
-                  error: (_, __) => const SizedBox.shrink(),
-                  data: (profile) => Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
+        final xpWidget = flags.xpEnabled && profileAsync != null
+            ? profileAsync.when(
+                loading: () =>
+                    const LoadingSkeleton(height: 88, borderRadius: 12),
+                error: (_, __) => const SizedBox.shrink(),
+                data: (profile) => Card(
+                  margin: EdgeInsets.zero,
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -55,56 +64,97 @@ class HomeGamificationStrip extends ConsumerWidget {
                             xpToNextLabel: profile.xpForNextLevel > 0
                                 ? '${profile.xpIntoCurrentLevel} / ${profile.xpForNextLevel} XP'
                                 : tr('gam_home_xp_max'),
+                            dashboardMode: dashboardLayout,
                           ),
                         ),
                       ],
                     ),
                   ),
                 ),
-              if (flags.xpEnabled && missionAsync != null)
-                missionAsync.when(
-                  loading: () => const Padding(
-                    padding: EdgeInsets.only(bottom: 8),
-                    child: LoadingSkeleton(height: 100, borderRadius: 12),
-                  ),
-                  error: (_, __) => const SizedBox.shrink(),
-                  data: (snap) {
-                    if (snap == null) {
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Card(
-                          elevation: 0,
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Text(
-                              tr('gam_mission_empty'),
-                              style: Theme.of(context).textTheme.bodyMedium,
-                            ),
-                          ),
+              )
+            : const SizedBox.shrink();
+
+        final missionWidget = flags.xpEnabled && missionAsync != null
+            ? missionAsync.when(
+                loading: () =>
+                    const LoadingSkeleton(height: 100, borderRadius: 12),
+                error: (_, __) => const SizedBox.shrink(),
+                data: (snap) {
+                  if (snap == null) {
+                    return Card(
+                      margin: EdgeInsets.zero,
+                      elevation: 0,
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Text(
+                          tr('gam_mission_empty'),
+                          style: Theme.of(context).textTheme.bodyMedium,
                         ),
-                      );
-                    }
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: MissionProgressCard(
-                        definition: snap.def,
-                        progress: snap.progress,
-                        titleLabel: tr('gam_mission_daily'),
                       ),
                     );
-                  },
-                ),
-              if (flags.leaderboardEnabled && lbAsync != null)
-                lbAsync.when(
-                  loading: () => const LoadingSkeleton(height: 120, borderRadius: 12),
-                  error: (_, __) => const SizedBox.shrink(),
-                  data: (entries) => MiniLeaderboardCard(
-                    entries: entries,
-                    titleLabel: tr('gam_leaderboard_mini_title'),
-                    emptyLabel: tr('gam_leaderboard_empty'),
-                    subtitleLabel: tr('gam_leaderboard_weekly_hint'),
+                  }
+                  return MissionProgressCard(
+                    definition: snap.def,
+                    progress: snap.progress,
+                    titleLabel: tr('gam_mission_daily'),
+                    dashboardMode: dashboardLayout,
+                  );
+                },
+              )
+            : const SizedBox.shrink();
+
+        final leaderboardWidget =
+            flags.leaderboardEnabled && showLeaderboard && lbAsync != null
+                ? lbAsync.when(
+                    loading: () =>
+                        const LoadingSkeleton(height: 120, borderRadius: 12),
+                    error: (_, __) => const SizedBox.shrink(),
+                    data: (entries) => MiniLeaderboardCard(
+                      entries: entries,
+                      titleLabel: tr('gam_leaderboard_mini_title'),
+                      emptyLabel: tr('gam_leaderboard_empty'),
+                      subtitleLabel: tr('gam_leaderboard_weekly_hint'),
+                    ),
+                  )
+                : const SizedBox.shrink();
+
+        final wide = MediaQuery.sizeOf(context).width >= 980;
+        const double dashboardCardHeight = 156;
+        Widget dashboardCell(Widget child) => SizedBox(
+              height: dashboardCardHeight,
+              child: child,
+            );
+        return Padding(
+          padding: padding,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (dashboardLayout && wide)
+                IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(child: dashboardCell(xpWidget)),
+                      const SizedBox(width: 12),
+                      Expanded(child: dashboardCell(missionWidget)),
+                    ],
                   ),
-                ),
+                )
+              else ...[
+                if (dashboardLayout) dashboardCell(xpWidget) else xpWidget,
+                if (flags.xpEnabled && missionAsync != null)
+                  const SizedBox(height: 8),
+                if (dashboardLayout)
+                  dashboardCell(missionWidget)
+                else
+                  missionWidget,
+              ],
+              if (flags.leaderboardEnabled &&
+                  showLeaderboard &&
+                  lbAsync != null) ...[
+                const SizedBox(height: 8),
+                leaderboardWidget,
+              ],
             ],
           ),
         );

@@ -60,8 +60,14 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         actions: [
           SegmentedButton<CalendarView>(
             segments: [
-              ButtonSegment(value: CalendarView.month, icon: const Icon(Icons.calendar_month), label: Text(tr('calendar_month'))),
-              ButtonSegment(value: CalendarView.list, icon: const Icon(Icons.list), label: Text(tr('calendar_list'))),
+              ButtonSegment(
+                  value: CalendarView.month,
+                  icon: const Icon(Icons.calendar_month),
+                  label: Text(tr('calendar_month'))),
+              ButtonSegment(
+                  value: CalendarView.list,
+                  icon: const Icon(Icons.list),
+                  label: Text(tr('calendar_list'))),
             ],
             selected: {_view},
             onSelectionChanged: (s) => setState(() => _view = s.first),
@@ -93,7 +99,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                 padding: const EdgeInsets.all(16),
                 child: Consumer(
                   builder: (ctx, ref, _) {
-                    final isTrainer = ref.watch(isTrainerProvider).valueOrNull ?? false;
+                    final isTrainer =
+                        ref.watch(isTrainerProvider).valueOrNull ?? false;
                     return Wrap(
                       spacing: 8,
                       runSpacing: 8,
@@ -102,7 +109,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                           icon: const Icon(Icons.add),
                           label: Text(tr('create_workout')),
                           onPressed: () async {
-                            await showTemplatePickerDialog(context, ref, initialDate: _selectedDate);
+                            await showTemplatePickerDialog(context, ref,
+                                initialDate: _selectedDate);
                             ref.invalidate(workoutsCalendarCombinedProvider);
                             ref.invalidate(workoutsCalendarProvider);
                             ref.invalidate(workoutsListProvider);
@@ -122,7 +130,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                           OutlinedButton.icon(
                             icon: const Icon(Icons.groups),
                             label: Text(tr('enroll_group_training')),
-                            onPressed: () => context.push('/group-trainings/available'),
+                            onPressed: () =>
+                                context.push('/group-trainings/available'),
                           ),
                       ],
                     );
@@ -134,10 +143,13 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     );
   }
 
-  void _showDayDialog(BuildContext context, WidgetRef ref, List<CalendarWorkoutItem> items, DateTime date) {
+  void _showDayDialog(BuildContext context, WidgetRef ref,
+      List<CalendarWorkoutItem> items, DateTime date) {
     final tr = ref.read(trProvider);
     final isTrainer = ref.read(isTrainerProvider).valueOrNull ?? false;
-    final dayItems = items.where((item) => _isSameDay(_workoutDate(item.workout), date)).toList();
+    final dayItems = items
+        .where((item) => _isSameDay(_workoutDate(item.workout), date))
+        .toList();
     showDialog<void>(
       context: context,
       builder: (ctx) => _DayDialog(
@@ -148,10 +160,11 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         onCreate: () async {
           Navigator.of(ctx).pop();
           await showTemplatePickerDialog(context, ref, initialDate: date);
+          if (!mounted) return;
           ref.invalidate(workoutsCalendarCombinedProvider);
           ref.invalidate(workoutsCalendarProvider);
           ref.invalidate(workoutsListProvider);
-          if (mounted) setState(() {});
+          setState(() {});
         },
         onCreateGroupTraining: isTrainer
             ? () {
@@ -162,10 +175,12 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             : null,
         onCreateForTrainee: () async {
           Navigator.of(ctx).pop();
-          final trainees = await ref.read(trainerRepositoryProvider).listMyTrainees();
+          final trainees =
+              await ref.read(trainerRepositoryProvider).listMyTrainees();
           if (!mounted) return;
           if (trainees.isEmpty) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('no_trainees'))));
+            ScaffoldMessenger.of(context)
+                .showSnackBar(SnackBar(content: Text(tr('no_trainees'))));
             return;
           }
           final picked = await showDialog<TraineeItem>(
@@ -180,36 +195,46 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   itemBuilder: (_, i) {
                     final t = trainees[i];
                     final name = t.displayName ?? t.clientId;
-                    return ListTile(title: Text(name), onTap: () => Navigator.of(c).pop(t));
+                    return ListTile(
+                        title: Text(name), onTap: () => Navigator.of(c).pop(t));
                   },
                 ),
               ),
               actions: [
-                TextButton(onPressed: () => Navigator.of(c).pop(), child: Text(tr('cancel'))),
+                TextButton(
+                    onPressed: () => Navigator.of(c).pop(),
+                    child: Text(tr('cancel'))),
               ],
             ),
           );
           if (picked != null && mounted) {
-            await showCreateWorkoutForClientDialog(context, ref, clientId: picked.clientId, initialDate: date);
+            await showCreateWorkoutForClientDialog(context, ref,
+                clientId: picked.clientId, initialDate: date);
           }
+          if (!mounted) return;
           ref.invalidate(workoutsCalendarCombinedProvider);
           ref.invalidate(workoutsCalendarProvider);
-          if (mounted) setState(() {});
+          setState(() {});
         },
         onDelete: (item) async {
           if (!item.isOwn) return;
           if (item.isGroupTraining) return;
           try {
-            await ref.read(workoutRepositoryProvider).deleteWorkout(item.workout.id);
+            await ref
+                .read(workoutRepositoryProvider)
+                .deleteWorkout(item.workout.id);
+            if (!mounted) return;
             ref.invalidate(workoutsCalendarCombinedProvider);
             ref.invalidate(workoutsCalendarProvider);
             ref.invalidate(workoutsListProvider);
             if (ctx.mounted) Navigator.of(ctx).pop();
-            if (mounted) setState(() {});
+            setState(() {});
           } catch (e) {
             if (ctx.mounted) {
               ScaffoldMessenger.of(ctx).showSnackBar(
-                SnackBar(content: Text(e.toString()), backgroundColor: Theme.of(ctx).colorScheme.error),
+                SnackBar(
+                    content: Text(e.toString()),
+                    backgroundColor: Theme.of(ctx).colorScheme.error),
               );
             }
           }
@@ -283,11 +308,24 @@ class _MonthView extends StatelessWidget {
 
     final dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
     final monthNames = [
-      'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
-      'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
+      'Январь',
+      'Февраль',
+      'Март',
+      'Апрель',
+      'Май',
+      'Июнь',
+      'Июль',
+      'Август',
+      'Сентябрь',
+      'Октябрь',
+      'Ноябрь',
+      'Декабрь'
     ];
 
-    final daysWithWorkouts = items.map((i) => _workoutDate(i.workout)).map((d) => DateTime(d.year, d.month, d.day)).toSet();
+    final daysWithWorkouts = items
+        .map((i) => _workoutDate(i.workout))
+        .map((d) => DateTime(d.year, d.month, d.day))
+        .toSet();
 
     return Column(
       children: [
@@ -298,12 +336,16 @@ class _MonthView extends StatelessWidget {
             children: [
               IconButton(
                 icon: const Icon(Icons.chevron_left),
-                onPressed: () => onMonthChanged(DateTime(selectedMonth.year, selectedMonth.month - 1)),
+                onPressed: () => onMonthChanged(
+                    DateTime(selectedMonth.year, selectedMonth.month - 1)),
               ),
-              Text('${monthNames[selectedMonth.month - 1]} ${selectedMonth.year}', style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                  '${monthNames[selectedMonth.month - 1]} ${selectedMonth.year}',
+                  style: Theme.of(context).textTheme.titleMedium),
               IconButton(
                 icon: const Icon(Icons.chevron_right),
-                onPressed: () => onMonthChanged(DateTime(selectedMonth.year, selectedMonth.month + 1)),
+                onPressed: () => onMonthChanged(
+                    DateTime(selectedMonth.year, selectedMonth.month + 1)),
               ),
             ],
           ),
@@ -312,54 +354,73 @@ class _MonthView extends StatelessWidget {
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 8),
             child: Table(
-            children: [
+              children: [
                 TableRow(
-                children: dayNames.map((n) => Center(child: Padding(padding: const EdgeInsets.all(8), child: Text(n, style: Theme.of(context).textTheme.bodySmall)))).toList(),
-              ),
-              ...List.generate(rows, (row) {
-                return TableRow(
-                  children: List.generate(7, (col) {
-                    final cellIndex = row * 7 + col;
-                    if (cellIndex < startPad) return const SizedBox(height: 44);
-                    final day = cellIndex - startPad + 1;
-                    if (day > daysInMonth) return const SizedBox(height: 44);
-                    final d = DateTime(selectedMonth.year, selectedMonth.month, day);
-                    final hasWorkout = daysWithWorkouts.any((x) => _isSameDay(x, d));
-                    final isSelected = selectedDate != null && _isSameDay(selectedDate!, d);
-                    final isToday = _isSameDay(d, DateTime.now());
-                    return Padding(
-                      padding: const EdgeInsets.all(4),
-                      child: SizedBox(
-                        height: 40,
-                        child: Material(
-                        color: isSelected
-                            ? Theme.of(context).colorScheme.primaryContainer
-                            : hasWorkout
-                                ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.2)
-                                : Colors.transparent,
-                        borderRadius: BorderRadius.circular(8),
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(8),
-                          onTap: () => onDateSelected(d),
-                          child: Center(
-                            child: Text(
-                              '$day',
-                              style: TextStyle(
-                                fontWeight: isToday ? FontWeight.bold : null,
-                                color: isSelected ? Theme.of(context).colorScheme.onPrimaryContainer : null,
+                  children: dayNames
+                      .map((n) => Center(
+                          child: Padding(
+                              padding: const EdgeInsets.all(8),
+                              child: Text(n,
+                                  style:
+                                      Theme.of(context).textTheme.bodySmall))))
+                      .toList(),
+                ),
+                ...List.generate(rows, (row) {
+                  return TableRow(
+                    children: List.generate(7, (col) {
+                      final cellIndex = row * 7 + col;
+                      if (cellIndex < startPad)
+                        return const SizedBox(height: 44);
+                      final day = cellIndex - startPad + 1;
+                      if (day > daysInMonth) return const SizedBox(height: 44);
+                      final d = DateTime(
+                          selectedMonth.year, selectedMonth.month, day);
+                      final hasWorkout =
+                          daysWithWorkouts.any((x) => _isSameDay(x, d));
+                      final isSelected =
+                          selectedDate != null && _isSameDay(selectedDate!, d);
+                      final isToday = _isSameDay(d, DateTime.now());
+                      return Padding(
+                        padding: const EdgeInsets.all(4),
+                        child: SizedBox(
+                          height: 40,
+                          child: Material(
+                            color: isSelected
+                                ? Theme.of(context).colorScheme.primaryContainer
+                                : hasWorkout
+                                    ? Theme.of(context)
+                                        .colorScheme
+                                        .primary
+                                        .withValues(alpha: 0.2)
+                                    : Colors.transparent,
+                            borderRadius: BorderRadius.circular(8),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(8),
+                              onTap: () => onDateSelected(d),
+                              child: Center(
+                                child: Text(
+                                  '$day',
+                                  style: TextStyle(
+                                    fontWeight:
+                                        isToday ? FontWeight.bold : null,
+                                    color: isSelected
+                                        ? Theme.of(context)
+                                            .colorScheme
+                                            .onPrimaryContainer
+                                        : null,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                    ),
-                    );
-                  }),
-                );
-              }),
-            ],
+                      );
+                    }),
+                  );
+                }),
+              ],
+            ),
           ),
-        ),
         ),
       ],
     );
@@ -407,7 +468,8 @@ class _ListView extends ConsumerWidget {
       final d = _workoutDate(item.workout);
       return d.isAtSameMomentAs(today) || d.isAfter(today);
     }).toList();
-    upcoming.sort((a, b) => _workoutDate(a.workout).compareTo(_workoutDate(b.workout)));
+    upcoming.sort(
+        (a, b) => _workoutDate(a.workout).compareTo(_workoutDate(b.workout)));
 
     if (upcoming.isEmpty) {
       return Center(child: Text(tr('no_workouts_yet')));
@@ -433,8 +495,12 @@ class _ListView extends ConsumerWidget {
           margin: const EdgeInsets.only(bottom: 8),
           child: ListTile(
             leading: Icon(
-              item.isGroupTraining ? Icons.groups : (item.isOwn ? Icons.person : Icons.people),
-              color: item.isOwn ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.secondary,
+              item.isGroupTraining
+                  ? Icons.groups
+                  : (item.isOwn ? Icons.person : Icons.people),
+              color: item.isOwn
+                  ? Theme.of(context).colorScheme.primary
+                  : Theme.of(context).colorScheme.secondary,
             ),
             title: Text(title, maxLines: 2, overflow: TextOverflow.ellipsis),
             subtitle: Column(
@@ -444,11 +510,14 @@ class _ListView extends ConsumerWidget {
                 Text(dateStr),
                 Text(
                   formatCalendarStatusLabel(item, tr),
-                  style: TextStyle(color: Color(item.statusColorValue), fontSize: 12),
+                  style: TextStyle(
+                      color: Color(item.statusColorValue), fontSize: 12),
                 ),
               ],
             ),
-            trailing: item.isGroupTraining ? const Icon(Icons.groups) : Icon(w.isActive ? Icons.play_circle : Icons.fitness_center),
+            trailing: item.isGroupTraining
+                ? const Icon(Icons.groups)
+                : Icon(w.isActive ? Icons.play_circle : Icons.fitness_center),
             onTap: () {
               if (item.isGroupTraining) {
                 if (item.isOwn) {
@@ -493,84 +562,108 @@ class _DayDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dateStr = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    final dateStr =
+        '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
     return AlertDialog(
       title: Text('${tr('workouts_for_date')} $dateStr'),
       content: SizedBox(
         width: double.maxFinite,
-        child: items.isEmpty
-            ? Text(tr('no_workouts_for_date'))
-            : ListView.builder(
-                shrinkWrap: true,
-                itemCount: items.length,
-                itemBuilder: (_, i) {
-                  final item = items[i];
-                  final title = formatCalendarWorkoutTitle(
-                    item,
-                    tr('workout'),
-                    groupTrainingOwn: tr('my_group_training_calendar'),
-                    groupTraining: tr('group_training_calendar'),
-                  );
-                  return ListTile(
-                    leading: Icon(
-                      item.isGroupTraining ? Icons.groups : (item.isOwn ? Icons.person : Icons.people),
-                      color: item.isOwn ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.secondary,
-                    ),
-                    title: Text(title, maxLines: 2, overflow: TextOverflow.ellipsis),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          _formatWorkoutDateAndTime(item.workout),
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                        Text(
-                          formatCalendarStatusLabel(item, tr),
-                          style: TextStyle(color: Color(item.statusColorValue), fontSize: 12),
-                        ),
-                      ],
-                    ),
-                    trailing: item.isOwn && !item.isGroupTraining
-                        ? IconButton(
-                            icon: const Icon(Icons.delete_outline),
-                            onPressed: () => onDelete(item),
-                          )
-                        : null,
-                    onTap: () => onTapWorkout(item),
-                  );
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (items.isEmpty)
+                Text(tr('no_workouts_for_date'))
+              else
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: items.length,
+                  itemBuilder: (_, i) {
+                    final item = items[i];
+                    final title = formatCalendarWorkoutTitle(
+                      item,
+                      tr('workout'),
+                      groupTrainingOwn: tr('my_group_training_calendar'),
+                      groupTraining: tr('group_training_calendar'),
+                    );
+                    return ListTile(
+                      leading: Icon(
+                        item.isGroupTraining
+                            ? Icons.groups
+                            : (item.isOwn ? Icons.person : Icons.people),
+                        color: item.isOwn
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(context).colorScheme.secondary,
+                      ),
+                      title: Text(title,
+                          maxLines: 2, overflow: TextOverflow.ellipsis),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _formatWorkoutDateAndTime(item.workout),
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                          Text(
+                            formatCalendarStatusLabel(item, tr),
+                            style: TextStyle(
+                                color: Color(item.statusColorValue),
+                                fontSize: 12),
+                          ),
+                        ],
+                      ),
+                      trailing: item.isOwn && !item.isGroupTraining
+                          ? IconButton(
+                              icon: const Icon(Icons.delete_outline),
+                              onPressed: () => onDelete(item),
+                            )
+                          : null,
+                      onTap: () => onTapWorkout(item),
+                    );
+                  },
+                ),
+              const SizedBox(height: 12),
+              FilledButton.icon(
+                icon: const Icon(Icons.groups),
+                label: Text(tr('enroll_group_training')),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  context.push('/group-trainings/available');
                 },
               ),
+              if (onCreateGroupTraining != null && isTrainer) ...[
+                const SizedBox(height: 8),
+                FilledButton.tonalIcon(
+                  icon: const Icon(Icons.groups),
+                  label: Text(tr('create_group_training')),
+                  onPressed: onCreateGroupTraining,
+                ),
+              ],
+              if (onCreateForTrainee != null) ...[
+                const SizedBox(height: 8),
+                FilledButton.tonalIcon(
+                  icon: const Icon(Icons.people),
+                  label: Text(tr('create_for_trainee')),
+                  onPressed: onCreateForTrainee,
+                ),
+              ],
+              const SizedBox(height: 8),
+              FilledButton.icon(
+                icon: const Icon(Icons.add),
+                label: Text(tr('create_workout')),
+                onPressed: onCreate,
+              ),
+            ],
+          ),
+        ),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
           child: Text(tr('cancel')),
-        ),
-        FilledButton.icon(
-          icon: const Icon(Icons.groups),
-          label: Text(tr('enroll_group_training')),
-          onPressed: () {
-            Navigator.of(context).pop();
-            context.push('/group-trainings/available');
-          },
-        ),
-        if (onCreateGroupTraining != null && isTrainer)
-          FilledButton.tonalIcon(
-            icon: const Icon(Icons.groups),
-            label: Text(tr('create_group_training')),
-            onPressed: onCreateGroupTraining,
-          ),
-        if (onCreateForTrainee != null)
-          FilledButton.tonalIcon(
-            icon: const Icon(Icons.people),
-            label: Text(tr('create_for_trainee')),
-            onPressed: onCreateForTrainee,
-          ),
-        FilledButton.icon(
-          icon: const Icon(Icons.add),
-          label: Text(tr('create_workout')),
-          onPressed: onCreate,
         ),
       ],
     );

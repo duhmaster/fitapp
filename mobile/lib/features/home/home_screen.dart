@@ -26,7 +26,7 @@ class HomeScreen extends ConsumerWidget {
               try {
                 await ref.read(logoutProvider)();
               } finally {
-                invalidateUserScopedProviders(ref as Ref);
+                invalidateUserScopedProviders(ref);
               }
             },
           ),

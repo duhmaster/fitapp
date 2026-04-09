@@ -7,7 +7,7 @@ class Breakpoint {
   static const double desktop = 900;
 
   /// Max width for main content on desktop so it doesn't stretch too much.
-  static const double contentMaxWidth = 720;
+  static const double contentMaxWidth = 1120;
 }
 
 extension ResponsiveContext on BuildContext {
@@ -30,7 +30,8 @@ class ResponsiveCenter extends StatelessWidget {
     if (context.width >= Breakpoint.tablet) {
       return Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: Breakpoint.contentMaxWidth),
+          constraints:
+              const BoxConstraints(maxWidth: Breakpoint.contentMaxWidth),
           child: child,
         ),
       );

@@ -12,7 +12,8 @@ import 'package:fitflow/features/profile/presentation/profile_provider.dart';
 import 'package:fitflow/features/system_messages/presentation/system_messages_screen.dart';
 
 class MainShellScreen extends ConsumerStatefulWidget {
-  const MainShellScreen({super.key, required this.child, required this.location});
+  const MainShellScreen(
+      {super.key, required this.child, required this.location});
 
   final Widget child;
   final String location;
@@ -81,7 +82,8 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
   }
 
   /// High-contrast XP bar on [primaryContainer] (thin Material bars are hard to see on tinted headers).
-  Widget _drawerHeaderXpProgressBar(ColorScheme scheme, {required bool loading, double? value}) {
+  Widget _drawerHeaderXpProgressBar(ColorScheme scheme,
+      {required bool loading, double? value}) {
     assert(loading || value != null);
     final onCont = scheme.onPrimaryContainer;
     final track = onCont.withValues(alpha: 0.22);
@@ -155,7 +157,8 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
                       child: SizedBox(
                         width: 22,
                         height: 22,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: scheme.primary),
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: scheme.primary),
                       ),
                     ),
                     error: (_, __) => CircleAvatar(
@@ -170,7 +173,10 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
                         radius: 26,
                         backgroundColor: scheme.surfaceContainerHighest,
                         backgroundImage: hasPhoto ? NetworkImage(url) : null,
-                        child: hasPhoto ? null : Icon(Icons.person, size: 30, color: scheme.onSurfaceVariant),
+                        child: hasPhoto
+                            ? null
+                            : Icon(Icons.person,
+                                size: 30, color: scheme.onSurfaceVariant),
                       );
                     },
                   ),
@@ -179,18 +185,25 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: profileAsync.when(
-                  loading: () => Text(tr('loading'), style: Theme.of(context).textTheme.titleSmall),
-                  error: (_, __) => Text(tr('profile'), style: Theme.of(context).textTheme.titleMedium),
+                  loading: () => Text(tr('loading'),
+                      style: Theme.of(context).textTheme.titleSmall),
+                  error: (_, __) => Text(tr('profile'),
+                      style: Theme.of(context).textTheme.titleMedium),
                   data: (p) => Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        p.displayName.isNotEmpty ? p.displayName : tr('profile'),
+                        p.displayName.isNotEmpty
+                            ? p.displayName
+                            : tr('profile'),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w600),
                       ),
                       if (xpOn) ...[
                         const SizedBox(height: 4),
@@ -201,7 +214,10 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
                             children: [
                               Text(
                                 '…',
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(color: scheme.onSurfaceVariant),
                               ),
                               const SizedBox(height: 6),
                               _drawerHeaderXpProgressBar(scheme, loading: true),
@@ -209,20 +225,25 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
                           ),
                           error: (_, __) => const SizedBox.shrink(),
                           data: (g) {
-                            final double barValue = g.xpForNextLevel <= 0 ? 1.0 : g.levelProgress;
+                            final double barValue =
+                                g.xpForNextLevel <= 0 ? 1.0 : g.levelProgress;
                             return Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
                                   '${tr('level')} ${g.level}',
-                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(
                                         color: scheme.onSurfaceVariant,
                                         fontWeight: FontWeight.w500,
                                       ),
                                 ),
                                 const SizedBox(height: 6),
-                                _drawerHeaderXpProgressBar(scheme, loading: false, value: barValue),
+                                _drawerHeaderXpProgressBar(scheme,
+                                    loading: false, value: barValue),
                               ],
                             );
                           },
@@ -244,21 +265,63 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
     );
   }
 
-  Widget _drawerSectionHeader(BuildContext context, String title, {bool first = false}) {
+  Widget _drawerSectionHeader(BuildContext context, String title,
+      {bool first = false}) {
     return Padding(
       padding: EdgeInsets.fromLTRB(16, first ? 12 : 16, 16, 4),
       child: Text(
         title,
         style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-              fontWeight: FontWeight.w600,
+              color: Theme.of(context)
+                  .colorScheme
+                  .onSurfaceVariant
+                  .withValues(alpha: 0.82),
+              fontWeight: FontWeight.w700,
             ),
       ),
     );
   }
 
-  Widget _homeTitleBar(BuildContext context, String Function(String) tr, {required bool narrow}) {
-    final nameText = Text(tr('app_name'), overflow: narrow ? TextOverflow.ellipsis : null);
+  bool _isCurrent(String route) {
+    final path = widget.location.split('?').first;
+    return path == route || path.startsWith('$route/');
+  }
+
+  Widget _drawerTile(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    String? subtitle,
+    required VoidCallback onTap,
+    required String route,
+  }) {
+    final selected = _isCurrent(route);
+    final scheme = Theme.of(context).colorScheme;
+    return ListTile(
+      leading: Icon(icon, color: selected ? scheme.primary : null),
+      title: Text(title),
+      subtitle: subtitle == null
+          ? null
+          : Text(
+              subtitle,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurfaceVariant
+                        .withValues(alpha: 0.84),
+                  ),
+            ),
+      selected: selected,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      selectedTileColor: scheme.primaryContainer.withValues(alpha: 0.45),
+      onTap: onTap,
+    );
+  }
+
+  Widget _homeTitleBar(BuildContext context, String Function(String) tr,
+      {required bool narrow}) {
+    final nameText =
+        Text(tr('app_name'), overflow: narrow ? TextOverflow.ellipsis : null);
     return Tooltip(
       message: tr('nav_home'),
       child: InkWell(
@@ -282,7 +345,6 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
   @override
   Widget build(BuildContext context) {
     final tr = ref.watch(trProvider);
-    final index = _selectedIndex(widget.location);
     final isWide = context.isWide;
     final countAsync = ref.watch(activeSystemMessagesCountProvider);
 
@@ -309,19 +371,25 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
               selected: {_trainerMode},
               onSelectionChanged: (s) => setState(() => _trainerMode = s.first),
               style: ButtonStyle(
-                backgroundColor: MaterialStateProperty.resolveWith<Color?>((states) {
+                backgroundColor:
+                    MaterialStateProperty.resolveWith<Color?>((states) {
                   final scheme = Theme.of(context).colorScheme;
-                  if (states.contains(MaterialState.selected)) return scheme.primaryContainer;
+                  if (states.contains(MaterialState.selected))
+                    return scheme.primaryContainer;
                   return scheme.surfaceContainerHighest;
                 }),
-                foregroundColor: MaterialStateProperty.resolveWith<Color?>((states) {
+                foregroundColor:
+                    MaterialStateProperty.resolveWith<Color?>((states) {
                   final scheme = Theme.of(context).colorScheme;
-                  if (states.contains(MaterialState.selected)) return scheme.onPrimaryContainer;
+                  if (states.contains(MaterialState.selected))
+                    return scheme.onPrimaryContainer;
                   return scheme.onSurfaceVariant;
                 }),
-                overlayColor: MaterialStateProperty.resolveWith<Color?>((states) {
+                overlayColor:
+                    MaterialStateProperty.resolveWith<Color?>((states) {
                   final scheme = Theme.of(context).colorScheme;
-                  if (states.contains(MaterialState.selected)) return scheme.primary.withOpacity(0.12);
+                  if (states.contains(MaterialState.selected))
+                    return scheme.primary.withOpacity(0.12);
                   return scheme.onSurface.withOpacity(0.08);
                 }),
               ),
@@ -331,112 +399,166 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
             child: ListView(
               padding: EdgeInsets.zero,
               children: [
-          if (!_trainerMode) ...[
-            _drawerSectionHeader(context, tr('nav_drawer_section_today'), first: true),
-            ListTile(
-              leading: const Icon(Icons.format_list_bulleted),
-              title: Text(tr('all_workouts')),
-              onTap: () => _drawerNavigate(context, () => _go(context, '/home')),
-            ),
-            ListTile(
-              leading: const Icon(Icons.calendar_month),
-              title: Text(tr('calendar')),
-              onTap: () => _drawerNavigate(context, () => _push(context, '/calendar')),
-            ),
-            _drawerSectionHeader(context, tr('nav_drawer_section_profile_people')),
-            ListTile(
-              leading: const Icon(Icons.dynamic_feed),
-              title: Text(tr('feed')),
-              onTap: () => _drawerNavigate(context, () => _go(context, '/feed')),
-            ),
-            ListTile(
-              leading: const Icon(Icons.sports_martial_arts),
-              title: Text(tr('my_trainers')),
-              onTap: () => _drawerNavigate(context, () => _push(context, '/my-trainers')),
-            ),
-            _drawerSectionHeader(context, tr('nav_drawer_section_progress')),
-            ListTile(
-              leading: const Icon(Icons.emoji_events_outlined),
-              title: Text(tr('nav_drawer_progress_title')),
-              subtitle: Text(tr('nav_drawer_progress_subtitle')),
-              onTap: () => _drawerNavigate(context, () => _go(context, '/progress')),
-            ),
-            _drawerSectionHeader(context, tr('nav_drawer_section_events')),
-            ListTile(
-              leading: const Icon(Icons.groups),
-              title: Text(tr('group_trainings')),
-              subtitle: Text(tr('nav_drawer_group_trainings_member_sub')),
-              onTap: () => _drawerNavigate(context, () => _go(context, '/group-trainings')),
-            ),
-            ListTile(
-              leading: const Icon(Icons.fitness_center),
-              title: Text(tr('my_gyms')),
-              onTap: () => _drawerNavigate(context, () => _push(context, '/gym')),
-            ),
-            _drawerSectionHeader(context, tr('nav_drawer_section_library')),
-            ExpansionTile(
-              leading: const Icon(Icons.tune),
-              title: Text(tr('nav_drawer_library_expand_title')),
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.list_alt, size: 20),
-                  title: Text(tr('workout_templates')),
-                  onTap: () => _drawerNavigate(context, () => _push(context, '/templates')),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.menu_book_outlined, size: 20),
-                  title: Text(tr('exercises_base')),
-                  onTap: () => _drawerNavigate(context, () => _go(context, '/exercises')),
-                ),
-              ],
-            ),
-          ] else ...[
-            const SizedBox(height: 8),
-            ListTile(
-              leading: const Icon(Icons.people),
-              title: Text(tr('trainees')),
-              onTap: () => _drawerNavigate(context, () => _push(context, '/trainer/trainees')),
-            ),
-            ListTile(
-              leading: const Icon(Icons.dynamic_feed),
-              title: Text(tr('feed')),
-              onTap: () => _drawerNavigate(context, () => _go(context, '/feed')),
-            ),
-            _drawerSectionHeader(context, tr('nav_drawer_section_trainer_groups')),
-            ListTile(
-              leading: const Icon(Icons.category),
-              title: Text(tr('group_training_templates')),
-              onTap: () => _drawerNavigate(context, () => _push(context, '/trainer/group-training-templates')),
-            ),
-            ListTile(
-              leading: const Icon(Icons.groups),
-              title: Text(tr('group_trainings')),
-              subtitle: Text(tr('nav_drawer_group_trainings_trainer_sub')),
-              onTap: () => _drawerNavigate(context, () => _push(context, '/trainer/group-trainings')),
-            ),
-            _drawerSectionHeader(context, tr('nav_drawer_section_trainer_gam')),
-            ListTile(
-              leading: const Icon(Icons.emoji_events_outlined),
-              title: Text(tr('gam_trainer_menu_rankings')),
-              onTap: () => _drawerNavigate(context, () => _push(context, '/trainer/rankings')),
-            ),
-            ListTile(
-              leading: const Icon(Icons.workspace_premium_outlined),
-              title: Text(tr('gam_trainer_menu_achievements')),
-              onTap: () => _drawerNavigate(context, () => _push(context, '/trainer/achievements')),
-            ),
-            _drawerSectionHeader(context, tr('nav_drawer_section_schedule')),
-            ListTile(
-              leading: const Icon(Icons.calendar_month),
-              title: Text(tr('calendar')),
-              onTap: () => _drawerNavigate(context, () => _push(context, '/calendar')),
-            ),
-            ListTile(
-              leading: const Icon(Icons.fitness_center),
-              title: Text(tr('my_gyms')),
-              onTap: () => _drawerNavigate(context, () => _push(context, '/gym')),
-            ),
-          ],
+                if (!_trainerMode) ...[
+                  _drawerSectionHeader(context, tr('nav_drawer_section_today'),
+                      first: true),
+                  _drawerTile(
+                    context,
+                    icon: Icons.format_list_bulleted,
+                    title: tr('all_workouts'),
+                    route: '/home',
+                    onTap: () =>
+                        _drawerNavigate(context, () => _go(context, '/home')),
+                  ),
+                  _drawerTile(
+                    context,
+                    icon: Icons.calendar_month,
+                    title: tr('calendar'),
+                    route: '/calendar',
+                    onTap: () => _drawerNavigate(
+                        context, () => _push(context, '/calendar')),
+                  ),
+                  _drawerSectionHeader(
+                      context, tr('nav_drawer_section_profile_people')),
+                  _drawerTile(
+                    context,
+                    icon: Icons.dynamic_feed,
+                    title: tr('feed'),
+                    route: '/feed',
+                    onTap: () =>
+                        _drawerNavigate(context, () => _go(context, '/feed')),
+                  ),
+                  _drawerTile(
+                    context,
+                    icon: Icons.sports_martial_arts,
+                    title: tr('my_trainers'),
+                    route: '/my-trainers',
+                    onTap: () => _drawerNavigate(
+                        context, () => _push(context, '/my-trainers')),
+                  ),
+                  _drawerSectionHeader(
+                      context, tr('nav_drawer_section_progress')),
+                  _drawerTile(
+                    context,
+                    icon: Icons.emoji_events_outlined,
+                    title: tr('nav_drawer_progress_title'),
+                    route: '/progress',
+                    onTap: () => _drawerNavigate(
+                        context, () => _go(context, '/progress')),
+                  ),
+                  _drawerSectionHeader(
+                      context, tr('nav_drawer_section_events')),
+                  _drawerTile(
+                    context,
+                    icon: Icons.groups,
+                    title: tr('group_trainings'),
+                    route: '/group-trainings',
+                    onTap: () => _drawerNavigate(
+                        context, () => _go(context, '/group-trainings')),
+                  ),
+                  _drawerTile(
+                    context,
+                    icon: Icons.fitness_center,
+                    title: tr('my_gyms'),
+                    route: '/gym',
+                    onTap: () =>
+                        _drawerNavigate(context, () => _push(context, '/gym')),
+                  ),
+                  _drawerSectionHeader(
+                      context, tr('nav_drawer_section_library')),
+                  ExpansionTile(
+                    leading: const Icon(Icons.tune),
+                    title: Text(tr('nav_drawer_library_expand_title')),
+                    children: [
+                      ListTile(
+                        leading: const Icon(Icons.list_alt, size: 20),
+                        title: Text(tr('workout_templates')),
+                        onTap: () => _drawerNavigate(
+                            context, () => _push(context, '/templates')),
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.menu_book_outlined, size: 20),
+                        title: Text(tr('exercises_base')),
+                        onTap: () => _drawerNavigate(
+                            context, () => _go(context, '/exercises')),
+                      ),
+                    ],
+                  ),
+                ] else ...[
+                  const SizedBox(height: 8),
+                  _drawerTile(
+                    context,
+                    icon: Icons.people,
+                    title: tr('trainees'),
+                    route: '/trainer/trainees',
+                    onTap: () => _drawerNavigate(
+                        context, () => _push(context, '/trainer/trainees')),
+                  ),
+                  _drawerTile(
+                    context,
+                    icon: Icons.dynamic_feed,
+                    title: tr('feed'),
+                    route: '/feed',
+                    onTap: () =>
+                        _drawerNavigate(context, () => _go(context, '/feed')),
+                  ),
+                  _drawerSectionHeader(
+                      context, tr('nav_drawer_section_trainer_groups')),
+                  _drawerTile(
+                    context,
+                    icon: Icons.category,
+                    title: tr('group_training_templates'),
+                    route: '/trainer/group-training-templates',
+                    onTap: () => _drawerNavigate(
+                        context,
+                        () => _push(
+                            context, '/trainer/group-training-templates')),
+                  ),
+                  _drawerTile(
+                    context,
+                    icon: Icons.groups,
+                    title: tr('group_trainings'),
+                    route: '/trainer/group-trainings',
+                    onTap: () => _drawerNavigate(context,
+                        () => _push(context, '/trainer/group-trainings')),
+                  ),
+                  _drawerSectionHeader(
+                      context, tr('nav_drawer_section_trainer_gam')),
+                  _drawerTile(
+                    context,
+                    icon: Icons.emoji_events_outlined,
+                    title: tr('gam_trainer_menu_rankings'),
+                    route: '/trainer/rankings',
+                    onTap: () => _drawerNavigate(
+                        context, () => _push(context, '/trainer/rankings')),
+                  ),
+                  _drawerTile(
+                    context,
+                    icon: Icons.workspace_premium_outlined,
+                    title: tr('gam_trainer_menu_achievements'),
+                    route: '/trainer/achievements',
+                    onTap: () => _drawerNavigate(
+                        context, () => _push(context, '/trainer/achievements')),
+                  ),
+                  _drawerSectionHeader(
+                      context, tr('nav_drawer_section_schedule')),
+                  _drawerTile(
+                    context,
+                    icon: Icons.calendar_month,
+                    title: tr('calendar'),
+                    route: '/calendar',
+                    onTap: () => _drawerNavigate(
+                        context, () => _push(context, '/calendar')),
+                  ),
+                  _drawerTile(
+                    context,
+                    icon: Icons.fitness_center,
+                    title: tr('my_gyms'),
+                    route: '/gym',
+                    onTap: () =>
+                        _drawerNavigate(context, () => _push(context, '/gym')),
+                  ),
+                ],
               ],
             ),
           ),
@@ -444,7 +566,8 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
           ListTile(
             leading: const Icon(Icons.help_outline),
             title: Text(tr('help')),
-            onTap: () => _drawerNavigate(context, () => _push(context, '/help')),
+            onTap: () =>
+                _drawerNavigate(context, () => _push(context, '/help')),
           ),
         ],
       ),
@@ -466,23 +589,39 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
           title: _homeTitleBar(context, tr, narrow: false),
           actions: [
             IconButton(
+              tooltip: tr('calendar'),
+              icon: const Icon(Icons.calendar_month_outlined),
+              onPressed: () {
+                _closeDrawerIfOpen(context);
+                _go(context, '/calendar');
+              },
+            ),
+            IconButton(
+              tooltip: tr('leaderboard'),
+              icon: const Icon(Icons.leaderboard_outlined),
+              onPressed: () {
+                _closeDrawerIfOpen(context);
+                _go(context, '/progress/leaderboard');
+              },
+            ),
+            IconButton(
               tooltip: tr('system_messages'),
               icon: _BellWithBadge(countAsync: countAsync),
-            onPressed: () {
-              _closeDrawerIfOpen(context);
-              _push(context, '/system-messages');
-            },
+              onPressed: () {
+                _closeDrawerIfOpen(context);
+                _push(context, '/system-messages');
+              },
             ),
             IconButton(
               icon: const Icon(Icons.logout),
               onPressed: () async {
-              _closeDrawerIfOpen(context);
+                _closeDrawerIfOpen(context);
                 ref.read(authRedirectNotifierProvider).setLoggedIn(false);
                 if (context.mounted) context.go('/login');
                 try {
                   await ref.read(logoutProvider)();
                 } finally {
-                  invalidateUserScopedProviders(ref as Ref);
+                  invalidateUserScopedProviders(ref);
                 }
               },
             ),
@@ -504,6 +643,22 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
         title: _homeTitleBar(context, tr, narrow: true),
         actions: [
           IconButton(
+            tooltip: tr('calendar'),
+            icon: const Icon(Icons.calendar_month_outlined),
+            onPressed: () {
+              _closeDrawerIfOpen(context);
+              _go(context, '/calendar');
+            },
+          ),
+          IconButton(
+            tooltip: tr('leaderboard'),
+            icon: const Icon(Icons.leaderboard_outlined),
+            onPressed: () {
+              _closeDrawerIfOpen(context);
+              _go(context, '/progress/leaderboard');
+            },
+          ),
+          IconButton(
             tooltip: tr('system_messages'),
             icon: _BellWithBadge(countAsync: countAsync),
             onPressed: () {
@@ -520,7 +675,7 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
               try {
                 await ref.read(logoutProvider)();
               } finally {
-                invalidateUserScopedProviders(ref as Ref);
+                invalidateUserScopedProviders(ref);
               }
             },
           ),
@@ -531,7 +686,8 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
     );
   }
 
-  Widget _navItem(BuildContext context, int i, IconData icon, String label, bool selected) {
+  Widget _navItem(
+      BuildContext context, int i, IconData icon, String label, bool selected) {
     return InkWell(
       onTap: () => _onItemTapped(context, i),
       child: Padding(
@@ -540,10 +696,15 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 20, color: selected ? Theme.of(context).colorScheme.primary : null),
+            Icon(icon,
+                size: 20,
+                color: selected ? Theme.of(context).colorScheme.primary : null),
             Text(
               label,
-              style: TextStyle(fontSize: 10, color: selected ? Theme.of(context).colorScheme.primary : null),
+              style: TextStyle(
+                  fontSize: 10,
+                  color:
+                      selected ? Theme.of(context).colorScheme.primary : null),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),

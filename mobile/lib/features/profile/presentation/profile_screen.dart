@@ -7,11 +7,11 @@ import 'package:fitflow/core/network/geo_repository.dart';
 import 'package:fitflow/core/widgets/error_state_widget.dart';
 import 'package:fitflow/core/widgets/loading_skeleton.dart';
 import 'package:fitflow/features/profile/data/profile_repository.dart';
+import 'package:fitflow/features/profile/domain/profile_models.dart';
 import 'package:fitflow/features/profile/presentation/profile_provider.dart';
 import 'package:fitflow/core/locale/locale_provider.dart';
 import 'package:fitflow/features/profile/presentation/widgets/body_measurements_section.dart';
 import 'package:fitflow/features/profile/presentation/widgets/edit_profile_form.dart';
-import 'package:fitflow/features/gamification/presentation/gamification_provider.dart';
 import 'package:fitflow/features/gamification/presentation/widgets/home_gamification_strip.dart';
 import 'package:fitflow/features/profile/presentation/widgets/profile_header.dart';
 import 'package:fitflow/features/profile/presentation/widgets/profile_stats_card.dart';
@@ -40,8 +40,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       builder: (ctx) => AlertDialog(
         content: Text(tr('remove_avatar_confirm')),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tr('cancel'))),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(tr('delete'))),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(tr('cancel'))),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(tr('delete'))),
         ],
       ),
     );
@@ -77,7 +81,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     setState(() => _uploadingAvatar = true);
     try {
       final bytes = await xfile.readAsBytes();
-      await ref.read(profileRepositoryProvider).uploadAvatarBytes(bytes, contentType, xfile.name);
+      await ref
+          .read(profileRepositoryProvider)
+          .uploadAvatarBytes(bytes, contentType, xfile.name);
       await _refresh();
     } on AppException catch (e) {
       if (mounted) _showSnackBar(e.message, isError: true);
@@ -115,31 +121,128 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
   }
 
-  Widget _profileGamificationSection(BuildContext context, String Function(String) tr) {
-    final flagsAsync = ref.watch(gamificationFeatureFlagsProvider);
-    return flagsAsync.when(
-      data: (f) {
-        if (!f.xpEnabled && !f.leaderboardEnabled) {
-          return const SizedBox.shrink();
-        }
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              tr('gam_progress_section'),
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w600,
+  BodyMeasurement? _latestMeasurement(List<BodyMeasurement> list) {
+    if (list.isEmpty) return null;
+    final sorted = List<BodyMeasurement>.from(list)
+      ..sort((a, b) => b.recordedAt.compareTo(a.recordedAt));
+    return sorted.first;
+  }
+
+  Widget _buildFfmiBmiBlock(
+    BuildContext context,
+    String Function(String) tr, {
+    required double weightKg,
+    required double? bodyFatPct,
+    required double? heightCm,
+  }) {
+    final interp = interpretBodyMeasurement(weightKg, bodyFatPct, heightCm, tr);
+    final ffmiValue =
+        interp.ffmi != null ? interp.ffmi!.toStringAsFixed(1) : '—';
+    final bmiValue = interp.bmi != null ? interp.bmi!.toStringAsFixed(1) : '—';
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        _FfmiBmiChip(
+          title: tr('ffmi_interpretation'),
+          value: ffmiValue,
+          subtitle: interp.ffmiText,
+        ),
+        _FfmiBmiChip(
+          title: tr('bmi_interpretation'),
+          value: bmiValue,
+          subtitle: interp.bmiText,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTopProfilePanel(
+    BuildContext context,
+    String Function(String) tr,
+    ProfilePageData data,
+    BodyMeasurement? latestMeasurement,
+  ) {
+    final weight = latestMeasurement?.weightKg ?? data.weightKg ?? 0;
+    final bodyFat = latestMeasurement?.bodyFatPct ?? data.bodyFatPct;
+    final hasWeight = latestMeasurement != null || data.weightKg != null;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final wide = constraints.maxWidth >= 920;
+            final stats = Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                ProfileStatsCard(
+                  heightCm: data.heightCm,
+                  weightKg: latestMeasurement?.weightKg ?? data.weightKg,
+                  bodyFatPct: latestMeasurement?.bodyFatPct ?? data.bodyFatPct,
+                  embedInCard: false,
+                ),
+                if (hasWeight) ...[
+                  const SizedBox(height: 6),
+                  _buildFfmiBmiBlock(
+                    context,
+                    tr,
+                    weightKg: weight,
+                    bodyFatPct: bodyFat,
+                    heightCm: data.heightCm,
                   ),
-            ),
-            const SizedBox(height: 8),
-            const HomeGamificationStrip(padding: EdgeInsets.zero),
-            const SizedBox(height: 24),
-          ],
-        );
-      },
-      loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
+                ],
+              ],
+            );
+            if (!wide) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  ProfileHeader(
+                    displayName: data.displayName,
+                    email: data.email,
+                    city: data.city,
+                    avatarUrl: data.avatarUrl,
+                    onAvatarTap: _pickAndUploadAvatar,
+                    onRemoveAvatar:
+                        _editMode && (data.avatarUrl?.isNotEmpty ?? false)
+                            ? () => _confirmRemoveAvatar(tr)
+                            : null,
+                    uploadingAvatar: _uploadingAvatar,
+                    paidSubscriber: data.paidSubscriber,
+                    subscriptionExpiresAt: data.subscriptionExpiresAt,
+                  ),
+                  const SizedBox(height: 10),
+                  stats,
+                ],
+              );
+            }
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 280,
+                  child: ProfileHeader(
+                    displayName: data.displayName,
+                    email: data.email,
+                    city: data.city,
+                    avatarUrl: data.avatarUrl,
+                    onAvatarTap: _pickAndUploadAvatar,
+                    onRemoveAvatar:
+                        _editMode && (data.avatarUrl?.isNotEmpty ?? false)
+                            ? () => _confirmRemoveAvatar(tr)
+                            : null,
+                    uploadingAvatar: _uploadingAvatar,
+                    paidSubscriber: data.paidSubscriber,
+                    subscriptionExpiresAt: data.subscriptionExpiresAt,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(child: stats),
+              ],
+            );
+          },
+        ),
+      ),
     );
   }
 
@@ -154,8 +257,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    const sectionGap = 16.0;
     final tr = ref.watch(trProvider);
     final dataAsync = ref.watch(profilePageDataProvider);
+    final measurements = ref.watch(bodyMeasurementsProvider).valueOrNull ??
+        const <BodyMeasurement>[];
+    final latestMeasurement = _latestMeasurement(measurements);
     final inShell = GoRouterState.of(context).matchedLocation == '/profile';
     return Scaffold(
       appBar: inShell
@@ -165,7 +272,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               actions: [
                 if (_editMode)
                   TextButton(
-                    onPressed: _saving ? null : () => setState(() => _editMode = false),
+                    onPressed: _saving
+                        ? null
+                        : () => setState(() => _editMode = false),
                     child: Text(tr('cancel')),
                   )
                 else
@@ -193,31 +302,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               onRefresh: _refresh,
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: EdgeInsets.only(top: inShell ? 56 : 16, left: 16, right: 16, bottom: 16),
+                padding: EdgeInsets.only(
+                    top: inShell ? 56 : 16, left: 16, right: 16, bottom: 16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    ProfileHeader(
-                      displayName: data.displayName,
-                      email: data.email,
-                      city: data.city,
-                      avatarUrl: data.avatarUrl,
-                      onAvatarTap: _pickAndUploadAvatar,
-                      onRemoveAvatar: _editMode && (data.avatarUrl?.isNotEmpty ?? false)
-                          ? () => _confirmRemoveAvatar(tr)
-                          : null,
-                      uploadingAvatar: _uploadingAvatar,
-                      paidSubscriber: data.paidSubscriber,
-                      subscriptionExpiresAt: data.subscriptionExpiresAt,
+                    _buildTopProfilePanel(context, tr, data, latestMeasurement),
+                    const SizedBox(height: sectionGap),
+                    const HomeGamificationStrip(
+                      padding: EdgeInsets.zero,
+                      showLeaderboard: false,
+                      dashboardLayout: true,
                     ),
-                    const SizedBox(height: 24),
-                    ProfileStatsCard(
-                      heightCm: data.heightCm,
-                      weightKg: data.weightKg,
-                      bodyFatPct: data.bodyFatPct,
-                    ),
-                    const SizedBox(height: 24),
-                    _profileGamificationSection(context, tr),
+                    const SizedBox(height: sectionGap),
                     if (_editMode)
                       EditProfileForm(
                         initialDisplayName: data.displayName,
@@ -227,7 +324,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         initialBodyFatPct: data.bodyFatPct,
                         onSave: _save,
                         saving: _saving,
-                        onCitySearch: (q) => ref.read(geoRepositoryProvider).suggestCities(query: q),
+                        onCitySearch: (q) => ref
+                            .read(geoRepositoryProvider)
+                            .suggestCities(query: q),
                         labelDisplayName: tr('display_name'),
                         labelCity: tr('city'),
                         labelHeight: tr('height_cm'),
@@ -241,13 +340,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         padding: const EdgeInsets.symmetric(vertical: 8),
                         child: Text(
                           tr('tap_edit_to_update'),
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                  ),
                           textAlign: TextAlign.center,
                         ),
                       ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: sectionGap),
                     const BodyMeasurementsSection(),
                   ],
                 ),
@@ -262,14 +364,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               child: Material(
                 elevation: 2,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(tr('profile'), style: Theme.of(context).textTheme.titleLarge),
+                      Text(tr('profile'),
+                          style: Theme.of(context).textTheme.titleLarge),
                       if (_editMode)
                         TextButton(
-                          onPressed: _saving ? null : () => setState(() => _editMode = false),
+                          onPressed: _saving
+                              ? null
+                              : () => setState(() => _editMode = false),
                           child: Text(tr('cancel')),
                         )
                       else
@@ -301,6 +407,58 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ),
               ),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FfmiBmiChip extends StatelessWidget {
+  const _FfmiBmiChip({
+    required this.title,
+    required this.value,
+    required this.subtitle,
+  });
+  final String title;
+  final String value;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(minWidth: 220),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: Theme.of(context)
+            .colorScheme
+            .surfaceContainerHighest
+            .withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            title,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            subtitle,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+          ),
         ],
       ),
     );

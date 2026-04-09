@@ -10,7 +10,8 @@ import 'package:fitflow/features/workouts/domain/workout_models.dart';
 import 'package:fitflow/features/workouts/presentation/workouts_provider.dart';
 import 'package:fitflow/features/templates/templates_provider.dart';
 
-export 'package:fitflow/features/templates/templates_provider.dart' show templatesListProvider;
+export 'package:fitflow/features/templates/templates_provider.dart'
+    show templatesListProvider;
 
 void _showCreateTemplateDialog(BuildContext context, WidgetRef ref) {
   final nameController = TextEditingController();
@@ -35,7 +36,9 @@ void _showCreateTemplateDialog(BuildContext context, WidgetRef ref) {
             final name = nameController.text.trim();
             if (name.isEmpty) return;
             try {
-              final t = await ref.read(workoutRepositoryProvider).createTemplate(name: name);
+              final t = await ref
+                  .read(workoutRepositoryProvider)
+                  .createTemplate(name: name);
               if (context.mounted) {
                 Navigator.pop(ctx);
                 ref.invalidate(templatesListProvider);
@@ -43,7 +46,8 @@ void _showCreateTemplateDialog(BuildContext context, WidgetRef ref) {
               }
             } catch (e) {
               if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+                ScaffoldMessenger.of(context)
+                    .showSnackBar(SnackBar(content: Text(e.toString())));
               }
             }
           },
@@ -54,7 +58,8 @@ void _showCreateTemplateDialog(BuildContext context, WidgetRef ref) {
   );
 }
 
-void _confirmDeleteTemplate(BuildContext context, WidgetRef ref, WorkoutTemplate t, VoidCallback onDeleted) {
+void _confirmDeleteTemplate(BuildContext context, WidgetRef ref,
+    WorkoutTemplate t, VoidCallback onDeleted) {
   final tr = ref.read(trProvider);
   showDialog<bool>(
     context: context,
@@ -67,7 +72,8 @@ void _confirmDeleteTemplate(BuildContext context, WidgetRef ref, WorkoutTemplate
           child: Text(tr('cancel')),
         ),
         FilledButton(
-          style: FilledButton.styleFrom(backgroundColor: Theme.of(ctx).colorScheme.error),
+          style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error),
           onPressed: () => Navigator.pop(ctx, true),
           child: Text(tr('delete')),
         ),
@@ -79,12 +85,14 @@ void _confirmDeleteTemplate(BuildContext context, WidgetRef ref, WorkoutTemplate
       await ref.read(workoutRepositoryProvider).deleteTemplate(t.id);
       if (context.mounted) {
         ref.invalidate(templatesListProvider);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('template_deleted'))));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(tr('template_deleted'))));
         onDeleted();
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.toString())));
       }
     }
   });
@@ -138,21 +146,25 @@ class TemplatesScreen extends ConsumerWidget {
                       child: Card(
                         child: ListTile(
                           title: Text(t.name),
-                          subtitle: Text(tr('exercises_count') + ': ${t.exercisesCount}'),
+                          subtitle: Text(
+                              tr('exercises_count') + ': ${t.exercisesCount}'),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               IconButton(
                                 icon: const Icon(Icons.edit_outlined),
-                                onPressed: () => context.push('/templates/${t.id}/edit'),
+                                onPressed: () =>
+                                    context.push('/templates/${t.id}/edit'),
                               ),
                               IconButton(
                                 icon: const Icon(Icons.delete_outline),
-                                onPressed: () => _confirmDeleteTemplate(context, ref, t, () {}),
+                                onPressed: () => _confirmDeleteTemplate(
+                                    context, ref, t, () {}),
                               ),
                               IconButton(
                                 icon: const Icon(Icons.play_arrow),
-                                onPressed: () => _startFromTemplate(context, ref, t),
+                                onPressed: () =>
+                                    _startFromTemplate(context, ref, t),
                               ),
                             ],
                           ),
@@ -169,14 +181,18 @@ class TemplatesScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _startFromTemplate(BuildContext context, WidgetRef ref, WorkoutTemplate t) async {
+  Future<void> _startFromTemplate(
+      BuildContext context, WidgetRef ref, WorkoutTemplate t) async {
     try {
-      final w = await ref.read(workoutRepositoryProvider).startWorkoutFromTemplate(t.id);
+      final w = await ref
+          .read(workoutRepositoryProvider)
+          .startWorkoutFromTemplate(t.id);
       ref.invalidate(workoutsListProvider);
-      if (context.mounted) context.push('/workout/${w.id}/active');
+      if (context.mounted) context.push('/workout/${w.id}');
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.toString())));
       }
     }
   }
@@ -194,12 +210,13 @@ class _TemplatesSkeleton extends StatelessWidget {
           padding: EdgeInsets.only(bottom: 16),
           child: LoadingSkeleton(height: 48, borderRadius: 8),
         ),
-        ...List.generate(6, (_) => const Padding(
-          padding: EdgeInsets.only(bottom: 8),
-          child: LoadingSkeleton(height: 72, borderRadius: 12),
-        )),
+        ...List.generate(
+            6,
+            (_) => const Padding(
+                  padding: EdgeInsets.only(bottom: 8),
+                  child: LoadingSkeleton(height: 72, borderRadius: 12),
+                )),
       ],
     );
   }
 }
-

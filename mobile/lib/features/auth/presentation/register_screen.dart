@@ -54,11 +54,17 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       ));
       if (!mounted) return;
       ref.read(authRedirectNotifierProvider).setLoggedIn(true);
-      final me = await ref.read(authRepositoryProvider).getMe();
+      final authRepo = ref.read(authRepositoryProvider);
+      // Force default theme for newly registered users to Arena.
+      await authRepo.patchPreferences(theme: 'gaming');
+      ref.read(selectedThemeKeyProvider.notifier).update((_) => 'gaming');
+      final updatedMe = await authRepo.getMe();
       await applyMePreferences(
-        me,
-        setTheme: (key) => ref.read(selectedThemeKeyProvider.notifier).update((_) => key),
-        setLocale: (code) => ref.read(selectedLocaleCodeProvider.notifier).update((_) => code),
+        updatedMe,
+        setTheme: (key) =>
+            ref.read(selectedThemeKeyProvider.notifier).update((_) => key),
+        setLocale: (code) =>
+            ref.read(selectedLocaleCodeProvider.notifier).update((_) => code),
         localeRepo: ref.read(localeRepositoryProvider),
       );
       if (mounted) context.go('/home');
@@ -68,13 +74,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         msg = (e.error! as AppException).message;
       } else if (e.response?.data is Map) {
         final d = e.response!.data as Map;
-        msg = (d['error'] ?? d['message'] ?? e.message)?.toString() ?? 'Registration failed';
+        msg = (d['error'] ?? d['message'] ?? e.message)?.toString() ??
+            'Registration failed';
       } else {
         msg = e.message ?? 'Registration failed';
       }
       if (mounted) setState(() => _error = msg);
     } catch (e) {
-      if (mounted) setState(() => _error = e is AppException ? e.message : e.toString());
+      if (mounted)
+        setState(() => _error = e is AppException ? e.message : e.toString());
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -99,7 +107,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     if (_error != null) ...[
                       Text(
                         _error!,
-                        style: TextStyle(color: Theme.of(context).colorScheme.error),
+                        style: TextStyle(
+                            color: Theme.of(context).colorScheme.error),
                       ),
                       const SizedBox(height: 16),
                     ],
@@ -112,7 +121,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       ),
                       textCapitalization: TextCapitalization.words,
                       validator: (v) {
-                        if (v == null || v.trim().isEmpty) return tr('enter_name');
+                        if (v == null || v.trim().isEmpty)
+                          return tr('enter_name');
                         return null;
                       },
                     ),
@@ -126,7 +136,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       keyboardType: TextInputType.emailAddress,
                       autocorrect: false,
                       validator: (v) {
-                        if (v == null || v.trim().isEmpty) return tr('enter_email');
+                        if (v == null || v.trim().isEmpty)
+                          return tr('enter_email');
                         return null;
                       },
                     ),
@@ -148,7 +159,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     const SizedBox(height: 16),
                     CheckboxListTile(
                       value: _termsAccepted,
-                      onChanged: (v) => setState(() => _termsAccepted = v ?? false),
+                      onChanged: (v) =>
+                          setState(() => _termsAccepted = v ?? false),
                       title: GestureDetector(
                         onTap: () => showTermsOfUseDialog(
                           context,
@@ -156,8 +168,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         ),
                         child: RichText(
                           text: TextSpan(
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: Theme.of(context).colorScheme.onSurface,
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(
+                                  color:
+                                      Theme.of(context).colorScheme.onSurface,
                                 ),
                             children: [
                               TextSpan(text: tr('terms_accept')),
@@ -180,10 +196,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       onPressed: _loading
                           ? null
                           : () {
-                              if ((_formKey.currentState?.validate() ?? false) && _termsAccepted) {
+                              if ((_formKey.currentState?.validate() ??
+                                      false) &&
+                                  _termsAccepted) {
                                 _submit();
                               } else if (!_termsAccepted) {
-                                setState(() => _error = tr('terms_must_accept'));
+                                setState(
+                                    () => _error = tr('terms_must_accept'));
                               }
                             },
                       child: _loading

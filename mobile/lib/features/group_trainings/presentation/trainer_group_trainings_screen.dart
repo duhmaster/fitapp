@@ -13,10 +13,12 @@ class TrainerGroupTrainingsScreen extends ConsumerStatefulWidget {
   const TrainerGroupTrainingsScreen({super.key});
 
   @override
-  ConsumerState<TrainerGroupTrainingsScreen> createState() => _TrainerGroupTrainingsScreenState();
+  ConsumerState<TrainerGroupTrainingsScreen> createState() =>
+      _TrainerGroupTrainingsScreenState();
 }
 
-class _TrainerGroupTrainingsScreenState extends ConsumerState<TrainerGroupTrainingsScreen> {
+class _TrainerGroupTrainingsScreenState
+    extends ConsumerState<TrainerGroupTrainingsScreen> {
   bool _includePast = false;
 
   String _formatDateTime(DateTime dt) {
@@ -39,6 +41,7 @@ class _TrainerGroupTrainingsScreenState extends ConsumerState<TrainerGroupTraini
     final tr = ref.watch(trProvider);
     final async = ref.watch(trainerTrainingsProvider(_includePast));
     final repo = ref.read(groupTrainingsRepositoryProvider);
+    final showFab = (async.valueOrNull?.isNotEmpty ?? false);
 
     return Scaffold(
       appBar: AppBar(
@@ -64,7 +67,8 @@ class _TrainerGroupTrainingsScreenState extends ConsumerState<TrainerGroupTraini
       ),
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: ErrorStateWidget(message: '${tr('error_label')}: $e')),
+        error: (e, _) => Center(
+            child: ErrorStateWidget(message: '${tr('error_label')}: $e')),
         data: (list) {
           if (list.isEmpty) {
             return EmptyStateWidget(
@@ -75,19 +79,23 @@ class _TrainerGroupTrainingsScreenState extends ConsumerState<TrainerGroupTraini
             );
           }
           return RefreshIndicator(
-            onRefresh: () async => ref.invalidate(trainerTrainingsProvider(_includePast)),
+            onRefresh: () async =>
+                ref.invalidate(trainerTrainingsProvider(_includePast)),
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                GroupAchievementBanner(tr: tr, sessionsNext7Days: _sessionsNext7Days(list)),
+                GroupAchievementBanner(
+                    tr: tr, sessionsNext7Days: _sessionsNext7Days(list)),
                 const SizedBox(height: 12),
                 for (int i = 0; i < list.length; i++) ...[
                   if (i > 0) const SizedBox(height: 12),
                   _TrainingTile(
                     training: list[i],
                     formatDateTime: _formatDateTime,
-                    onOpen: () => context.push('/trainer/group-trainings/${list[i].id}'),
-                    onEdit: () => context.push('/trainer/group-trainings/${list[i].id}/edit'),
+                    onOpen: () =>
+                        context.push('/trainer/group-trainings/${list[i].id}'),
+                    onEdit: () => context
+                        .push('/trainer/group-trainings/${list[i].id}/edit'),
                     onDelete: () async {
                       final ok = await showDialog<bool>(
                         context: context,
@@ -95,8 +103,12 @@ class _TrainerGroupTrainingsScreenState extends ConsumerState<TrainerGroupTraini
                           title: Text(tr('delete')),
                           content: Text(tr('delete_group_training_confirm')),
                           actions: [
-                            TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(tr('cancel'))),
-                            FilledButton(onPressed: () => Navigator.of(ctx).pop(true), child: Text(tr('delete'))),
+                            TextButton(
+                                onPressed: () => Navigator.of(ctx).pop(false),
+                                child: Text(tr('cancel'))),
+                            FilledButton(
+                                onPressed: () => Navigator.of(ctx).pop(true),
+                                child: Text(tr('delete'))),
                           ],
                         ),
                       );
@@ -104,7 +116,8 @@ class _TrainerGroupTrainingsScreenState extends ConsumerState<TrainerGroupTraini
                       await repo.deleteTrainerTraining(list[i].id);
                       if (context.mounted) {
                         ref.invalidate(trainerTrainingsProvider(_includePast));
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('saved'))));
+                        ScaffoldMessenger.of(context)
+                            .showSnackBar(SnackBar(content: Text(tr('saved'))));
                       }
                     },
                   ),
@@ -114,11 +127,13 @@ class _TrainerGroupTrainingsScreenState extends ConsumerState<TrainerGroupTraini
           );
         },
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.push('/trainer/group-trainings/new'),
-        icon: const Icon(Icons.add),
-        label: Text(tr('create')),
-      ),
+      floatingActionButton: showFab
+          ? FloatingActionButton.extended(
+              onPressed: () => context.push('/trainer/group-trainings/new'),
+              icon: const Icon(Icons.add),
+              label: Text(tr('create')),
+            )
+          : null,
     );
   }
 }
@@ -162,11 +177,12 @@ class _TrainingTile extends StatelessWidget {
           spacing: 8,
           children: [
             IconButton(icon: const Icon(Icons.edit), onPressed: onEdit),
-            IconButton(icon: const Icon(Icons.delete_outline), onPressed: () => onDelete()),
+            IconButton(
+                icon: const Icon(Icons.delete_outline),
+                onPressed: () => onDelete()),
           ],
         ),
       ),
     );
   }
 }
-

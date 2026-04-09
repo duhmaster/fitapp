@@ -5,7 +5,8 @@ import 'package:fitflow/core/locale/locale_provider.dart';
 import 'package:fitflow/features/trainer/data/trainer_repository.dart';
 import 'package:fitflow/features/trainer/trainer_providers.dart';
 
-final _trainerPublicProfileProvider = FutureProvider.family<TrainerPublicProfile, String>((ref, userId) async {
+final _trainerPublicProfileProvider =
+    FutureProvider.family<TrainerPublicProfile, String>((ref, userId) async {
   return ref.watch(trainerRepositoryProvider).getTrainerPublicProfile(userId);
 });
 
@@ -59,14 +60,18 @@ class _MyTrainerLandingCard extends ConsumerWidget {
       loading: () => Card(
         child: ListTile(
           leading: const CircleAvatar(child: Icon(Icons.person_outline)),
-          title: Text(item.displayName?.isNotEmpty == true ? item.displayName! : item.trainerId),
+          title: Text(item.displayName?.isNotEmpty == true
+              ? item.displayName!
+              : item.trainerId),
           subtitle: Text(tr('loading')),
         ),
       ),
       error: (_, __) => Card(
         child: ListTile(
           leading: const CircleAvatar(child: Icon(Icons.person)),
-          title: Text(item.displayName?.isNotEmpty == true ? item.displayName! : item.trainerId),
+          title: Text(item.displayName?.isNotEmpty == true
+              ? item.displayName!
+              : item.trainerId),
           trailing: FilledButton(
             onPressed: () => context.push('/t/${item.trainerId}'),
             child: Text(tr('open_trainer_profile')),
@@ -77,8 +82,12 @@ class _MyTrainerLandingCard extends ConsumerWidget {
         final cs = Theme.of(context).colorScheme;
         final name = profile.displayName.isNotEmpty
             ? profile.displayName
-            : (item.displayName?.isNotEmpty == true ? item.displayName! : item.trainerId);
-        final about = profile.aboutMe.trim().isEmpty ? tr('trainer_no_description') : _shortDescription(profile.aboutMe);
+            : (item.displayName?.isNotEmpty == true
+                ? item.displayName!
+                : item.trainerId);
+        final about = profile.aboutMe.trim().isEmpty
+            ? tr('trainer_no_description')
+            : _shortDescription(profile.aboutMe);
         final avatar = profile.avatarUrl.trim();
         return Card(
           clipBehavior: Clip.antiAlias,
@@ -103,8 +112,12 @@ class _MyTrainerLandingCard extends ConsumerWidget {
                     CircleAvatar(
                       radius: 28,
                       backgroundColor: cs.surfaceContainerHighest,
-                      backgroundImage: avatar.isNotEmpty ? NetworkImage(avatar) : null,
-                      child: avatar.isEmpty ? Icon(Icons.person, size: 28, color: cs.onSurfaceVariant) : null,
+                      backgroundImage:
+                          avatar.isNotEmpty ? NetworkImage(avatar) : null,
+                      child: avatar.isEmpty
+                          ? Icon(Icons.person,
+                              size: 28, color: cs.onSurfaceVariant)
+                          : null,
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -115,7 +128,12 @@ class _MyTrainerLandingCard extends ConsumerWidget {
                             name,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w700),
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700),
                           ),
                           if (profile.city.isNotEmpty) ...[
                             const SizedBox(height: 4),
@@ -123,7 +141,12 @@ class _MyTrainerLandingCard extends ConsumerWidget {
                               profile.city,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.95)),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(
+                                      color:
+                                          Colors.white.withValues(alpha: 0.95)),
                             ),
                           ],
                         ],
@@ -156,13 +179,20 @@ class _MyTrainerLandingCard extends ConsumerWidget {
                                 title: Text(tr('delete')),
                                 content: Text(name),
                                 actions: [
-                                  TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tr('cancel'))),
-                                  FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(tr('delete'))),
+                                  TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(ctx, false),
+                                      child: Text(tr('cancel'))),
+                                  FilledButton(
+                                      onPressed: () => Navigator.pop(ctx, true),
+                                      child: Text(tr('delete'))),
                                 ],
                               ),
                             );
                             if (ok == true) {
-                              await ref.read(trainerRepositoryProvider).removeMyTrainer(item.trainerId);
+                              await ref
+                                  .read(trainerRepositoryProvider)
+                                  .removeMyTrainer(item.trainerId);
                               ref.invalidate(myTrainersListProvider);
                             }
                           },
@@ -185,66 +215,101 @@ Future<void> _showAddTrainerDialog(BuildContext context, WidgetRef ref) async {
   final repo = ref.read(trainerRepositoryProvider);
   List<TrainerSearchItem> list = [];
   bool loading = false;
+  int requestId = 0;
   await showDialog<void>(
     context: context,
     builder: (ctx) => StatefulBuilder(
       builder: (ctx, setState) {
-        return AlertDialog(
-          title: Text(tr('add_trainer')),
-          content: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: 360, maxHeight: MediaQuery.sizeOf(ctx).height * 0.6),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  decoration: InputDecoration(
-                    hintText: tr('trainer_search_hint'),
-                    border: const OutlineInputBorder(),
-                    prefixIcon: const Icon(Icons.search),
+        final maxHeight = MediaQuery.sizeOf(ctx).height * 0.65;
+        return Dialog(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: 420, maxHeight: maxHeight),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(tr('add_trainer'),
+                      style: Theme.of(ctx).textTheme.titleLarge),
+                  const SizedBox(height: 12),
+                  TextField(
+                    decoration: InputDecoration(
+                      hintText: tr('trainer_search_hint'),
+                      border: const OutlineInputBorder(),
+                      prefixIcon: const Icon(Icons.search),
+                    ),
+                    onChanged: (v) async {
+                      final q = v.trim();
+                      final rid = ++requestId;
+                      setState(() {
+                        loading = true;
+                      });
+                      if (q.isEmpty) {
+                        if (!ctx.mounted) return;
+                        setState(() {
+                          list = [];
+                          loading = false;
+                        });
+                        return;
+                      }
+                      final res = await repo.searchTrainers(q);
+                      if (!ctx.mounted || rid != requestId) return;
+                      setState(() {
+                        list = res;
+                        loading = false;
+                      });
+                    },
                   ),
-                  onChanged: (v) async {
-                    setState(() { loading = true; });
-                    final res = await repo.searchTrainers(v.trim());
-                    if (ctx.mounted) setState(() { list = res; loading = false; });
-                  },
-                ),
-                const SizedBox(height: 8),
-                Expanded(
-                  child: loading
-                      ? const Center(child: CircularProgressIndicator())
-                      : list.isEmpty
-                          ? Center(child: Text(tr('no_data_in_range')))
-                          : ListView.builder(
-                              itemCount: list.length,
-                              itemBuilder: (_, i) {
-                                final t = list[i];
-                                final line = t.city.isNotEmpty ? '${t.city} — ${t.displayName}' : t.displayName;
-                                return ListTile(
-                                  title: Text(line),
-                                  onTap: () async {
-                                    Navigator.pop(ctx);
-                                    try {
-                                      await repo.addMyTrainer(t.id);
-                                      ref.invalidate(myTrainersListProvider);
-                                      if (context.mounted) {
-                                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('saved'))));
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: maxHeight * 0.6,
+                    child: loading
+                        ? const Center(child: CircularProgressIndicator())
+                        : list.isEmpty
+                            ? Center(child: Text(tr('no_data_in_range')))
+                            : ListView.builder(
+                                itemCount: list.length,
+                                itemBuilder: (_, i) {
+                                  final t = list[i];
+                                  final line = t.city.isNotEmpty
+                                      ? '${t.city} — ${t.displayName}'
+                                      : t.displayName;
+                                  return ListTile(
+                                    title: Text(line),
+                                    onTap: () async {
+                                      Navigator.pop(ctx);
+                                      try {
+                                        await repo.addMyTrainer(t.id);
+                                        ref.invalidate(myTrainersListProvider);
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(SnackBar(
+                                                  content: Text(tr('saved'))));
+                                        }
+                                      } catch (e) {
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(SnackBar(
+                                                  content: Text(e.toString())));
+                                        }
                                       }
-                                    } catch (e) {
-                                      if (context.mounted) {
-                                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
-                                      }
-                                    }
-                                  },
-                                );
-                              },
-                            ),
-                ),
-              ],
+                                    },
+                                  );
+                                },
+                              ),
+                  ),
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        child: Text(tr('cancel'))),
+                  ),
+                ],
+              ),
             ),
           ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(tr('cancel'))),
-          ],
         );
       },
     ),

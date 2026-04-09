@@ -12,10 +12,12 @@ class MyGroupTrainingsScreen extends ConsumerStatefulWidget {
   const MyGroupTrainingsScreen({super.key});
 
   @override
-  ConsumerState<MyGroupTrainingsScreen> createState() => _MyGroupTrainingsScreenState();
+  ConsumerState<MyGroupTrainingsScreen> createState() =>
+      _MyGroupTrainingsScreenState();
 }
 
-class _MyGroupTrainingsScreenState extends ConsumerState<MyGroupTrainingsScreen> {
+class _MyGroupTrainingsScreenState
+    extends ConsumerState<MyGroupTrainingsScreen> {
   bool _includePast = false;
 
   String _formatDateTime(DateTime dt) {
@@ -28,6 +30,7 @@ class _MyGroupTrainingsScreenState extends ConsumerState<MyGroupTrainingsScreen>
   Widget build(BuildContext context) {
     final tr = ref.watch(trProvider);
     final async = ref.watch(myGroupTrainingsProvider(_includePast));
+    final showFab = (async.valueOrNull?.isNotEmpty ?? false);
 
     return Scaffold(
       appBar: AppBar(
@@ -59,7 +62,8 @@ class _MyGroupTrainingsScreenState extends ConsumerState<MyGroupTrainingsScreen>
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (e, _) => ErrorStateWidget(
             message: e.toString(),
-            onRetry: () => ref.invalidate(myGroupTrainingsProvider(_includePast)),
+            onRetry: () =>
+                ref.invalidate(myGroupTrainingsProvider(_includePast)),
           ),
           data: (list) {
             if (list.isEmpty) {
@@ -81,7 +85,8 @@ class _MyGroupTrainingsScreenState extends ConsumerState<MyGroupTrainingsScreen>
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                    child: GroupTrainingEngagementBanner(tr: tr, trainings: list),
+                    child:
+                        GroupTrainingEngagementBanner(tr: tr, trainings: list),
                   ),
                 ),
                 SliverPadding(
@@ -104,11 +109,13 @@ class _MyGroupTrainingsScreenState extends ConsumerState<MyGroupTrainingsScreen>
           },
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.push('/group-trainings/available'),
-        icon: const Icon(Icons.add),
-        label: Text(tr('available_group_trainings')),
-      ),
+      floatingActionButton: showFab
+          ? FloatingActionButton.extended(
+              onPressed: () => context.push('/group-trainings/available'),
+              icon: const Icon(Icons.add),
+              label: Text(tr('available_group_trainings')),
+            )
+          : null,
     );
   }
 }
@@ -151,4 +158,3 @@ class _TrainingTile extends StatelessWidget {
     );
   }
 }
-
