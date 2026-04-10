@@ -80,9 +80,9 @@ class MissionProgressCard extends StatelessWidget {
             const SizedBox(height: 4),
             description,
             if (dashboardMode) const Spacer(),
-            const SizedBox(height: 8),
+            SizedBox(height: dashboardMode ? 6 : 8),
             progressBar,
-            SizedBox(height: dashboardMode ? 4 : 8),
+            SizedBox(height: dashboardMode ? 2 : 8),
             Text(
               '$current / $target',
               style: Theme.of(context).textTheme.labelMedium,

@@ -330,6 +330,30 @@ class _WorkoutsListScreenState extends ConsumerState<WorkoutsListScreen> {
               ),
             ),
           ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: FilledButton.icon(
+                      icon: const Icon(Icons.add),
+                      label: Text(tr('create_workout')),
+                      onPressed: () => showTemplatePickerDialog(context, ref),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.note_add_outlined),
+                      label: Text(tr('create_template')),
+                      onPressed: () => context.push('/templates'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
           const SliverToBoxAdapter(
             child: HomeGamificationStrip(
               padding: EdgeInsets.fromLTRB(16, 0, 16, 0),

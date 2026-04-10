@@ -119,7 +119,7 @@ class HomeGamificationStrip extends ConsumerWidget {
                 : const SizedBox.shrink();
 
         final wide = MediaQuery.sizeOf(context).width >= 980;
-        const double dashboardCardHeight = 156;
+        const double dashboardCardHeight = 168;
         Widget dashboardCell(Widget child) => SizedBox(
               height: dashboardCardHeight,
               child: child,
