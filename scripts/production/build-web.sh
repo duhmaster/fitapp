@@ -62,3 +62,6 @@ FILE_COUNT=$(find "$OUT_DIR" -type f | wc -l | tr -d ' ')
 echo ""
 echo "==> Done! $FILE_COUNT files, total $TOTAL_SIZE"
 echo "    Deploy: docker compose -f deployments/production/docker-compose.yml up -d nginx"
+
+rm deployments/production/web
+copy mobile/build/web deployments/production/
