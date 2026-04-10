@@ -109,6 +109,8 @@ class Workout {
     this.finishedAt,
     required this.createdAt,
     this.volumeKg,
+    this.gymId,
+    this.gymName,
   });
   final String id;
   final String? templateId;
@@ -119,6 +121,8 @@ class Workout {
   final String? finishedAt;
   final String createdAt;
   final double? volumeKg;
+  final String? gymId;
+  final String? gymName;
   factory Workout.fromJson(Map<String, dynamic> json) {
     return Workout(
       id: (json['id'] as String?) ?? '',
@@ -130,6 +134,8 @@ class Workout {
       finishedAt: json['finished_at'] as String?,
       createdAt: (json['created_at'] as String?) ?? '',
       volumeKg: (json['volume_kg'] as num?)?.toDouble(),
+      gymId: json['gym_id'] as String?,
+      gymName: json['gym_name'] as String?,
     );
   }
   bool get isActive => startedAt != null && finishedAt == null;

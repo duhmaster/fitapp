@@ -42,8 +42,8 @@ func (r *GroupTrainingRepository) Create(ctx context.Context, trainerID uuid.UUI
 		return nil, domain.ErrGroupTrainingTemplateForbidden
 	}
 
-	var city string
-	if err := tx.QueryRow(ctx, `SELECT city FROM gyms WHERE id = $1`, gymID).Scan(&city); err != nil {
+	var city, gymName string
+	if err := tx.QueryRow(ctx, `SELECT city, COALESCE(name, '') FROM gyms WHERE id = $1`, gymID).Scan(&city, &gymName); err != nil {
 		return nil, err
 	}
 
@@ -65,6 +65,7 @@ func (r *GroupTrainingRepository) Create(ctx context.Context, trainerID uuid.UUI
 	if err != nil {
 		return nil, err
 	}
+	training.GymName = gymName
 
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err
@@ -103,9 +104,9 @@ func (r *GroupTrainingRepository) Update(
 		return nil, domain.ErrGroupTrainingTemplateForbidden
 	}
 
-	// Resolve city by gym_id.
-	var city string
-	if err := tx.QueryRow(ctx, `SELECT city FROM gyms WHERE id = $1`, gymID).Scan(&city); err != nil {
+	// Resolve city and gym display name.
+	var city, gymName string
+	if err := tx.QueryRow(ctx, `SELECT city, COALESCE(name, '') FROM gyms WHERE id = $1`, gymID).Scan(&city, &gymName); err != nil {
 		return nil, err
 	}
 
@@ -135,6 +136,7 @@ func (r *GroupTrainingRepository) Update(
 		}
 		return nil, err
 	}
+	training.GymName = gymName
 
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err
@@ -144,9 +146,10 @@ func (r *GroupTrainingRepository) Update(
 
 func (r *GroupTrainingRepository) GetByIDForTrainer(ctx context.Context, trainerID, trainingID uuid.UUID) (*domain.GroupTraining, error) {
 	query := `
-		SELECT t.id, t.template_id, COALESCE(tpl.name, ''), t.scheduled_at, t.trainer_user_id, t.gym_id, t.city, t.created_at, t.updated_at
+		SELECT t.id, t.template_id, COALESCE(tpl.name, ''), t.scheduled_at, t.trainer_user_id, t.gym_id, t.city, COALESCE(g.name, ''), t.created_at, t.updated_at
 		FROM group_trainings t
 		LEFT JOIN group_training_templates tpl ON tpl.id = t.template_id
+		LEFT JOIN gyms g ON g.id = t.gym_id
 		WHERE t.id = $1 AND t.trainer_user_id = $2
 	`
 	var training domain.GroupTraining
@@ -158,6 +161,7 @@ func (r *GroupTrainingRepository) GetByIDForTrainer(ctx context.Context, trainer
 		&training.TrainerUserID,
 		&training.GymID,
 		&training.City,
+		&training.GymName,
 		&training.CreatedAt,
 		&training.UpdatedAt,
 	)
@@ -182,9 +186,10 @@ func (r *GroupTrainingRepository) ListByTrainerID(ctx context.Context, trainerID
 	}
 
 	query := `
-		SELECT t.id, t.template_id, COALESCE(tpl.name, ''), t.scheduled_at, t.trainer_user_id, t.gym_id, t.city, t.created_at, t.updated_at
+		SELECT t.id, t.template_id, COALESCE(tpl.name, ''), t.scheduled_at, t.trainer_user_id, t.gym_id, t.city, COALESCE(g.name, ''), t.created_at, t.updated_at
 		FROM group_trainings t
 		LEFT JOIN group_training_templates tpl ON tpl.id = t.template_id
+		LEFT JOIN gyms g ON g.id = t.gym_id
 		WHERE t.trainer_user_id = $1
 		` + func() string {
 		if includePast {
@@ -205,7 +210,7 @@ func (r *GroupTrainingRepository) ListByTrainerID(ctx context.Context, trainerID
 	out := make([]*domain.GroupTraining, 0)
 	for rows.Next() {
 		var t domain.GroupTraining
-		if err := rows.Scan(&t.ID, &t.TemplateID, &t.TemplateName, &t.ScheduledAt, &t.TrainerUserID, &t.GymID, &t.City, &t.CreatedAt, &t.UpdatedAt); err != nil {
+		if err := rows.Scan(&t.ID, &t.TemplateID, &t.TemplateName, &t.ScheduledAt, &t.TrainerUserID, &t.GymID, &t.City, &t.GymName, &t.CreatedAt, &t.UpdatedAt); err != nil {
 			return nil, err
 		}
 		out = append(out, &t)
@@ -215,10 +220,11 @@ func (r *GroupTrainingRepository) ListByTrainerID(ctx context.Context, trainerID
 
 func (r *GroupTrainingRepository) GetByIDForUser(ctx context.Context, userID, trainingID uuid.UUID) (*domain.GroupTraining, error) {
 	query := `
-		SELECT t.id, t.template_id, COALESCE(tpl.name, ''), t.scheduled_at, t.trainer_user_id, t.gym_id, t.city, t.created_at, t.updated_at
+		SELECT t.id, t.template_id, COALESCE(tpl.name, ''), t.scheduled_at, t.trainer_user_id, t.gym_id, t.city, COALESCE(g.name, ''), t.created_at, t.updated_at
 		FROM group_trainings t
 		INNER JOIN group_training_registrations r ON r.group_training_id = t.id
 		LEFT JOIN group_training_templates tpl ON tpl.id = t.template_id
+		LEFT JOIN gyms g ON g.id = t.gym_id
 		WHERE r.user_id = $1 AND t.id = $2
 	`
 	var training domain.GroupTraining
@@ -230,6 +236,7 @@ func (r *GroupTrainingRepository) GetByIDForUser(ctx context.Context, userID, tr
 		&training.TrainerUserID,
 		&training.GymID,
 		&training.City,
+		&training.GymName,
 		&training.CreatedAt,
 		&training.UpdatedAt,
 	)
@@ -255,10 +262,11 @@ func (r *GroupTrainingRepository) ListByUserID(ctx context.Context, userID uuid.
 
 	// For the user list we filter by "registered trainings".
 	query := `
-		SELECT t.id, t.template_id, COALESCE(tpl.name, ''), t.scheduled_at, t.trainer_user_id, t.gym_id, t.city, t.created_at, t.updated_at
+		SELECT t.id, t.template_id, COALESCE(tpl.name, ''), t.scheduled_at, t.trainer_user_id, t.gym_id, t.city, COALESCE(g.name, ''), t.created_at, t.updated_at
 		FROM group_trainings t
 		INNER JOIN group_training_registrations r ON r.group_training_id = t.id
 		LEFT JOIN group_training_templates tpl ON tpl.id = t.template_id
+		LEFT JOIN gyms g ON g.id = t.gym_id
 		WHERE r.user_id = $1
 		` + func() string {
 		if includePast {
@@ -279,7 +287,7 @@ func (r *GroupTrainingRepository) ListByUserID(ctx context.Context, userID uuid.
 	out := make([]*domain.GroupTraining, 0)
 	for rows.Next() {
 		var t domain.GroupTraining
-		if err := rows.Scan(&t.ID, &t.TemplateID, &t.TemplateName, &t.ScheduledAt, &t.TrainerUserID, &t.GymID, &t.City, &t.CreatedAt, &t.UpdatedAt); err != nil {
+		if err := rows.Scan(&t.ID, &t.TemplateID, &t.TemplateName, &t.ScheduledAt, &t.TrainerUserID, &t.GymID, &t.City, &t.GymName, &t.CreatedAt, &t.UpdatedAt); err != nil {
 			return nil, err
 		}
 		out = append(out, &t)
@@ -336,11 +344,13 @@ func (r *GroupTrainingRepository) GetBookingDisplayByID(ctx context.Context, tra
 			t.trainer_user_id,
 			t.gym_id,
 			t.city,
+			COALESCE(g.name, ''),
 			COUNT(reg.user_id) AS participants_count
 		FROM group_trainings t
 		INNER JOIN group_training_templates tpl ON tpl.id = t.template_id
 		LEFT JOIN photos p ON tpl.photo_id = p.id
 		INNER JOIN group_training_types typ ON typ.id = tpl.group_type_id
+		LEFT JOIN gyms g ON g.id = t.gym_id
 		LEFT JOIN group_training_registrations reg ON reg.group_training_id = t.id
 		WHERE t.id = $1
 		  AND tpl.deleted_at IS NULL
@@ -349,7 +359,7 @@ func (r *GroupTrainingRepository) GetBookingDisplayByID(ctx context.Context, tra
 			t.id, t.template_id,
 			tpl.name, tpl.description, tpl.duration_minutes, tpl.equipment, tpl.level_of_preparation, COALESCE(p.url, tpl.photo_path), tpl.max_people_count,
 			typ.id, typ.name,
-			t.scheduled_at, t.trainer_user_id, t.gym_id, t.city
+			t.scheduled_at, t.trainer_user_id, t.gym_id, t.city, COALESCE(g.name, '')
 	`, trainingID)
 
 	var item domain.GroupTrainingBookingItem
@@ -370,6 +380,7 @@ func (r *GroupTrainingRepository) GetBookingDisplayByID(ctx context.Context, tra
 		&item.TrainerUserID,
 		&item.GymID,
 		&item.City,
+		&item.GymName,
 		&item.ParticipantsCount,
 	); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -419,11 +430,13 @@ func (r *GroupTrainingRepository) ListAvailableForUser(
 			t.trainer_user_id,
 			t.gym_id,
 			t.city,
+			COALESCE(g.name, ''),
 			COUNT(reg.user_id) AS participants_count
 		FROM group_trainings t
 		INNER JOIN group_training_templates tpl ON tpl.id = t.template_id
 		LEFT JOIN photos p ON tpl.photo_id = p.id
 		INNER JOIN group_training_types typ ON typ.id = tpl.group_type_id
+		LEFT JOIN gyms g ON g.id = t.gym_id
 		LEFT JOIN group_training_registrations reg ON reg.group_training_id = t.id
 		WHERE tpl.deleted_at IS NULL
 		  AND tpl.is_active = TRUE
@@ -442,7 +455,7 @@ func (r *GroupTrainingRepository) ListAvailableForUser(
 			t.id, t.template_id,
 			tpl.name, tpl.description, tpl.duration_minutes, tpl.equipment, tpl.level_of_preparation, COALESCE(p.url, tpl.photo_path), tpl.max_people_count,
 			typ.id, typ.name,
-			t.scheduled_at, t.trainer_user_id, t.gym_id, t.city
+			t.scheduled_at, t.trainer_user_id, t.gym_id, t.city, COALESCE(g.name, '')
 		HAVING COUNT(reg.user_id) < tpl.max_people_count
 		ORDER BY t.scheduled_at ASC
 		LIMIT $8 OFFSET $9
@@ -472,6 +485,7 @@ func (r *GroupTrainingRepository) ListAvailableForUser(
 			&item.TrainerUserID,
 			&item.GymID,
 			&item.City,
+			&item.GymName,
 			&item.ParticipantsCount,
 		); err != nil {
 			return nil, err
@@ -514,11 +528,13 @@ func (r *GroupTrainingRepository) ListUpcomingForTrainer(
 			t.trainer_user_id,
 			t.gym_id,
 			t.city,
+			COALESCE(g.name, ''),
 			COUNT(reg.user_id) AS participants_count
 		FROM group_trainings t
 		INNER JOIN group_training_templates tpl ON tpl.id = t.template_id
 		INNER JOIN group_training_types typ ON typ.id = tpl.group_type_id
 		LEFT JOIN photos p ON tpl.photo_id = p.id
+		LEFT JOIN gyms g ON g.id = t.gym_id
 		LEFT JOIN group_training_registrations reg ON reg.group_training_id = t.id
 		WHERE tpl.deleted_at IS NULL
 		  AND tpl.is_active = TRUE
@@ -529,7 +545,7 @@ func (r *GroupTrainingRepository) ListUpcomingForTrainer(
 			tpl.name, tpl.description, tpl.duration_minutes, tpl.equipment, tpl.level_of_preparation,
 			COALESCE(p.url, tpl.photo_path), tpl.max_people_count,
 			typ.id, typ.name,
-			t.scheduled_at, t.trainer_user_id, t.gym_id, t.city
+			t.scheduled_at, t.trainer_user_id, t.gym_id, t.city, COALESCE(g.name, '')
 		ORDER BY t.scheduled_at ASC
 		LIMIT $2 OFFSET $3
 	`, trainerID, limit, offset)
@@ -558,6 +574,7 @@ func (r *GroupTrainingRepository) ListUpcomingForTrainer(
 			&item.TrainerUserID,
 			&item.GymID,
 			&item.City,
+			&item.GymName,
 			&item.ParticipantsCount,
 		); err != nil {
 			return nil, err
@@ -591,9 +608,10 @@ func (r *GroupTrainingRepository) ListByGymID(ctx context.Context, gymID uuid.UU
 		offset = 0
 	}
 	query := `
-		SELECT t.id, t.template_id, COALESCE(tpl.name, ''), t.scheduled_at, t.trainer_user_id, t.gym_id, t.city, t.created_at, t.updated_at
+		SELECT t.id, t.template_id, COALESCE(tpl.name, ''), t.scheduled_at, t.trainer_user_id, t.gym_id, t.city, COALESCE(g.name, ''), t.created_at, t.updated_at
 		FROM group_trainings t
 		LEFT JOIN group_training_templates tpl ON tpl.id = t.template_id
+		LEFT JOIN gyms g ON g.id = t.gym_id
 		WHERE t.gym_id = $1
 		  AND t.scheduled_at >= NOW()
 		ORDER BY t.scheduled_at ASC
@@ -607,7 +625,7 @@ func (r *GroupTrainingRepository) ListByGymID(ctx context.Context, gymID uuid.UU
 	out := make([]*domain.GroupTraining, 0)
 	for rows.Next() {
 		var t domain.GroupTraining
-		if err := rows.Scan(&t.ID, &t.TemplateID, &t.TemplateName, &t.ScheduledAt, &t.TrainerUserID, &t.GymID, &t.City, &t.CreatedAt, &t.UpdatedAt); err != nil {
+		if err := rows.Scan(&t.ID, &t.TemplateID, &t.TemplateName, &t.ScheduledAt, &t.TrainerUserID, &t.GymID, &t.City, &t.GymName, &t.CreatedAt, &t.UpdatedAt); err != nil {
 			return nil, err
 		}
 		out = append(out, &t)
@@ -616,14 +634,12 @@ func (r *GroupTrainingRepository) ListByGymID(ctx context.Context, gymID uuid.UU
 }
 
 func (r *GroupTrainingRepository) ListTrainersAtGym(ctx context.Context, gymID uuid.UUID) ([]domain.TrainerAtGym, error) {
+	// Only users who listed this gym under "coaching" (work as trainer here), not inferred from workouts.
 	query := `
-		SELECT DISTINCT u.user_id, COALESCE(up.display_name, '')
-		FROM (
-			SELECT trainer_user_id AS user_id FROM group_trainings WHERE gym_id = $1
-			UNION
-			SELECT trainer_id AS user_id FROM workouts WHERE gym_id = $1 AND trainer_id IS NOT NULL
-		) u
-		JOIN user_profiles up ON up.user_id = u.user_id
+		SELECT DISTINCT ug.user_id, COALESCE(up.display_name, '')
+		FROM user_gyms ug
+		JOIN user_profiles up ON up.user_id = ug.user_id
+		WHERE ug.gym_id = $1 AND ug.purpose = 'coaching'
 		ORDER BY COALESCE(up.display_name, '')
 	`
 	rows, err := r.pool.Query(ctx, query, gymID)

@@ -279,7 +279,7 @@ func (uc *GroupTrainingUseCase) ListGroupTrainingsByGym(ctx context.Context, gym
 	return uc.trainings.ListByGymID(ctx, gymID, limit, offset)
 }
 
-// ListTrainersAtGym returns trainers who run group trainings or personal workouts at the gym.
+// ListTrainersAtGym returns users with user_gyms.purpose = coaching for this gym.
 func (uc *GroupTrainingUseCase) ListTrainersAtGym(ctx context.Context, gymID uuid.UUID) ([]domain.TrainerAtGym, error) {
 	return uc.trainings.ListTrainersAtGym(ctx, gymID)
 }

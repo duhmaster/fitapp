@@ -332,7 +332,7 @@ class _WorkoutsListScreenState extends ConsumerState<WorkoutsListScreen> {
           ),
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, sectionGap),
               child: Row(
                 children: [
                   Expanded(

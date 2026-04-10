@@ -429,7 +429,7 @@ class _MonthView extends StatelessWidget {
 
 String _formatWorkoutDateAndTime(Workout w) {
   final str = w.scheduledAt ?? w.startedAt ?? w.createdAt;
-  if (str == null || str.isEmpty) return '';
+  if (str.isEmpty) return '';
   final dt = DateTime.tryParse(str)?.toLocal();
   if (dt == null) return str;
   return '${dt.day.toString().padLeft(2, '0')}.${dt.month.toString().padLeft(2, '0')}.${dt.year} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
@@ -455,7 +455,7 @@ class _ListView extends ConsumerWidget {
 
   static DateTime? _workoutDateTime(Workout w) {
     final str = w.scheduledAt ?? w.startedAt ?? w.createdAt;
-    if (str == null || str.isEmpty) return null;
+    if (str.isEmpty) return null;
     return DateTime.tryParse(str)?.toLocal();
   }
 
@@ -508,6 +508,16 @@ class _ListView extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(dateStr),
+                if (item.venueLine != null && item.venueLine!.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      '${tr('training_venue')}: ${item.venueLine}',
+                      style: Theme.of(context).textTheme.bodySmall,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
                 Text(
                   formatCalendarStatusLabel(item, tr),
                   style: TextStyle(
@@ -607,6 +617,16 @@ class _DayDialog extends StatelessWidget {
                             _formatWorkoutDateAndTime(item.workout),
                             style: Theme.of(context).textTheme.bodySmall,
                           ),
+                          if (item.venueLine != null && item.venueLine!.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: Text(
+                                '${tr('training_venue')}: ${item.venueLine}',
+                                style: Theme.of(context).textTheme.bodySmall,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
                           Text(
                             formatCalendarStatusLabel(item, tr),
                             style: TextStyle(

@@ -63,8 +63,9 @@ class HomeXpProgress extends StatelessWidget {
           header,
           const SizedBox(height: 8),
           const Spacer(),
+          const SizedBox(height: 6),
           progressBar,
-          const SizedBox(height: 8),
+          const SizedBox(height: 2),
           footer,
         ],
       );

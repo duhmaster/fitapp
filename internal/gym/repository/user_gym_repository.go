@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	gymdomain "github.com/fitflow/fitflow/internal/gym/domain"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -17,16 +18,19 @@ func NewUserGymRepository(pool *pgxpool.Pool) *UserGymRepository {
 	return &UserGymRepository{pool: pool}
 }
 
-func (r *UserGymRepository) Add(ctx context.Context, userID, gymID uuid.UUID) error {
+func (r *UserGymRepository) Add(ctx context.Context, userID, gymID uuid.UUID, purpose gymdomain.UserGymPurpose) error {
 	_, err := r.pool.Exec(ctx,
-		`INSERT INTO user_gyms (user_id, gym_id) VALUES ($1, $2) ON CONFLICT (user_id, gym_id) DO NOTHING`,
-		userID, gymID,
+		`INSERT INTO user_gyms (user_id, gym_id, purpose) VALUES ($1, $2, $3) ON CONFLICT (user_id, gym_id, purpose) DO NOTHING`,
+		userID, gymID, string(purpose),
 	)
 	return err
 }
 
-func (r *UserGymRepository) Remove(ctx context.Context, userID, gymID uuid.UUID) error {
-	ct, err := r.pool.Exec(ctx, `DELETE FROM user_gyms WHERE user_id = $1 AND gym_id = $2`, userID, gymID)
+func (r *UserGymRepository) Remove(ctx context.Context, userID, gymID uuid.UUID, purpose gymdomain.UserGymPurpose) error {
+	ct, err := r.pool.Exec(ctx,
+		`DELETE FROM user_gyms WHERE user_id = $1 AND gym_id = $2 AND purpose = $3`,
+		userID, gymID, string(purpose),
+	)
 	if err != nil {
 		return err
 	}
@@ -36,8 +40,11 @@ func (r *UserGymRepository) Remove(ctx context.Context, userID, gymID uuid.UUID)
 	return nil
 }
 
-func (r *UserGymRepository) ListGymIDsByUserID(ctx context.Context, userID uuid.UUID) ([]uuid.UUID, error) {
-	rows, err := r.pool.Query(ctx, `SELECT gym_id FROM user_gyms WHERE user_id = $1 ORDER BY created_at DESC`, userID)
+func (r *UserGymRepository) ListGymIDsByUserIDAndPurpose(ctx context.Context, userID uuid.UUID, purpose gymdomain.UserGymPurpose) ([]uuid.UUID, error) {
+	rows, err := r.pool.Query(ctx,
+		`SELECT gym_id FROM user_gyms WHERE user_id = $1 AND purpose = $2 ORDER BY created_at DESC`,
+		userID, string(purpose),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -53,9 +60,27 @@ func (r *UserGymRepository) ListGymIDsByUserID(ctx context.Context, userID uuid.
 	return ids, rows.Err()
 }
 
-func (r *UserGymRepository) HasGym(ctx context.Context, userID, gymID uuid.UUID) (bool, error) {
+func (r *UserGymRepository) HasGymWithPurpose(ctx context.Context, userID, gymID uuid.UUID, purpose gymdomain.UserGymPurpose) (bool, error) {
 	var n int
-	err := r.pool.QueryRow(ctx, `SELECT 1 FROM user_gyms WHERE user_id = $1 AND gym_id = $2`, userID, gymID).Scan(&n)
+	err := r.pool.QueryRow(ctx,
+		`SELECT 1 FROM user_gyms WHERE user_id = $1 AND gym_id = $2 AND purpose = $3`,
+		userID, gymID, string(purpose),
+	).Scan(&n)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
+func (r *UserGymRepository) HasGymAnyPurpose(ctx context.Context, userID, gymID uuid.UUID) (bool, error) {
+	var n int
+	err := r.pool.QueryRow(ctx,
+		`SELECT 1 FROM user_gyms WHERE user_id = $1 AND gym_id = $2 LIMIT 1`,
+		userID, gymID,
+	).Scan(&n)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return false, nil

@@ -8,13 +8,7 @@ import (
 	"github.com/google/uuid"
 )
 
-// GymLinkerForClient описывает минимальное API для привязки залов к пользователю.
-type GymLinkerForClient interface {
-	Add(ctx context.Context, userID, gymID uuid.UUID) error
-	HasGym(ctx context.Context, userID, gymID uuid.UUID) (bool, error)
-}
-
-// AddGymToClientIfMissing привязывает зал к подопечному, если его ещё нет.
+// AddGymToClientIfMissing привязывает зал к подопечному (личные залы — purpose personal), если его ещё нет.
 func (uc *TrainerUseCase) AddGymToClientIfMissing(
 	ctx context.Context,
 	trainer *authdomain.User,
@@ -29,13 +23,13 @@ func (uc *TrainerUseCase) AddGymToClientIfMissing(
 	if !ok {
 		return gymdomain.ErrGymNotFound
 	}
-	has, err := uc.userGyms.HasGym(ctx, clientID, gymID)
+	has, err := uc.userGyms.HasGymWithPurpose(ctx, clientID, gymID, gymdomain.UserGymPurposePersonal)
 	if err != nil {
 		return err
 	}
 	if has {
 		return nil
 	}
-	return uc.userGyms.Add(ctx, clientID, gymID)
+	return uc.userGyms.Add(ctx, clientID, gymID, gymdomain.UserGymPurposePersonal)
 }
 

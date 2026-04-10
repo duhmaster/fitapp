@@ -40,6 +40,7 @@ type GroupTraining struct {
 	TrainerUserID  uuid.UUID
 	GymID          uuid.UUID
 	City           string
+	GymName        string // From gyms.name when joined.
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
 }
@@ -83,6 +84,7 @@ type GroupTrainingBookingItem struct {
 	TrainerUserID   uuid.UUID
 	GymID           uuid.UUID
 	City            string
+	GymName         string
 
 	ParticipantsCount int
 }

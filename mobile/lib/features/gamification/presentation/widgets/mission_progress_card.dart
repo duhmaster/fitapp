@@ -48,7 +48,9 @@ class MissionProgressCard extends StatelessWidget {
       ),
     );
     return Card(
+      margin: EdgeInsets.zero,
       elevation: 0,
+      clipBehavior: Clip.antiAlias,
       color: scheme.secondaryContainer.withValues(alpha: 0.35),
       child: Padding(
         padding: EdgeInsets.all(dashboardMode ? 10 : 12),

@@ -61,6 +61,7 @@ type WorkoutResponse struct {
 	UserID      string   `json:"user_id"`
 	TrainerID   *string  `json:"trainer_id,omitempty"`
 	GymID       *string  `json:"gym_id,omitempty"`
+	GymName     *string  `json:"gym_name,omitempty"`
 	ScheduledAt *string  `json:"scheduled_at,omitempty"`
 	StartedAt   *string  `json:"started_at,omitempty"`
 	FinishedAt  *string  `json:"finished_at,omitempty"`
@@ -1104,6 +1105,10 @@ func toWorkoutResponse(w *workoutdomain.Workout) WorkoutResponse {
 		s := w.GymID.String()
 		gymID = &s
 	}
+	var gymName *string
+	if w.GymName != nil && *w.GymName != "" {
+		gymName = w.GymName
+	}
 	if w.ScheduledAt != nil {
 		s := formatTimePtr(w.ScheduledAt)
 		scheduledAt = &s
@@ -1123,6 +1128,7 @@ func toWorkoutResponse(w *workoutdomain.Workout) WorkoutResponse {
 		UserID:      w.UserID.String(),
 		TrainerID:   trainerID,
 		GymID:       gymID,
+		GymName:     gymName,
 		ScheduledAt: scheduledAt,
 		StartedAt:   startedAt,
 		FinishedAt:  finishedAt,

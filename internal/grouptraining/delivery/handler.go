@@ -344,6 +344,7 @@ type GroupTrainingResponse struct {
 	ScheduledAt    string `json:"scheduled_at"`
 	TrainerUserID  string `json:"trainer_user_id"`
 	GymID          string `json:"gym_id"`
+	GymName        string `json:"gym_name"`
 	City           string `json:"city"`
 	CreatedAt      string `json:"created_at"`
 	UpdatedAt      string `json:"updated_at"`
@@ -621,6 +622,7 @@ type GroupTrainingBookingItemResponse struct {
 	ScheduledAt          string   `json:"scheduled_at"`
 	TrainerUserID        string   `json:"trainer_user_id"`
 	GymID                string   `json:"gym_id"`
+	GymName              string   `json:"gym_name"`
 	City                 string   `json:"city"`
 	ParticipantsCount    int      `json:"participants_count"`
 }
@@ -759,6 +761,7 @@ func toGroupTrainingResponse(t *domain.GroupTraining) GroupTrainingResponse {
 		ScheduledAt:    t.ScheduledAt.UTC().Format(time.RFC3339),
 		TrainerUserID:  t.TrainerUserID.String(),
 		GymID:          t.GymID.String(),
+		GymName:        t.GymName,
 		City:           t.City,
 		CreatedAt:      t.CreatedAt.UTC().Format(time.RFC3339),
 		UpdatedAt:      t.UpdatedAt.UTC().Format(time.RFC3339),
@@ -781,6 +784,7 @@ func toBookingItemResponse(it *domain.GroupTrainingBookingItem) GroupTrainingBoo
 		ScheduledAt:       it.ScheduledAt.UTC().Format(time.RFC3339),
 		TrainerUserID:     it.TrainerUserID.String(),
 		GymID:             it.GymID.String(),
+		GymName:           it.GymName,
 		City:              it.City,
 		ParticipantsCount: it.ParticipantsCount,
 	}

@@ -100,7 +100,7 @@ type GroupTrainingRepository interface {
 	// ListByGymID returns group trainings at a gym, ordered by scheduled_at ascending.
 	ListByGymID(ctx context.Context, gymID uuid.UUID, limit, offset int) ([]*GroupTraining, error)
 
-	// ListTrainersAtGym returns distinct trainers (group trainings + workouts with trainer_id) at this gym.
+	// ListTrainersAtGym returns users who linked this gym with purpose coaching (train clients here).
 	ListTrainersAtGym(ctx context.Context, gymID uuid.UUID) ([]TrainerAtGym, error)
 }
 

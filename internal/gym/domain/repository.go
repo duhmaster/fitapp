@@ -24,11 +24,13 @@ type LoadSnapshotRepository interface {
 	ListByGymID(ctx context.Context, gymID uuid.UUID, limit int) ([]*LoadSnapshot, error)
 }
 
-// UserGymRepository links users to gyms (many-to-many).
+// UserGymRepository links users to gyms (many-to-many), scoped by purpose.
 type UserGymRepository interface {
-	Add(ctx context.Context, userID, gymID uuid.UUID) error
-	Remove(ctx context.Context, userID, gymID uuid.UUID) error
-	ListGymIDsByUserID(ctx context.Context, userID uuid.UUID) ([]uuid.UUID, error)
-	HasGym(ctx context.Context, userID, gymID uuid.UUID) (bool, error)
+	Add(ctx context.Context, userID, gymID uuid.UUID, purpose UserGymPurpose) error
+	Remove(ctx context.Context, userID, gymID uuid.UUID, purpose UserGymPurpose) error
+	ListGymIDsByUserIDAndPurpose(ctx context.Context, userID uuid.UUID, purpose UserGymPurpose) ([]uuid.UUID, error)
+	HasGymWithPurpose(ctx context.Context, userID, gymID uuid.UUID, purpose UserGymPurpose) (bool, error)
+	// HasGymAnyPurpose is true if the user is linked to the gym for any purpose (e.g. open gym detail).
+	HasGymAnyPurpose(ctx context.Context, userID, gymID uuid.UUID) (bool, error)
 }
 

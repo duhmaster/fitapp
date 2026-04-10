@@ -40,37 +40,52 @@ class HomeGamificationStrip extends ConsumerWidget {
             ? ref.watch(gamificationLeaderboardMiniProvider)
             : null;
 
+        final scheme = Theme.of(context).colorScheme;
         final xpWidget = flags.xpEnabled && profileAsync != null
             ? profileAsync.when(
                 loading: () =>
                     const LoadingSkeleton(height: 88, borderRadius: 12),
                 error: (_, __) => const SizedBox.shrink(),
-                data: (profile) => Card(
-                  margin: EdgeInsets.zero,
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        LevelAvatarWidget(
-                          level: profile.level,
-                          avatarTier: profile.avatarTier,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: HomeXpProgress(
-                            profile: profile,
-                            levelLabel: '${tr('level')} ${profile.level}',
-                            xpToNextLabel: profile.xpForNextLevel > 0
-                                ? '${profile.xpIntoCurrentLevel} / ${profile.xpForNextLevel} XP'
-                                : tr('gam_home_xp_max'),
-                            dashboardMode: dashboardLayout,
+                data: (profile) {
+                  final pad = dashboardLayout ? 10.0 : 12.0;
+                  final avatarSize = dashboardLayout ? 40.0 : 56.0;
+                  return Card(
+                    margin: EdgeInsets.zero,
+                    elevation: 0,
+                    clipBehavior: Clip.antiAlias,
+                    color: scheme.primaryContainer.withValues(alpha: 0.35),
+                    child: Padding(
+                      padding: EdgeInsets.all(pad),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          SizedBox(
+                            width: avatarSize + 4,
+                            child: Align(
+                              alignment: Alignment.topCenter,
+                              child: LevelAvatarWidget(
+                                level: profile.level,
+                                avatarTier: profile.avatarTier,
+                                size: avatarSize,
+                              ),
+                            ),
                           ),
-                        ),
-                      ],
+                          SizedBox(width: dashboardLayout ? 8 : 12),
+                          Expanded(
+                            child: HomeXpProgress(
+                              profile: profile,
+                              levelLabel: '${tr('level')} ${profile.level}',
+                              xpToNextLabel: profile.xpForNextLevel > 0
+                                  ? '${profile.xpIntoCurrentLevel} / ${profile.xpForNextLevel} XP'
+                                  : tr('gam_home_xp_max'),
+                              dashboardMode: dashboardLayout,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ),
+                  );
+                },
               )
             : const SizedBox.shrink();
 
@@ -84,11 +99,16 @@ class HomeGamificationStrip extends ConsumerWidget {
                     return Card(
                       margin: EdgeInsets.zero,
                       elevation: 0,
+                      clipBehavior: Clip.antiAlias,
+                      color: scheme.secondaryContainer.withValues(alpha: 0.35),
                       child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Text(
-                          tr('gam_mission_empty'),
-                          style: Theme.of(context).textTheme.bodyMedium,
+                        padding: EdgeInsets.all(dashboardLayout ? 10 : 12),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            tr('gam_mission_empty'),
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
                         ),
                       ),
                     );

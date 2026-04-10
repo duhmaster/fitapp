@@ -43,8 +43,10 @@ type CreateGymRequest struct {
 }
 
 // AddMyGymRequest: either gym_id (link existing) or create payload.
+// Purpose: "personal" (train here) or "coaching" (work as trainer); default personal.
 type AddMyGymRequest struct {
 	GymID        *string  `json:"gym_id"`
+	Purpose      string   `json:"purpose"`
 	Name         string   `json:"name"`
 	City         string   `json:"city"`
 	Address      string   `json:"address"`
@@ -88,7 +90,12 @@ func (h *Handler) ListMyGyms(c *gin.Context) {
 	if user == nil {
 		return
 	}
-	gyms, err := h.uc.ListMyGyms(c.Request.Context(), user)
+	purpose, err := gymdomain.ParseUserGymPurpose(c.Query("purpose"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	gyms, err := h.uc.ListMyGyms(c.Request.Context(), user, purpose)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list gyms"})
 		return
@@ -131,7 +138,12 @@ func (h *Handler) AddMyGym(c *gin.Context) {
 			Longitude:    req.Longitude,
 		}
 	}
-	g, err := h.uc.AddGymToUser(c.Request.Context(), user, gymID, orCreate)
+	purpose, err := gymdomain.ParseUserGymPurpose(req.Purpose)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	g, err := h.uc.AddGymToUser(c.Request.Context(), user, gymID, orCreate, purpose)
 	if err != nil {
 		if err == gymdomain.ErrGymNotFound {
 			c.JSON(http.StatusNotFound, gin.H{"error": "gym not found"})
@@ -152,7 +164,12 @@ func (h *Handler) RemoveMyGym(c *gin.Context) {
 	if !ok {
 		return
 	}
-	if err := h.uc.RemoveGymFromUser(c.Request.Context(), user, gymID); err != nil {
+	purpose, err := gymdomain.ParseUserGymPurpose(c.Query("purpose"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if err := h.uc.RemoveGymFromUser(c.Request.Context(), user, gymID, purpose); err != nil {
 		if err == gymdomain.ErrGymNotFound {
 			c.JSON(http.StatusNotFound, gin.H{"error": "gym not found"})
 			return

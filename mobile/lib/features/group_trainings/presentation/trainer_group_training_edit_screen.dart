@@ -38,7 +38,8 @@ class _TrainerGroupTrainingEditScreenState
   Widget build(BuildContext context) {
     final tr = ref.watch(trProvider);
     final templatesAsync = ref.watch(trainerTemplatesProvider);
-    final gymsAsync = ref.watch(myGymsProvider);
+    final gymsAsync =
+        ref.watch(myGymsForPurposeProvider(UserGymPurpose.coaching));
 
     final trainingId = widget.trainingIdOrNull;
     final trainingAsync = trainingId == null

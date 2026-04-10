@@ -54,14 +54,14 @@ func (uc *GymUseCase) CreateGym(ctx context.Context, _ *authdomain.User, in Crea
 	return uc.gyms.Create(ctx, in.Name, in.City, in.Address, in.ContactPhone, in.ContactURL, in.Latitude, in.Longitude)
 }
 
-// ListMyGyms returns gyms linked to the user.
-func (uc *GymUseCase) ListMyGyms(ctx context.Context, user *authdomain.User) ([]*gymdomain.Gym, error) {
-	return uc.ListGymsByUserID(ctx, user.ID)
+// ListMyGyms returns gyms linked to the user for the given purpose.
+func (uc *GymUseCase) ListMyGyms(ctx context.Context, user *authdomain.User, purpose gymdomain.UserGymPurpose) ([]*gymdomain.Gym, error) {
+	return uc.ListGymsByUserIDAndPurpose(ctx, user.ID, purpose)
 }
 
-// ListGymsByUserID returns gyms linked to the given user (e.g. for public trainer profile).
-func (uc *GymUseCase) ListGymsByUserID(ctx context.Context, userID uuid.UUID) ([]*gymdomain.Gym, error) {
-	ids, err := uc.userGyms.ListGymIDsByUserID(ctx, userID)
+// ListGymsByUserIDAndPurpose returns gyms linked to the user for one purpose (profiles, lists).
+func (uc *GymUseCase) ListGymsByUserIDAndPurpose(ctx context.Context, userID uuid.UUID, purpose gymdomain.UserGymPurpose) ([]*gymdomain.Gym, error) {
+	ids, err := uc.userGyms.ListGymIDsByUserIDAndPurpose(ctx, userID, purpose)
 	if err != nil {
 		return nil, err
 	}
@@ -77,12 +77,12 @@ func (uc *GymUseCase) ListGymsByUserID(ctx context.Context, userID uuid.UUID) ([
 }
 
 // AddGymToUser links an existing gym to the user, or creates a new gym and links it.
-func (uc *GymUseCase) AddGymToUser(ctx context.Context, user *authdomain.User, gymID *uuid.UUID, orCreate *CreateGymInput) (*gymdomain.Gym, error) {
+func (uc *GymUseCase) AddGymToUser(ctx context.Context, user *authdomain.User, gymID *uuid.UUID, orCreate *CreateGymInput, purpose gymdomain.UserGymPurpose) (*gymdomain.Gym, error) {
 	if gymID != nil {
 		if _, err := uc.gyms.GetByID(ctx, *gymID); err != nil {
 			return nil, err
 		}
-		if err := uc.userGyms.Add(ctx, user.ID, *gymID); err != nil {
+		if err := uc.userGyms.Add(ctx, user.ID, *gymID, purpose); err != nil {
 			return nil, err
 		}
 		return uc.gyms.GetByID(ctx, *gymID)
@@ -94,24 +94,24 @@ func (uc *GymUseCase) AddGymToUser(ctx context.Context, user *authdomain.User, g
 	if err != nil {
 		return nil, err
 	}
-	if err := uc.userGyms.Add(ctx, user.ID, g.ID); err != nil {
+	if err := uc.userGyms.Add(ctx, user.ID, g.ID, purpose); err != nil {
 		return nil, err
 	}
 	return g, nil
 }
 
-// RemoveGymFromUser unlinks the gym from the user.
-func (uc *GymUseCase) RemoveGymFromUser(ctx context.Context, user *authdomain.User, gymID uuid.UUID) error {
-	err := uc.userGyms.Remove(ctx, user.ID, gymID)
+// RemoveGymFromUser unlinks the gym from the user for the given purpose.
+func (uc *GymUseCase) RemoveGymFromUser(ctx context.Context, user *authdomain.User, gymID uuid.UUID, purpose gymdomain.UserGymPurpose) error {
+	err := uc.userGyms.Remove(ctx, user.ID, gymID, purpose)
 	if err != nil && errors.Is(err, pgx.ErrNoRows) {
 		return gymdomain.ErrGymNotFound
 	}
 	return err
 }
 
-// GetMyGym returns gym by ID if the user has it linked.
+// GetMyGym returns gym by ID if the user has it linked for any purpose.
 func (uc *GymUseCase) GetMyGym(ctx context.Context, user *authdomain.User, gymID uuid.UUID) (*gymdomain.Gym, error) {
-	ok, err := uc.userGyms.HasGym(ctx, user.ID, gymID)
+	ok, err := uc.userGyms.HasGymAnyPurpose(ctx, user.ID, gymID)
 	if err != nil || !ok {
 		return nil, gymdomain.ErrGymNotFound
 	}

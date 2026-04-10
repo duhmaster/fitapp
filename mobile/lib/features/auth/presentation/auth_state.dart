@@ -111,7 +111,8 @@ void invalidateUserScopedProviders(Object ref) {
   _invalidateAny(ref, myTrainerPublicProfileProvider);
   _invalidateAny(ref, myTrainersListProvider);
   _invalidateAny(ref, traineesListProvider);
-  _invalidateAny(ref, myGymsProvider);
+  _invalidateAny(ref, myGymsForPurposeProvider('personal'));
+  _invalidateAny(ref, myGymsForPurposeProvider('coaching'));
   _invalidateAny(ref, mePreferencesInitProvider);
   _invalidateAny(ref, selectedLocaleCodeInitProvider);
   _invalidateAny(ref, localeStringsProvider);

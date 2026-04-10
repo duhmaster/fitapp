@@ -254,7 +254,7 @@ func run() error {
 			return workoutUC.CountByTrainerID(ctx, trainerID)
 		},
 		func(ctx context.Context, userID uuid.UUID) ([]trainerdelivery.PublicProfileGym, error) {
-			gyms, err := gymUC.ListGymsByUserID(ctx, userID)
+			gyms, err := gymUC.ListGymsByUserIDAndPurpose(ctx, userID, gymdomain.UserGymPurposeCoaching)
 			if err != nil {
 				return nil, err
 			}
@@ -299,7 +299,7 @@ func run() error {
 			return out, nil
 		},
 		func(ctx context.Context, userID uuid.UUID) ([]trainerdelivery.PublicProfileGym, error) {
-			gyms, err := gymUC.ListGymsByUserID(ctx, userID)
+			gyms, err := gymUC.ListGymsByUserIDAndPurpose(ctx, userID, gymdomain.UserGymPurposePersonal)
 			if err != nil {
 				return nil, err
 			}

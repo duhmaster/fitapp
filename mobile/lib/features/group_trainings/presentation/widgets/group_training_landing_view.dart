@@ -23,6 +23,7 @@ GroupTrainingBookingItem groupTrainingFallbackDisplay({
     scheduledAt: training.scheduledAt,
     trainerUserId: training.trainerUserId,
     gymId: training.gymId,
+    gymName: training.gymName,
     city: training.city,
     participantsCount: participantsCount,
   );
@@ -66,6 +67,11 @@ class GroupTrainingLandingView extends StatelessWidget {
     final cs = theme.colorScheme;
     final dateStr = DateFormat.yMMMMEEEEd(Localizations.localeOf(context).toString()).format(item.scheduledAt.toLocal());
     final timeStr = DateFormat.Hm(Localizations.localeOf(context).toString()).format(item.scheduledAt.toLocal());
+    final venueParts = <String>[
+      if (item.gymName != null && item.gymName!.trim().isNotEmpty) item.gymName!.trim(),
+      if (item.city.trim().isNotEmpty) item.city.trim(),
+    ];
+    final venueLine = venueParts.join(' · ');
     final photoUrl = _photoUrl();
     final ratio = showSeatsBar && item.maxPeopleCount > 0 ? (item.participantsCount / item.maxPeopleCount).clamp(0.0, 1.0) : 0.0;
 
@@ -143,17 +149,21 @@ class GroupTrainingLandingView extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Icon(Icons.place_outlined, size: 18, color: Colors.white.withValues(alpha: 0.95)),
-                        const SizedBox(width: 6),
-                        Text(
-                          item.city,
-                          style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white.withValues(alpha: 0.95)),
-                        ),
-                      ],
-                    ),
+                    if (venueLine.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(Icons.place_outlined, size: 18, color: Colors.white.withValues(alpha: 0.95)),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              venueLine,
+                              style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white.withValues(alpha: 0.95)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),

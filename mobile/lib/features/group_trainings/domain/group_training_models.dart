@@ -65,6 +65,7 @@ class GroupTraining {
     required this.scheduledAt,
     required this.trainerUserId,
     required this.gymId,
+    this.gymName,
     required this.city,
     required this.createdAt,
     required this.updatedAt,
@@ -76,6 +77,7 @@ class GroupTraining {
   final DateTime scheduledAt;
   final String trainerUserId;
   final String gymId;
+  final String? gymName;
   final String city;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -88,6 +90,7 @@ class GroupTraining {
       scheduledAt: DateTime.parse(json['scheduled_at'] as String),
       trainerUserId: json['trainer_user_id'] as String,
       gymId: json['gym_id'] as String,
+      gymName: json['gym_name'] as String?,
       city: json['city'] as String? ?? '',
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
@@ -111,6 +114,7 @@ class GroupTrainingBookingItem {
     required this.scheduledAt,
     required this.trainerUserId,
     required this.gymId,
+    this.gymName,
     required this.city,
     required this.participantsCount,
   });
@@ -129,6 +133,7 @@ class GroupTrainingBookingItem {
   final DateTime scheduledAt;
   final String trainerUserId;
   final String gymId;
+  final String? gymName;
   final String city;
   final int participantsCount;
 
@@ -150,6 +155,7 @@ class GroupTrainingBookingItem {
       scheduledAt: DateTime.parse(json['scheduled_at'] as String),
       trainerUserId: json['trainer_user_id'] as String,
       gymId: json['gym_id'] as String,
+      gymName: json['gym_name'] as String?,
       city: json['city'] as String,
       participantsCount: (json['participants_count'] as num).toInt(),
     );

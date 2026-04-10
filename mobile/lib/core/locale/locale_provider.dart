@@ -185,6 +185,15 @@ final Map<String, String> _fallbackStringsRu = {
   'gym_optional': 'Не выбран',
   'my_gyms': 'Мои залы',
   'add_gym': 'Добавить зал',
+  'gyms_section_personal_title': 'Где тренируюсь',
+  'gyms_section_personal_subtitle':
+      'Личные залы: чек-ины и тренировки для себя.',
+  'gyms_section_personal_empty': 'Добавьте залы, куда вы ходите как спортсмен.',
+  'gyms_section_coaching_title': 'Где веду клиентов',
+  'gyms_section_coaching_subtitle':
+      'Залы, в которых вы работаете тренером (групповые и профиль).',
+  'gyms_section_coaching_empty':
+      'Добавьте залы, где вы проводите тренировки с клиентами.',
   'feed': 'Лента',
   'trainer': 'Тренер',
   'enter_email': 'Введите email',
@@ -337,6 +346,7 @@ final Map<String, String> _fallbackStringsRu = {
   'group_training_templates': 'Шаблоны групповых тренировок',
   'my_group_training_calendar': 'Моя групповая тренировка',
   'group_training_calendar': 'Групповая тренировка',
+  'training_venue': 'Место проведения',
   'create_group_training': 'Создать групповую',
   'wizard_step_template': 'Шаг 1: Шаблон',
   'wizard_step_schedule': 'Шаг 2: Дата и зал',
@@ -674,6 +684,15 @@ final Map<String, String> _fallbackStrings = {
   'gym_optional': 'Optional',
   'my_gyms': 'My gyms',
   'add_gym': 'Add gym',
+  'gyms_section_personal_title': 'Where I train',
+  'gyms_section_personal_subtitle':
+      'Personal gyms: check-ins and your own workouts.',
+  'gyms_section_personal_empty': 'Add gyms you visit as an athlete.',
+  'gyms_section_coaching_title': 'Where I coach',
+  'gyms_section_coaching_subtitle':
+      'Gyms where you work as a trainer (group classes & profile).',
+  'gyms_section_coaching_empty':
+      'Add gyms where you train clients.',
   'feed': 'Feed',
   'trainer': 'Trainer',
   'enter_email': 'Enter email',
@@ -824,6 +843,7 @@ final Map<String, String> _fallbackStrings = {
   'group_training_templates': 'Group training templates',
   'my_group_training_calendar': 'My group training',
   'group_training_calendar': 'Group training',
+  'training_venue': 'Venue',
   'create_group_training': 'Create group training',
   'wizard_step_template': 'Step 1: Template',
   'wizard_step_schedule': 'Step 2: Schedule & gym',

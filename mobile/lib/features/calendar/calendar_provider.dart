@@ -51,12 +51,28 @@ final workoutsCalendarCombinedProvider = FutureProvider<List<CalendarWorkoutItem
     }
   }
 
+  String? workoutVenue(Workout w) {
+    final n = w.gymName?.trim();
+    if (n != null && n.isNotEmpty) return n;
+    return null;
+  }
+
+  String? groupVenue(GroupTraining t) {
+    final parts = <String>[
+      if (t.gymName != null && t.gymName!.trim().isNotEmpty) t.gymName!.trim(),
+      if (t.city.trim().isNotEmpty) t.city.trim(),
+    ];
+    if (parts.isEmpty) return null;
+    return parts.join(' · ');
+  }
+
   final result = <CalendarWorkoutItem>[];
   for (final w in myWorkouts) {
     result.add(CalendarWorkoutItem(
       workout: w,
       isOwn: true,
       templateName: w.templateId != null ? templateNames[w.templateId] : null,
+      venueLine: workoutVenue(w),
     ));
   }
   for (final w in trainerWorkouts) {
@@ -65,6 +81,7 @@ final workoutsCalendarCombinedProvider = FutureProvider<List<CalendarWorkoutItem
       isOwn: w.userId == me.id,
       displayName: traineeNames[w.userId],
       templateName: w.templateId != null ? templateNames[w.templateId] : null,
+      venueLine: workoutVenue(w),
     ));
   }
 
@@ -94,11 +111,14 @@ final workoutsCalendarCombinedProvider = FutureProvider<List<CalendarWorkoutItem
       scheduledAt: t.scheduledAt.toUtc().toIso8601String(),
       createdAt: t.createdAt.toUtc().toIso8601String(),
       volumeKg: null,
+      gymId: t.gymId,
+      gymName: t.gymName,
     );
     result.add(CalendarWorkoutItem(
       workout: dummyWorkout,
       isOwn: t.trainerUserId == me.id,
       templateName: t.templateName?.isNotEmpty == true ? t.templateName : t.templateId,
+      venueLine: groupVenue(t),
     ));
   }
 

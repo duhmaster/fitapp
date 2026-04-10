@@ -73,6 +73,7 @@ type Workout struct {
 	UserID      uuid.UUID
 	TrainerID   *uuid.UUID
 	GymID       *uuid.UUID
+	GymName     *string // Set on list endpoints when joined with gyms.
 	ScheduledAt *time.Time
 	StartedAt   *time.Time
 	FinishedAt  *time.Time

@@ -7,6 +7,12 @@ final gymRepositoryProvider = Provider<GymRepository>((ref) {
   return GymRepository(dio: ref.watch(apiClientProvider));
 });
 
+/// API `purpose` for /me/gyms: where you train vs where you coach.
+abstract final class UserGymPurpose {
+  static const personal = 'personal';
+  static const coaching = 'coaching';
+}
+
 class Gym {
   Gym({
     required this.id,
@@ -59,9 +65,12 @@ class GymRepository {
   GymRepository({required this.dio});
   final Dio dio;
 
-  /// GET /api/v1/me/gyms — list user's gyms
-  Future<List<Gym>> listMyGyms() async {
-    final res = await dio.get<Map<String, dynamic>>('/api/v1/me/gyms');
+  /// GET /api/v1/me/gyms?purpose=personal|coaching — list user's gyms for that purpose (default server: personal).
+  Future<List<Gym>> listMyGyms({String purpose = UserGymPurpose.personal}) async {
+    final res = await dio.get<Map<String, dynamic>>(
+      '/api/v1/me/gyms',
+      queryParameters: {'purpose': purpose},
+    );
     final list = res.data?['gyms'] as List<dynamic>? ?? [];
     return list.map((e) => Gym.fromJson(e as Map<String, dynamic>)).toList();
   }
@@ -75,6 +84,7 @@ class GymRepository {
   /// POST /api/v1/me/gyms — add gym (create payload)
   Future<Gym> addMyGym({
     String? gymId,
+    String purpose = UserGymPurpose.personal,
     String? name,
     String? city,
     String? address,
@@ -83,7 +93,7 @@ class GymRepository {
     double? latitude,
     double? longitude,
   }) async {
-    final data = <String, dynamic>{};
+    final data = <String, dynamic>{'purpose': purpose};
     if (gymId != null && gymId.isNotEmpty) {
       data['gym_id'] = gymId;
     } else {
@@ -99,9 +109,12 @@ class GymRepository {
     return Gym.fromJson(res.data!);
   }
 
-  /// DELETE /api/v1/me/gyms/:id — remove gym from user
-  Future<void> removeMyGym(String id) async {
-    await dio.delete('/api/v1/me/gyms/$id');
+  /// DELETE /api/v1/me/gyms/:id?purpose=... — remove gym link for that purpose
+  Future<void> removeMyGym(String id, {String purpose = UserGymPurpose.personal}) async {
+    await dio.delete(
+      '/api/v1/me/gyms/$id',
+      queryParameters: {'purpose': purpose},
+    );
   }
 
   /// GET /api/v1/gyms?q=...&city=... (public search; city filters by gym city)

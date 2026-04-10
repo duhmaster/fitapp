@@ -10,12 +10,15 @@ class CalendarWorkoutItem {
     required this.isOwn,
     this.displayName,
     this.templateName,
+    this.venueLine,
   });
 
   final Workout workout;
   final bool isOwn;
   final String? displayName;
   final String? templateName;
+  /// Gym name (and city for group trainings), for list display.
+  final String? venueLine;
 
   bool get isGroupTraining => workout.programId == groupTrainingCalendarMarker;
 

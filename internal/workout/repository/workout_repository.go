@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"time"
 
@@ -70,12 +71,13 @@ func (r *WorkoutRepository) ListByUserID(ctx context.Context, userID uuid.UUID, 
 	}
 
 	query := `
-		SELECT id, template_id, program_id, user_id, trainer_id, gym_id, scheduled_at, started_at, finished_at, created_at
-		FROM workouts
-		WHERE user_id = $1
-		  AND ($4::timestamptz IS NULL OR (finished_at IS NOT NULL AND finished_at >= $4))
-		  AND ($5::timestamptz IS NULL OR (finished_at IS NOT NULL AND finished_at <= $5))
-		ORDER BY created_at DESC
+		SELECT w.id, w.template_id, w.program_id, w.user_id, w.trainer_id, w.gym_id, w.scheduled_at, w.started_at, w.finished_at, w.created_at, COALESCE(g.name, '')
+		FROM workouts w
+		LEFT JOIN gyms g ON g.id = w.gym_id
+		WHERE w.user_id = $1
+		  AND ($4::timestamptz IS NULL OR (w.finished_at IS NOT NULL AND w.finished_at >= $4))
+		  AND ($5::timestamptz IS NULL OR (w.finished_at IS NOT NULL AND w.finished_at <= $5))
+		ORDER BY w.created_at DESC
 		LIMIT $2 OFFSET $3
 	`
 	rows, err := r.pool.Query(ctx, query, userID, limit, offset, finishedFrom, finishedTo)
@@ -87,8 +89,13 @@ func (r *WorkoutRepository) ListByUserID(ctx context.Context, userID uuid.UUID, 
 	var list []*workoutdomain.Workout
 	for rows.Next() {
 		var w workoutdomain.Workout
-		if err := rows.Scan(&w.ID, &w.TemplateID, &w.ProgramID, &w.UserID, &w.TrainerID, &w.GymID, &w.ScheduledAt, &w.StartedAt, &w.FinishedAt, &w.CreatedAt); err != nil {
+		var gymName sql.NullString
+		if err := rows.Scan(&w.ID, &w.TemplateID, &w.ProgramID, &w.UserID, &w.TrainerID, &w.GymID, &w.ScheduledAt, &w.StartedAt, &w.FinishedAt, &w.CreatedAt, &gymName); err != nil {
 			return nil, err
+		}
+		if gymName.Valid && gymName.String != "" {
+			s := gymName.String
+			w.GymName = &s
 		}
 		list = append(list, &w)
 	}
@@ -106,10 +113,11 @@ func (r *WorkoutRepository) ListByTrainerID(ctx context.Context, trainerID uuid.
 		offset = 0
 	}
 	query := `
-		SELECT id, template_id, program_id, user_id, trainer_id, gym_id, scheduled_at, started_at, finished_at, created_at
-		FROM workouts
-		WHERE trainer_id = $1
-		ORDER BY COALESCE(scheduled_at, started_at, created_at) DESC NULLS LAST
+		SELECT w.id, w.template_id, w.program_id, w.user_id, w.trainer_id, w.gym_id, w.scheduled_at, w.started_at, w.finished_at, w.created_at, COALESCE(g.name, '')
+		FROM workouts w
+		LEFT JOIN gyms g ON g.id = w.gym_id
+		WHERE w.trainer_id = $1
+		ORDER BY COALESCE(w.scheduled_at, w.started_at, w.created_at) DESC NULLS LAST
 		LIMIT $2 OFFSET $3
 	`
 	rows, err := r.pool.Query(ctx, query, trainerID, limit, offset)
@@ -120,8 +128,13 @@ func (r *WorkoutRepository) ListByTrainerID(ctx context.Context, trainerID uuid.
 	var list []*workoutdomain.Workout
 	for rows.Next() {
 		var w workoutdomain.Workout
-		if err := rows.Scan(&w.ID, &w.TemplateID, &w.ProgramID, &w.UserID, &w.TrainerID, &w.GymID, &w.ScheduledAt, &w.StartedAt, &w.FinishedAt, &w.CreatedAt); err != nil {
+		var gymName sql.NullString
+		if err := rows.Scan(&w.ID, &w.TemplateID, &w.ProgramID, &w.UserID, &w.TrainerID, &w.GymID, &w.ScheduledAt, &w.StartedAt, &w.FinishedAt, &w.CreatedAt, &gymName); err != nil {
 			return nil, err
+		}
+		if gymName.Valid && gymName.String != "" {
+			s := gymName.String
+			w.GymName = &s
 		}
 		list = append(list, &w)
 	}
