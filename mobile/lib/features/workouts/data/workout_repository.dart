@@ -19,8 +19,10 @@ class WorkoutRepository {
     List<String>? tags,
   }) async {
     final params = <String, dynamic>{'limit': limit, 'offset': offset};
-    if (muscleGroup != null && muscleGroup.isNotEmpty) params['muscle_group'] = muscleGroup;
-    if (difficulty != null && difficulty.isNotEmpty) params['difficulty'] = difficulty;
+    if (muscleGroup != null && muscleGroup.isNotEmpty)
+      params['muscle_group'] = muscleGroup;
+    if (difficulty != null && difficulty.isNotEmpty)
+      params['difficulty'] = difficulty;
     if (tags != null && tags.isNotEmpty) params['tags'] = tags;
 
     final res = await dio.get<Map<String, dynamic>>(
@@ -28,7 +30,9 @@ class WorkoutRepository {
       queryParameters: params,
     );
     final list = res.data?['exercises'] as List<dynamic>? ?? [];
-    return list.map((e) => Exercise.fromJson(e as Map<String, dynamic>)).toList();
+    return list
+        .map((e) => Exercise.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   Future<List<Program>> listPrograms({int limit = 50, int offset = 0}) async {
@@ -37,10 +41,13 @@ class WorkoutRepository {
       queryParameters: {'limit': limit, 'offset': offset},
     );
     final list = res.data?['programs'] as List<dynamic>? ?? [];
-    return list.map((e) => Program.fromJson(e as Map<String, dynamic>)).toList();
+    return list
+        .map((e) => Program.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
-  Future<Program> createProgram({required String name, String? description}) async {
+  Future<Program> createProgram(
+      {required String name, String? description}) async {
     final res = await dio.post<Map<String, dynamic>>(
       '/api/v1/programs',
       data: {'name': name, if (description != null) 'description': description},
@@ -49,9 +56,12 @@ class WorkoutRepository {
   }
 
   Future<List<ProgramExercise>> getProgramExercises(String programId) async {
-    final res = await dio.get<Map<String, dynamic>>('/api/v1/programs/$programId/exercises');
+    final res = await dio
+        .get<Map<String, dynamic>>('/api/v1/programs/$programId/exercises');
     final list = res.data?['exercises'] as List<dynamic>? ?? [];
-    return list.map((e) => ProgramExercise.fromJson(e as Map<String, dynamic>)).toList();
+    return list
+        .map((e) => ProgramExercise.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   Future<Workout> startWorkoutFromProgram({
@@ -60,7 +70,10 @@ class WorkoutRepository {
   }) async {
     final res = await dio.post<Map<String, dynamic>>(
       '/api/v1/workouts/start',
-      data: {'program_id': programId, if (scheduledAt != null) 'scheduled_at': scheduledAt},
+      data: {
+        'program_id': programId,
+        if (scheduledAt != null) 'scheduled_at': scheduledAt
+      },
     );
     return Workout.fromJson(res.data!);
   }
@@ -73,14 +86,17 @@ class WorkoutRepository {
     String? finishedTo,
   }) async {
     final params = <String, dynamic>{'limit': limit, 'offset': offset};
-    if (finishedFrom != null && finishedFrom.isNotEmpty) params['from'] = finishedFrom;
+    if (finishedFrom != null && finishedFrom.isNotEmpty)
+      params['from'] = finishedFrom;
     if (finishedTo != null && finishedTo.isNotEmpty) params['to'] = finishedTo;
     final res = await dio.get<Map<String, dynamic>>(
       '/api/v1/me/workouts',
       queryParameters: params,
     );
     final list = res.data?['workouts'] as List<dynamic>? ?? [];
-    return list.map((e) => Workout.fromJson(e as Map<String, dynamic>)).toList();
+    return list
+        .map((e) => Workout.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   Future<Workout> createWorkout({
@@ -96,7 +112,8 @@ class WorkoutRepository {
     if (trainerId != null) data['trainer_id'] = trainerId;
     if (scheduledAt != null) data['scheduled_at'] = scheduledAt;
     if (gymId != null) data['gym_id'] = gymId;
-    final res = await dio.post<Map<String, dynamic>>('/api/v1/me/workouts', data: data);
+    final res =
+        await dio.post<Map<String, dynamic>>('/api/v1/me/workouts', data: data);
     return Workout.fromJson(res.data!);
   }
 
@@ -119,10 +136,15 @@ class WorkoutRepository {
   }
 
   Future<WorkoutDetail> getWorkout(String workoutId) async {
-    final res = await dio.get<Map<String, dynamic>>('/api/v1/me/workouts/$workoutId');
+    final res =
+        await dio.get<Map<String, dynamic>>('/api/v1/me/workouts/$workoutId');
     final data = res.data!;
     final volumeKg = (data['volume_kg'] as num?)?.toDouble() ?? 0.0;
     final templateName = data['template_name'] as String?;
+    final rawFeedback = data['feedback'];
+    final feedback = rawFeedback is Map
+        ? WorkoutFeedback.fromJson(Map<String, dynamic>.from(rawFeedback))
+        : null;
     return WorkoutDetail(
       workout: Workout.fromJson(data['workout'] as Map<String, dynamic>),
       exercises: (data['exercises'] as List<dynamic>?)
@@ -135,21 +157,64 @@ class WorkoutRepository {
           [],
       templateName: templateName,
       volumeKg: volumeKg,
+      feedback: feedback,
     );
   }
 
   Future<Workout> startWorkout(String workoutId) async {
-    final res = await dio.patch<Map<String, dynamic>>('/api/v1/me/workouts/$workoutId/start');
+    final res = await dio
+        .patch<Map<String, dynamic>>('/api/v1/me/workouts/$workoutId/start');
     return Workout.fromJson(res.data!);
   }
 
   Future<Workout> finishWorkout(String workoutId) async {
-    final res = await dio.patch<Map<String, dynamic>>('/api/v1/me/workouts/$workoutId/finish');
+    final res = await dio
+        .patch<Map<String, dynamic>>('/api/v1/me/workouts/$workoutId/finish');
     return Workout.fromJson(res.data!);
+  }
+
+  Future<void> upsertWorkoutFeedback(
+    String workoutId, {
+    required int sessionQuality,
+    required int overallWellbeing,
+    required int fatigue,
+    int? muscleSoreness,
+    int? painDiscomfort,
+    int? stressLevel,
+    double? sleepHours,
+    int? sleepQuality,
+    String? note,
+  }) async {
+    await dio.post<Map<String, dynamic>>(
+      '/api/v1/me/workouts/$workoutId/feedback',
+      data: {
+        'session_quality': sessionQuality,
+        'overall_wellbeing': overallWellbeing,
+        'fatigue': fatigue,
+        if (muscleSoreness != null) 'muscle_soreness': muscleSoreness,
+        if (painDiscomfort != null) 'pain_discomfort': painDiscomfort,
+        if (stressLevel != null) 'stress_level': stressLevel,
+        if (sleepHours != null) 'sleep_hours': sleepHours,
+        if (sleepQuality != null) 'sleep_quality': sleepQuality,
+        if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
+      },
+    );
   }
 
   Future<void> deleteWorkout(String workoutId) async {
     await dio.delete<void>('/api/v1/me/workouts/$workoutId');
+  }
+
+  Future<List<WorkoutRecommendation>> listWorkoutRecommendations(
+      {int limit = 20}) async {
+    final res = await dio.get<Map<String, dynamic>>(
+      '/api/v1/me/workout-recommendations',
+      queryParameters: {'limit': limit},
+    );
+    final list = res.data?['recommendations'] as List<dynamic>? ?? [];
+    return list
+        .map((e) => WorkoutRecommendation.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   Future<WorkoutExercise> addExerciseToWorkout(
@@ -197,18 +262,23 @@ class WorkoutRepository {
   // --- Workout templates ---
   static const _templatesPath = '/api/v1/me/workout-templates';
 
-  Future<List<WorkoutTemplate>> listTemplates({int limit = 20, int offset = 0}) async {
+  Future<List<WorkoutTemplate>> listTemplates(
+      {int limit = 20, int offset = 0}) async {
     final res = await dio.get<Map<String, dynamic>>(
       _templatesPath,
       queryParameters: {'limit': limit, 'offset': offset},
     );
     final list = res.data?['templates'] as List<dynamic>? ?? [];
-    return list.map((e) => WorkoutTemplate.fromJson(e as Map<String, dynamic>)).toList();
+    return list
+        .map((e) => WorkoutTemplate.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   Future<TemplateDetail> getTemplate(String templateId) async {
-    final res = await dio.get<Map<String, dynamic>>('$_templatesPath/$templateId');
-    final template = WorkoutTemplate.fromJson(res.data!['template'] as Map<String, dynamic>);
+    final res =
+        await dio.get<Map<String, dynamic>>('$_templatesPath/$templateId');
+    final template =
+        WorkoutTemplate.fromJson(res.data!['template'] as Map<String, dynamic>);
     final exercises = (res.data!['exercises'] as List<dynamic>?)
             ?.map((e) => TemplateExercise.fromJson(e as Map<String, dynamic>))
             .toList() ??
@@ -235,7 +305,8 @@ class WorkoutRepository {
     bool useRestTimer = false,
     int restSeconds = 60,
   }) async {
-    final res = await dio.put<Map<String, dynamic>>('$_templatesPath/$templateId', data: {
+    final res = await dio
+        .put<Map<String, dynamic>>('$_templatesPath/$templateId', data: {
       'name': name,
       'use_rest_timer': useRestTimer,
       'rest_seconds': restSeconds,
@@ -247,7 +318,8 @@ class WorkoutRepository {
     await dio.delete<void>('$_templatesPath/$templateId');
   }
 
-  Future<TemplateExercise> addExerciseToTemplate(String templateId, {required String exerciseId, int order = 0}) async {
+  Future<TemplateExercise> addExerciseToTemplate(String templateId,
+      {required String exerciseId, int order = 0}) async {
     final res = await dio.post<Map<String, dynamic>>(
       '$_templatesPath/$templateId/exercises',
       data: {'exercise_id': exerciseId, 'order': order},
@@ -259,7 +331,8 @@ class WorkoutRepository {
     await dio.delete<void>('$_templatesPath/exercises/$templateExerciseId');
   }
 
-  Future<void> reorderTemplateExercises(String templateId, {required List<String> exerciseIds}) async {
+  Future<void> reorderTemplateExercises(String templateId,
+      {required List<String> exerciseIds}) async {
     await dio.put<void>(
       '$_templatesPath/$templateId/reorder',
       data: {'exercise_ids': exerciseIds},
@@ -283,12 +356,15 @@ class WorkoutRepository {
     return TemplateExerciseSet.fromJson(res.data!);
   }
 
-  Future<void> deleteTemplateSet(String templateExerciseId, String setId) async {
-    await dio.delete<void>('$_templatesPath/exercises/$templateExerciseId/sets/$setId');
+  Future<void> deleteTemplateSet(
+      String templateExerciseId, String setId) async {
+    await dio.delete<void>(
+        '$_templatesPath/exercises/$templateExerciseId/sets/$setId');
   }
 
   Future<Workout> startWorkoutFromTemplate(String templateId) async {
-    final res = await dio.post<Map<String, dynamic>>('$_templatesPath/$templateId/start');
+    final res = await dio
+        .post<Map<String, dynamic>>('$_templatesPath/$templateId/start');
     final workoutData = res.data?['workout'] as Map<String, dynamic>?;
     if (workoutData == null) throw Exception('No workout in response');
     return Workout.fromJson(workoutData);
@@ -296,16 +372,21 @@ class WorkoutRepository {
 
   /// Exercise IDs that appear in user's workout logs (for progress).
   Future<List<String>> listProgressExerciseIds() async {
-    final res = await dio.get<Map<String, dynamic>>('/api/v1/me/progress/exercise-ids');
+    final res =
+        await dio.get<Map<String, dynamic>>('/api/v1/me/progress/exercise-ids');
     final list = res.data?['exercise_ids'] as List<dynamic>? ?? [];
     return list.map((e) => e.toString()).toList();
   }
 
   /// Per-workout volume history for an exercise.
-  Future<List<ExerciseVolumeEntry>> listExerciseVolumeHistory(String exerciseId) async {
-    final res = await dio.get<Map<String, dynamic>>('/api/v1/me/progress/exercises/$exerciseId/volume-history');
+  Future<List<ExerciseVolumeEntry>> listExerciseVolumeHistory(
+      String exerciseId) async {
+    final res = await dio.get<Map<String, dynamic>>(
+        '/api/v1/me/progress/exercises/$exerciseId/volume-history');
     final list = res.data?['history'] as List<dynamic>? ?? [];
-    return list.map((e) => ExerciseVolumeEntry.fromJson(e as Map<String, dynamic>)).toList();
+    return list
+        .map((e) => ExerciseVolumeEntry.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 }
 
@@ -334,10 +415,12 @@ class WorkoutDetail {
     required this.logs,
     this.templateName,
     this.volumeKg = 0,
+    this.feedback,
   });
   final Workout workout;
   final List<WorkoutExercise> exercises;
   final List<ExerciseLog> logs;
   final String? templateName;
   final double volumeKg;
+  final WorkoutFeedback? feedback;
 }

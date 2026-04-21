@@ -50,7 +50,7 @@ type ProgramExerciseResponse struct {
 	ID         string            `json:"id"`
 	ExerciseID string            `json:"exercise_id"`
 	OrderIndex int               `json:"order_index"`
-	Exercise   *ExerciseResponse  `json:"exercise,omitempty"`
+	Exercise   *ExerciseResponse `json:"exercise,omitempty"`
 }
 
 // WorkoutResponse is the JSON response for a workout.
@@ -81,13 +81,13 @@ type WorkoutExerciseResponse struct {
 
 // ExerciseLogResponse is the JSON response for an exercise log.
 type ExerciseLogResponse struct {
-	ID         string   `json:"id"`
-	ExerciseID string   `json:"exercise_id"`
-	SetNumber  int      `json:"set_number"`
-	Reps       *int     `json:"reps,omitempty"`
-	WeightKg   *float64 `json:"weight_kg,omitempty"`
-	RestSeconds *int    `json:"rest_seconds,omitempty"`
-	LoggedAt   string   `json:"logged_at"`
+	ID          string   `json:"id"`
+	ExerciseID  string   `json:"exercise_id"`
+	SetNumber   int      `json:"set_number"`
+	Reps        *int     `json:"reps,omitempty"`
+	WeightKg    *float64 `json:"weight_kg,omitempty"`
+	RestSeconds *int     `json:"rest_seconds,omitempty"`
+	LoggedAt    string   `json:"logged_at"`
 }
 
 type CreateWorkoutRequest struct {
@@ -124,14 +124,42 @@ type LogSetRequest struct {
 	RestSeconds *int     `json:"rest_seconds"`
 }
 
+type UpsertWorkoutFeedbackRequest struct {
+	SessionQuality   int16    `json:"session_quality" binding:"required"`
+	OverallWellbeing int16    `json:"overall_wellbeing" binding:"required"`
+	Fatigue          int16    `json:"fatigue" binding:"required"`
+	MuscleSoreness   *int16   `json:"muscle_soreness"`
+	PainDiscomfort   *int16   `json:"pain_discomfort"`
+	StressLevel      *int16   `json:"stress_level"`
+	SleepHours       *float64 `json:"sleep_hours"`
+	SleepQuality     *int16   `json:"sleep_quality"`
+	Note             *string  `json:"note"`
+}
+
+type WorkoutFeedbackResponse struct {
+	WorkoutID        string   `json:"workout_id"`
+	UserID           string   `json:"user_id"`
+	SessionQuality   int16    `json:"session_quality"`
+	OverallWellbeing int16    `json:"overall_wellbeing"`
+	Fatigue          int16    `json:"fatigue"`
+	MuscleSoreness   *int16   `json:"muscle_soreness,omitempty"`
+	PainDiscomfort   *int16   `json:"pain_discomfort,omitempty"`
+	StressLevel      *int16   `json:"stress_level,omitempty"`
+	SleepHours       *float64 `json:"sleep_hours,omitempty"`
+	SleepQuality     *int16   `json:"sleep_quality,omitempty"`
+	Note             *string  `json:"note,omitempty"`
+	CreatedAt        string   `json:"created_at"`
+	UpdatedAt        string   `json:"updated_at"`
+}
+
 // Workout template DTOs
 type TemplateResponse struct {
-	ID              string `json:"id"`
-	Name            string `json:"name"`
-	ExercisesCount  int    `json:"exercises_count,omitempty"`
-	CreatedAt       string `json:"created_at,omitempty"`
-	UseRestTimer    bool   `json:"use_rest_timer"`
-	RestSeconds     int    `json:"rest_seconds"`
+	ID             string `json:"id"`
+	Name           string `json:"name"`
+	ExercisesCount int    `json:"exercises_count,omitempty"`
+	CreatedAt      string `json:"created_at,omitempty"`
+	UseRestTimer   bool   `json:"use_rest_timer"`
+	RestSeconds    int    `json:"rest_seconds"`
 }
 
 type TemplateExerciseSetResponse struct {
@@ -150,15 +178,15 @@ type TemplateExerciseResponse struct {
 }
 
 type CreateTemplateRequest struct {
-	Name          string `json:"name" binding:"required"`
-	UseRestTimer  *bool  `json:"use_rest_timer"`
-	RestSeconds   *int   `json:"rest_seconds"`
+	Name         string `json:"name" binding:"required"`
+	UseRestTimer *bool  `json:"use_rest_timer"`
+	RestSeconds  *int   `json:"rest_seconds"`
 }
 
 type UpdateTemplateRequest struct {
-	Name          string `json:"name" binding:"required"`
-	UseRestTimer  *bool  `json:"use_rest_timer"`
-	RestSeconds   *int   `json:"rest_seconds"`
+	Name         string `json:"name" binding:"required"`
+	UseRestTimer *bool  `json:"use_rest_timer"`
+	RestSeconds  *int   `json:"rest_seconds"`
 }
 
 type AddExerciseToTemplateRequest struct {
@@ -387,15 +415,19 @@ func (h *Handler) GetWorkout(c *gin.Context) {
 	for _, l := range logs {
 		logResp = append(logResp, toExerciseLogResponse(l))
 	}
+	feedback, _ := h.uc.GetWorkoutFeedback(c.Request.Context(), user, workoutID)
 
 	out := gin.H{
-		"workout":    toWorkoutResponse(w),
-		"exercises":  exResp,
-		"logs":       logResp,
-		"volume_kg":  volume,
+		"workout":   toWorkoutResponse(w),
+		"exercises": exResp,
+		"logs":      logResp,
+		"volume_kg": volume,
 	}
 	if templateName != nil {
 		out["template_name"] = *templateName
+	}
+	if feedback != nil {
+		out["feedback"] = toWorkoutFeedbackResponse(feedback)
 	}
 	c.JSON(http.StatusOK, out)
 }
@@ -444,6 +476,51 @@ func (h *Handler) FinishWorkout(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, toWorkoutResponse(w))
+}
+
+func (h *Handler) UpsertWorkoutFeedback(c *gin.Context) {
+	user := getUser(c)
+	if user == nil {
+		return
+	}
+
+	workoutID, ok := parseUUIDParam(c, "workout_id")
+	if !ok {
+		return
+	}
+
+	var req UpsertWorkoutFeedbackRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	fb, err := h.uc.UpsertWorkoutFeedback(c.Request.Context(), user, &workoutdomain.WorkoutFeedback{
+		WorkoutID:        workoutID,
+		SessionQuality:   req.SessionQuality,
+		OverallWellbeing: req.OverallWellbeing,
+		Fatigue:          req.Fatigue,
+		MuscleSoreness:   req.MuscleSoreness,
+		PainDiscomfort:   req.PainDiscomfort,
+		StressLevel:      req.StressLevel,
+		SleepHours:       req.SleepHours,
+		SleepQuality:     req.SleepQuality,
+		Note:             req.Note,
+	})
+	if err != nil {
+		switch err {
+		case workoutdomain.ErrWorkoutNotFound, workoutdomain.ErrWorkoutForbidden:
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		case workoutdomain.ErrWorkoutFeedbackInvalid:
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+	}
+	c.JSON(http.StatusOK, toWorkoutFeedbackResponse(fb))
 }
 
 func (h *Handler) DeleteWorkout(c *gin.Context) {
@@ -714,8 +791,8 @@ func (h *Handler) GetTemplate(c *gin.Context) {
 		exResp = append(exResp, toTemplateExerciseResponse(te))
 	}
 	c.JSON(http.StatusOK, gin.H{
-		"template":   toTemplateResponse(t),
-		"exercises":  exResp,
+		"template":  toTemplateResponse(t),
+		"exercises": exResp,
 	})
 }
 
@@ -1156,6 +1233,24 @@ func toExerciseLogResponse(el *workoutdomain.ExerciseLog) ExerciseLogResponse {
 		WeightKg:    el.WeightKg,
 		RestSeconds: el.RestSeconds,
 		LoggedAt:    el.LoggedAt.Format(time.RFC3339),
+	}
+}
+
+func toWorkoutFeedbackResponse(f *workoutdomain.WorkoutFeedback) WorkoutFeedbackResponse {
+	return WorkoutFeedbackResponse{
+		WorkoutID:        f.WorkoutID.String(),
+		UserID:           f.UserID.String(),
+		SessionQuality:   f.SessionQuality,
+		OverallWellbeing: f.OverallWellbeing,
+		Fatigue:          f.Fatigue,
+		MuscleSoreness:   f.MuscleSoreness,
+		PainDiscomfort:   f.PainDiscomfort,
+		StressLevel:      f.StressLevel,
+		SleepHours:       f.SleepHours,
+		SleepQuality:     f.SleepQuality,
+		Note:             f.Note,
+		CreatedAt:        f.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:        f.UpdatedAt.Format(time.RFC3339),
 	}
 }
 

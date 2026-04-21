@@ -18,20 +18,22 @@ type TrainerClientChecker interface {
 }
 
 type WorkoutUseCase struct {
-	exercises           workoutdomain.ExerciseRepository
-	workouts            workoutdomain.WorkoutRepository
-	woExercises         workoutdomain.WorkoutExerciseRepository
-	logs                workoutdomain.ExerciseLogRepository
-	programs            workoutdomain.ProgramRepository
-	programExercises    workoutdomain.ProgramExerciseRepository
-	templates           workoutdomain.WorkoutTemplateRepository
-	templateExercises   workoutdomain.WorkoutTemplateExerciseRepository
-	templateSets        workoutdomain.TemplateExerciseSetRepository
-	trainerChecker       TrainerClientChecker
-	gamificationOnFinish func(ctx context.Context, userID, workoutID uuid.UUID, volumeKg float64) error
-	finishPool           *pgxpool.Pool
-	gamEnqueue           func(ctx context.Context, tx pgx.Tx, userID, workoutID uuid.UUID, volumeKg float64) error
-	gamProcess           func(ctx context.Context) error
+	exercises             workoutdomain.ExerciseRepository
+	workouts              workoutdomain.WorkoutRepository
+	feedbacks             workoutdomain.WorkoutFeedbackRepository
+	woExercises           workoutdomain.WorkoutExerciseRepository
+	logs                  workoutdomain.ExerciseLogRepository
+	programs              workoutdomain.ProgramRepository
+	programExercises      workoutdomain.ProgramExerciseRepository
+	templates             workoutdomain.WorkoutTemplateRepository
+	templateExercises     workoutdomain.WorkoutTemplateExerciseRepository
+	templateSets          workoutdomain.TemplateExerciseSetRepository
+	trainerChecker        TrainerClientChecker
+	gamificationOnFinish  func(ctx context.Context, userID, workoutID uuid.UUID, volumeKg float64) error
+	finishPool            *pgxpool.Pool
+	gamEnqueue            func(ctx context.Context, tx pgx.Tx, userID, workoutID uuid.UUID, volumeKg float64) error
+	gamProcess            func(ctx context.Context) error
+	recommendationEnqueue func(ctx context.Context, userID, workoutID uuid.UUID, feedback *workoutdomain.WorkoutFeedback) error
 }
 
 func NewWorkoutUseCase(
@@ -74,6 +76,14 @@ func (uc *WorkoutUseCase) SetGamificationOutbox(pool *pgxpool.Pool, enqueue func
 	uc.finishPool = pool
 	uc.gamEnqueue = enqueue
 	uc.gamProcess = process
+}
+
+func (uc *WorkoutUseCase) SetWorkoutFeedbackRepository(repo workoutdomain.WorkoutFeedbackRepository) {
+	uc.feedbacks = repo
+}
+
+func (uc *WorkoutUseCase) SetRecommendationEnqueue(enqueue func(ctx context.Context, userID, workoutID uuid.UUID, feedback *workoutdomain.WorkoutFeedback) error) {
+	uc.recommendationEnqueue = enqueue
 }
 
 func (uc *WorkoutUseCase) canAccessWorkout(ctx context.Context, user *authdomain.User, workoutUserID uuid.UUID) bool {
@@ -259,6 +269,71 @@ func (uc *WorkoutUseCase) FinishWorkout(ctx context.Context, user *authdomain.Us
 		_ = uc.gamificationOnFinish(ctx, user.ID, workoutID, volume)
 	}
 	return w, nil
+}
+
+func (uc *WorkoutUseCase) UpsertWorkoutFeedback(ctx context.Context, user *authdomain.User, feedback *workoutdomain.WorkoutFeedback) (*workoutdomain.WorkoutFeedback, error) {
+	if uc.feedbacks == nil {
+		return nil, errors.New("workout feedback repository not configured")
+	}
+	w, err := uc.workouts.GetByID(ctx, feedback.WorkoutID)
+	if err != nil {
+		return nil, err
+	}
+	if w.UserID != user.ID {
+		return nil, workoutdomain.ErrWorkoutForbidden
+	}
+	if w.FinishedAt == nil {
+		return nil, workoutdomain.ErrWorkoutFeedbackInvalid
+	}
+
+	if feedback.SessionQuality < 1 || feedback.SessionQuality > 5 {
+		return nil, workoutdomain.ErrWorkoutFeedbackInvalid
+	}
+	if feedback.OverallWellbeing < 1 || feedback.OverallWellbeing > 5 {
+		return nil, workoutdomain.ErrWorkoutFeedbackInvalid
+	}
+	if feedback.Fatigue < 1 || feedback.Fatigue > 10 {
+		return nil, workoutdomain.ErrWorkoutFeedbackInvalid
+	}
+	if feedback.MuscleSoreness != nil && (*feedback.MuscleSoreness < 0 || *feedback.MuscleSoreness > 10) {
+		return nil, workoutdomain.ErrWorkoutFeedbackInvalid
+	}
+	if feedback.PainDiscomfort != nil && (*feedback.PainDiscomfort < 0 || *feedback.PainDiscomfort > 10) {
+		return nil, workoutdomain.ErrWorkoutFeedbackInvalid
+	}
+	if feedback.StressLevel != nil && (*feedback.StressLevel < 1 || *feedback.StressLevel > 5) {
+		return nil, workoutdomain.ErrWorkoutFeedbackInvalid
+	}
+	if feedback.SleepHours != nil && (*feedback.SleepHours < 0 || *feedback.SleepHours > 24) {
+		return nil, workoutdomain.ErrWorkoutFeedbackInvalid
+	}
+	if feedback.SleepQuality != nil && (*feedback.SleepQuality < 1 || *feedback.SleepQuality > 5) {
+		return nil, workoutdomain.ErrWorkoutFeedbackInvalid
+	}
+
+	feedback.UserID = user.ID
+	saved, err := uc.feedbacks.Upsert(ctx, feedback)
+	if err != nil {
+		return nil, err
+	}
+	if uc.recommendationEnqueue != nil {
+		_ = uc.recommendationEnqueue(ctx, user.ID, feedback.WorkoutID, saved)
+	}
+	return saved, nil
+}
+
+func (uc *WorkoutUseCase) GetWorkoutFeedback(ctx context.Context, user *authdomain.User, workoutID uuid.UUID) (*workoutdomain.WorkoutFeedback, error) {
+	if uc.feedbacks == nil {
+		return nil, nil
+	}
+	w, err := uc.workouts.GetByID(ctx, workoutID)
+	if err != nil {
+		return nil, err
+	}
+	if !uc.canAccessWorkout(ctx, user, w.UserID) {
+		return nil, workoutdomain.ErrWorkoutForbidden
+	}
+	return uc.feedbacks.GetByWorkoutID(ctx, workoutID)
 }
 
 func (uc *WorkoutUseCase) DeleteWorkout(ctx context.Context, user *authdomain.User, workoutID uuid.UUID) error {

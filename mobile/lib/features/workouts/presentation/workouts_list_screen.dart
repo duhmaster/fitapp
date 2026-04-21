@@ -107,6 +107,7 @@ class _WorkoutsListScreenState extends ConsumerState<WorkoutsListScreen> {
 
   Future<void> _onRefreshWorkouts() async {
     ref.invalidate(workoutsListProvider);
+    ref.invalidate(workoutRecommendationsProvider);
     ref.invalidate(gamificationProfileProvider);
     ref.invalidate(gamificationHomeMissionProvider);
   }
@@ -116,6 +117,8 @@ class _WorkoutsListScreenState extends ConsumerState<WorkoutsListScreen> {
     String Function(String) tr,
     Workout w,
     Map<String, String> templateNames,
+    Map<String, WorkoutRecommendation> recByWorkoutId,
+    bool recommendationsLoading,
     String localeCode,
   ) {
     final templateName =
@@ -127,6 +130,11 @@ class _WorkoutsListScreenState extends ConsumerState<WorkoutsListScreen> {
     final volumeStr = w.volumeKg != null && w.volumeKg! > 0
         ? '${tr('volume_completed')}: ${w.volumeKg!.toStringAsFixed(0)} kg'
         : null;
+    final recommendation = recByWorkoutId[w.id];
+    final showProcessing = recommendation == null &&
+        recommendationsLoading &&
+        w.isCompleted &&
+        _isRecentlyCompleted(w);
     final isNarrow = context.isNarrow;
     return Card(
       child: ListTile(
@@ -155,6 +163,62 @@ class _WorkoutsListScreenState extends ConsumerState<WorkoutsListScreen> {
                   style: Theme.of(context).textTheme.bodySmall,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis),
+            ],
+            if (recommendation != null) ...[
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: _severityColor(context, recommendation.severity)
+                          .withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      _severityLabel(tr, recommendation.severity),
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: _severityColor(
+                                context, recommendation.severity),
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: context.isNarrow ? 180 : 260,
+                    child: Text(
+                      recommendation.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
+                ],
+              ),
+            ] else if (showProcessing) ...[
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  const SizedBox(
+                    width: 12,
+                    height: 12,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      tr('workout_results_processing'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
+                ],
+              ),
             ],
           ],
         ),
@@ -199,14 +263,54 @@ class _WorkoutsListScreenState extends ConsumerState<WorkoutsListScreen> {
     );
   }
 
+  bool _isRecentlyCompleted(Workout w) {
+    final finishedAt = w.finishedAt;
+    if (finishedAt == null || finishedAt.isEmpty) return false;
+    final dt = DateTime.tryParse(finishedAt)?.toUtc();
+    if (dt == null) return false;
+    final age = DateTime.now().toUtc().difference(dt);
+    return age.inMinutes >= 0 && age.inMinutes <= 20;
+  }
+
+  Color _severityColor(BuildContext context, String severity) {
+    final scheme = Theme.of(context).colorScheme;
+    switch (severity) {
+      case 'critical':
+        return scheme.error;
+      case 'warning':
+        return Colors.orange;
+      default:
+        return scheme.primary;
+    }
+  }
+
+  String _severityLabel(String Function(String) tr, String severity) {
+    switch (severity) {
+      case 'critical':
+        return tr('workout_recommendation_severity_critical');
+      case 'warning':
+        return tr('workout_recommendation_severity_warning');
+      default:
+        return tr('workout_recommendation_severity_info');
+    }
+  }
+
   List<Widget> _workoutListSlivers(
     BuildContext context,
     String Function(String) tr,
     AsyncValue<List<Workout>> async,
     Map<String, String> templateNames,
+    AsyncValue<List<WorkoutRecommendation>> recommendationsAsync,
     String localeCode,
   ) {
     final twoColumns = _useTwoColumns(context);
+    final recommendations =
+        recommendationsAsync.valueOrNull ?? const <WorkoutRecommendation>[];
+    final recByWorkoutId = <String, WorkoutRecommendation>{};
+    for (final rec in recommendations) {
+      recByWorkoutId.putIfAbsent(rec.workoutId, () => rec);
+    }
+    final recommendationsLoading = recommendationsAsync.isLoading;
     return async.when(
       loading: () => <Widget>[
         SliverPadding(
@@ -266,7 +370,14 @@ class _WorkoutsListScreenState extends ConsumerState<WorkoutsListScreen> {
                       (context, i) {
                         final w = filtered[i];
                         return _buildWorkoutTile(
-                            context, tr, w, templateNames, localeCode);
+                          context,
+                          tr,
+                          w,
+                          templateNames,
+                          recByWorkoutId,
+                          recommendationsLoading,
+                          localeCode,
+                        );
                       },
                       childCount: filtered.length,
                     ),
@@ -278,7 +389,14 @@ class _WorkoutsListScreenState extends ConsumerState<WorkoutsListScreen> {
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 8),
                           child: _buildWorkoutTile(
-                              context, tr, w, templateNames, localeCode),
+                            context,
+                            tr,
+                            w,
+                            templateNames,
+                            recByWorkoutId,
+                            recommendationsLoading,
+                            localeCode,
+                          ),
                         );
                       },
                       childCount: filtered.length,
@@ -295,6 +413,7 @@ class _WorkoutsListScreenState extends ConsumerState<WorkoutsListScreen> {
     const sectionGap = 16.0;
     final tr = ref.watch(trProvider);
     final async = ref.watch(workoutsListProvider);
+    final recommendationsAsync = ref.watch(workoutRecommendationsProvider);
     final templatesAsync = ref.watch(templatesListProvider);
     final localeCode = ref.watch(selectedLocaleCodeProvider);
     final templateNames = <String, String>{};
@@ -362,7 +481,14 @@ class _WorkoutsListScreenState extends ConsumerState<WorkoutsListScreen> {
             ),
           ),
           const SliverToBoxAdapter(child: SizedBox(height: sectionGap)),
-          ..._workoutListSlivers(context, tr, async, templateNames, localeCode),
+          ..._workoutListSlivers(
+            context,
+            tr,
+            async,
+            templateNames,
+            recommendationsAsync,
+            localeCode,
+          ),
         ],
       ),
     );

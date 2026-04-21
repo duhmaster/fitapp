@@ -34,6 +34,8 @@ class WorkoutStats {
     required this.performedVolumeKg,
     required this.completionPercent,
     required this.muscleGroupLoads,
+    required this.recommendations,
+    this.feedback,
   });
 
   final bool isCompleted;
@@ -41,24 +43,38 @@ class WorkoutStats {
   final double performedVolumeKg;
   final double completionPercent;
   final List<WorkoutMuscleGroupVolume> muscleGroupLoads;
+  final List<WorkoutRecommendation> recommendations;
+  final WorkoutFeedback? feedback;
 }
 
-final workoutStatsProvider = FutureProvider.family<WorkoutStats, String>((ref, workoutId) async {
+final workoutStatsProvider =
+    FutureProvider.family<WorkoutStats, String>((ref, workoutId) async {
   final repo = ref.watch(workoutRepositoryProvider);
-  final detail = await repo.getWorkout(workoutId);
+  final detailFuture = repo.getWorkout(workoutId);
+  final recommendationsFuture = repo.listWorkoutRecommendations(limit: 50);
+  final detail = await detailFuture;
 
   final templateId = detail.workout.templateId;
   if (templateId == null || templateId.isEmpty) {
     throw Exception('Missing workout template id');
   }
 
-  final templateDetail = await repo.getTemplate(templateId);
-  return _computeWorkoutStats(detail: detail, templateDetail: templateDetail);
+  final templateFuture = repo.getTemplate(templateId);
+  final recommendations = (await recommendationsFuture)
+      .where((r) => r.workoutId == workoutId)
+      .toList();
+  final templateDetail = await templateFuture;
+  return _computeWorkoutStats(
+    detail: detail,
+    templateDetail: templateDetail,
+    recommendations: recommendations,
+  );
 });
 
 WorkoutStats _computeWorkoutStats({
   required WorkoutDetail detail,
   required TemplateDetail templateDetail,
+  required List<WorkoutRecommendation> recommendations,
 }) {
   // Planned volume is calculated from the template's default sets (weight * reps).
   double plannedVolumeKg = 0;
@@ -98,7 +114,8 @@ WorkoutStats _computeWorkoutStats({
     if (sumLoads <= 0) continue;
 
     loads.forEach((group, loadShare) {
-      performedByGroup[group] = (performedByGroup[group] ?? 0) + volumeKg * (loadShare / sumLoads);
+      performedByGroup[group] =
+          (performedByGroup[group] ?? 0) + volumeKg * (loadShare / sumLoads);
     });
   }
 
@@ -121,6 +138,8 @@ WorkoutStats _computeWorkoutStats({
     performedVolumeKg: performedVolumeKg,
     completionPercent: completionPercent,
     muscleGroupLoads: muscleGroupLoads,
+    recommendations: recommendations,
+    feedback: detail.feedback,
   );
 }
 
@@ -133,6 +152,7 @@ class WorkoutStatsScreen extends ConsumerStatefulWidget {
   });
 
   final String workoutId;
+
   /// `?reward=1` after finishing a workout; shows XP sheet when [gamification] XP flag is on.
   final bool openRewardFlow;
   final GamificationProfile? profileBeforeWorkout;
@@ -155,7 +175,8 @@ class _WorkoutStatsScreenState extends ConsumerState<WorkoutStatsScreen> {
       if (!widget.openRewardFlow || _rewardFlowHandled) return;
       if (!stats.isCompleted) return;
       _rewardFlowHandled = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) => _runRewardFlow(context, stats));
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) => _runRewardFlow(context, stats));
     });
 
     return Scaffold(
@@ -175,7 +196,8 @@ class _WorkoutStatsScreenState extends ConsumerState<WorkoutStatsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(tr('workout_detail'), style: Theme.of(context).textTheme.titleMedium),
+                  Text(tr('workout_detail'),
+                      style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 8),
                   Text(tr('stats_only_after_completion'),
                       style: Theme.of(context).textTheme.bodyMedium),
@@ -185,7 +207,8 @@ class _WorkoutStatsScreenState extends ConsumerState<WorkoutStatsScreen> {
           }
 
           return RefreshIndicator(
-            onRefresh: () async => ref.invalidate(workoutStatsProvider(widget.workoutId)),
+            onRefresh: () async =>
+                ref.invalidate(workoutStatsProvider(widget.workoutId)),
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(16),
@@ -217,14 +240,33 @@ class _WorkoutStatsScreenState extends ConsumerState<WorkoutStatsScreen> {
                     hint: tr('compared_to_plan'),
                     icon: Icons.percent_rounded,
                   ),
+                  if (stats.feedback != null) ...[
+                    const SizedBox(height: 20),
+                    Text(
+                      tr('workout_feedback_title'),
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 12),
+                    _FeedbackSummaryCard(feedback: stats.feedback!, tr: tr),
+                  ],
+                  if (stats.recommendations.isNotEmpty) ...[
+                    const SizedBox(height: 20),
+                    Text(
+                      tr('workout_recommendations_title'),
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 12),
+                    _RecommendationListCard(
+                      recommendations: stats.recommendations,
+                      tr: tr,
+                    ),
+                  ],
                   const SizedBox(height: 20),
-
                   Text(
                     tr('muscle_groups_load'),
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                   const SizedBox(height: 8),
-
                   if (stats.muscleGroupLoads.isEmpty)
                     Padding(
                       padding: const EdgeInsets.all(16),
@@ -250,8 +292,10 @@ class _WorkoutStatsScreenState extends ConsumerState<WorkoutStatsScreen> {
                           dense: true,
                           leading: _ColorDot(color: _paletteColorForIndex(idx)),
                           title: Text(g.group),
-                          subtitle: Text('${g.sharePercent.toStringAsFixed(0)}% ${tr('of_volume')}'),
-                          trailing: Text('${g.performedVolumeKg.toStringAsFixed(0)} ${tr('kg_short')}'),
+                          subtitle: Text(
+                              '${g.sharePercent.toStringAsFixed(0)}% ${tr('of_volume')}'),
+                          trailing: Text(
+                              '${g.performedVolumeKg.toStringAsFixed(0)} ${tr('kg_short')}'),
                         ),
                       );
                     }),
@@ -269,7 +313,8 @@ class _WorkoutStatsScreenState extends ConsumerState<WorkoutStatsScreen> {
     final a = ref.read(gamificationAnalyticsProvider);
     a.logXpEarned(xp: result.earnedXp, workoutId: widget.workoutId);
     if (result.leveledUp) {
-      a.logLevelUp(newLevel: result.newLevel, previousLevel: result.previousLevel);
+      a.logLevelUp(
+          newLevel: result.newLevel, previousLevel: result.previousLevel);
     }
     for (final code in result.unlockedBadgeCodes) {
       a.logBadgeUnlocked(code: code);
@@ -330,7 +375,8 @@ class _SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final value = valueText ?? (valueKg != null ? '${valueKg!.toStringAsFixed(0)} kg' : '—');
+    final value = valueText ??
+        (valueKg != null ? '${valueKg!.toStringAsFixed(0)} kg' : '—');
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -344,7 +390,11 @@ class _SummaryCard extends StatelessWidget {
                 children: [
                   Text(title, style: Theme.of(context).textTheme.labelLarge),
                   const SizedBox(height: 6),
-                  Text(value, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+                  Text(value,
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleLarge
+                          ?.copyWith(fontWeight: FontWeight.w800)),
                   const SizedBox(height: 2),
                   Text(hint, style: Theme.of(context).textTheme.bodySmall),
                 ],
@@ -368,6 +418,140 @@ class _ColorDot extends StatelessWidget {
       height: 10,
       decoration: BoxDecoration(shape: BoxShape.circle, color: color),
     );
+  }
+}
+
+class _FeedbackSummaryCard extends StatelessWidget {
+  const _FeedbackSummaryCard({
+    required this.feedback,
+    required this.tr,
+  });
+
+  final WorkoutFeedback feedback;
+  final String Function(String) tr;
+
+  @override
+  Widget build(BuildContext context) {
+    final rows = <String>[
+      '${tr('workout_feedback_how_went')}: ${feedback.sessionQuality}/5',
+      '${tr('workout_feedback_wellbeing')}: ${feedback.overallWellbeing}/5',
+      '${tr('workout_feedback_fatigue')}: ${feedback.fatigue}/10',
+      if (feedback.muscleSoreness != null)
+        '${tr('workout_feedback_muscle_soreness')}: ${feedback.muscleSoreness}/10',
+      if (feedback.painDiscomfort != null)
+        '${tr('workout_feedback_pain_discomfort')}: ${feedback.painDiscomfort}/10',
+      if (feedback.stressLevel != null)
+        '${tr('workout_feedback_stress')}: ${feedback.stressLevel}/5',
+      if (feedback.sleepHours != null)
+        '${tr('workout_feedback_sleep_hours')}: ${feedback.sleepHours!.toStringAsFixed(1)}',
+      if (feedback.sleepQuality != null)
+        '${tr('workout_feedback_sleep_quality')}: ${feedback.sleepQuality}/5',
+      if (feedback.note != null && feedback.note!.trim().isNotEmpty)
+        '${tr('workout_feedback_note')}: ${feedback.note!.trim()}',
+    ];
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: rows
+              .map((line) => Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Text(line),
+                  ))
+              .toList(),
+        ),
+      ),
+    );
+  }
+}
+
+class _RecommendationListCard extends StatelessWidget {
+  const _RecommendationListCard({
+    required this.recommendations,
+    required this.tr,
+  });
+
+  final List<WorkoutRecommendation> recommendations;
+  final String Function(String) tr;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: recommendations
+              .map((r) => Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 10,
+                          height: 10,
+                          margin: const EdgeInsets.only(top: 6),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: _severityColor(context, r.severity),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                r.title,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleSmall
+                                    ?.copyWith(fontWeight: FontWeight.w700),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                r.message,
+                                style: Theme.of(context).textTheme.bodyMedium,
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                _severityLabel(tr, r.severity),
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ))
+              .toList(),
+        ),
+      ),
+    );
+  }
+
+  Color _severityColor(BuildContext context, String severity) {
+    final scheme = Theme.of(context).colorScheme;
+    switch (severity) {
+      case 'critical':
+        return scheme.error;
+      case 'warning':
+        return Colors.orange;
+      default:
+        return scheme.primary;
+    }
+  }
+
+  String _severityLabel(String Function(String) tr, String severity) {
+    switch (severity) {
+      case 'critical':
+        return tr('workout_recommendation_severity_critical');
+      case 'warning':
+        return tr('workout_recommendation_severity_warning');
+      default:
+        return tr('workout_recommendation_severity_info');
+    }
   }
 }
 
@@ -430,7 +614,9 @@ class _RoseOfWindsPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     if (sectors.isEmpty) return;
 
-    final maxValue = sectors.map((s) => s.performedVolumeKg).fold<double>(0.0, (a, b) => a > b ? a : b);
+    final maxValue = sectors
+        .map((s) => s.performedVolumeKg)
+        .fold<double>(0.0, (a, b) => a > b ? a : b);
     if (maxValue <= 0) return;
 
     final cx = size.width / 2;
@@ -438,7 +624,7 @@ class _RoseOfWindsPainter extends CustomPainter {
     final center = Offset(cx, cy);
 
     final outerRadius = math.min(size.width, size.height) / 2 * 0.92;
-    final ticks = 3;
+    const ticks = 3;
     final n = sectors.length;
 
     // Special case: when only 1 muscle group exists, draw a full circle (not a thin strip).
@@ -546,7 +732,8 @@ class _RoseOfWindsPainter extends CustomPainter {
       // Label inside the rose: group name + performed volume.
       final labelRadius = outerRadius * 0.62;
       final labelPos = _polar(center, labelRadius, mid);
-      final labelText = '${s.label}\n${s.performedVolumeKg.toStringAsFixed(0)} kg';
+      final labelText =
+          '${s.label}\n${s.performedVolumeKg.toStringAsFixed(0)} kg';
 
       final tp = TextPainter(
         text: TextSpan(
@@ -580,4 +767,3 @@ class _RoseOfWindsPainter extends CustomPainter {
     return oldDelegate.sectors != sectors;
   }
 }
-

@@ -15,6 +15,14 @@ final exercisesListProvider = FutureProvider<List<Exercise>>((ref) {
   return ref.watch(workoutRepositoryProvider).listExercises(limit: 100);
 });
 
-final workoutDetailProvider = FutureProvider.family<WorkoutDetail, String>((ref, workoutId) {
+final workoutDetailProvider =
+    FutureProvider.family<WorkoutDetail, String>((ref, workoutId) {
   return ref.watch(workoutRepositoryProvider).getWorkout(workoutId);
+});
+
+final workoutRecommendationsProvider =
+    FutureProvider<List<WorkoutRecommendation>>((ref) {
+  return ref
+      .watch(workoutRepositoryProvider)
+      .listWorkoutRecommendations(limit: 100);
 });

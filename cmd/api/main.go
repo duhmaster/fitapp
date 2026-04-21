@@ -46,6 +46,9 @@ import (
 	progressdelivery "github.com/fitflow/fitflow/internal/progress/delivery"
 	progressrepository "github.com/fitflow/fitflow/internal/progress/repository"
 	progressusecase "github.com/fitflow/fitflow/internal/progress/usecase"
+	recommendationdelivery "github.com/fitflow/fitflow/internal/recommendation/delivery"
+	recommendationrepository "github.com/fitflow/fitflow/internal/recommendation/repository"
+	recommendationusecase "github.com/fitflow/fitflow/internal/recommendation/usecase"
 	socialdelivery "github.com/fitflow/fitflow/internal/social/delivery"
 	socialrepository "github.com/fitflow/fitflow/internal/social/repository"
 	socialusecase "github.com/fitflow/fitflow/internal/social/usecase"
@@ -61,6 +64,7 @@ import (
 	userusecase "github.com/fitflow/fitflow/internal/user/usecase"
 	"github.com/fitflow/fitflow/internal/workers"
 	workoutdelivery "github.com/fitflow/fitflow/internal/workout/delivery"
+	workoutdomain "github.com/fitflow/fitflow/internal/workout/domain"
 	workoutrepository "github.com/fitflow/fitflow/internal/workout/repository"
 	workoutusecase "github.com/fitflow/fitflow/internal/workout/usecase"
 	"github.com/google/uuid"
@@ -174,12 +178,20 @@ func run() error {
 	workoutRepo := workoutrepository.NewWorkoutRepository(db)
 	workoutExerciseRepo := workoutrepository.NewWorkoutExerciseRepository(db)
 	exerciseLogRepo := workoutrepository.NewExerciseLogRepository(db)
+	workoutFeedbackRepo := workoutrepository.NewWorkoutFeedbackRepository(db)
 	programRepo := workoutrepository.NewProgramRepository(db)
 	programExerciseRepo := workoutrepository.NewProgramExerciseRepository(db)
 	templateRepo := workoutrepository.NewWorkoutTemplateRepository(db)
 	templateExerciseRepo := workoutrepository.NewWorkoutTemplateExerciseRepository(db)
 	templateSetRepo := workoutrepository.NewTemplateExerciseSetRepository(db)
 	workoutUC := workoutusecase.NewWorkoutUseCase(exerciseRepo, workoutRepo, workoutExerciseRepo, exerciseLogRepo, programRepo, programExerciseRepo, templateRepo, templateExerciseRepo, templateSetRepo)
+	workoutUC.SetWorkoutFeedbackRepository(workoutFeedbackRepo)
+	recommendationRepo := recommendationrepository.NewPG(db)
+	recommendationUC := recommendationusecase.New(recommendationRepo)
+	recommendationHandler := recommendationdelivery.NewHandler(recommendationUC)
+	workoutUC.SetRecommendationEnqueue(func(ctx context.Context, userID, workoutID uuid.UUID, feedback *workoutdomain.WorkoutFeedback) error {
+		return recommendationRepo.EnqueueWorkoutFeedback(ctx, userID, workoutID, feedback)
+	})
 	workoutUC.SetGamificationOutbox(db, func(ctx context.Context, tx pgx.Tx, userID, workoutID uuid.UUID, volumeKg float64) error {
 		return gamRepo.EnqueueWorkoutFinished(ctx, tx, userID, workoutID, volumeKg)
 	}, func(ctx context.Context) error {
@@ -483,6 +495,7 @@ func run() error {
 		PhotoHandler:             photodelivery.NewHandler(photoUC),
 		GamificationHandler:      gamificationHandler,
 		GamificationAdminHandler: gamificationAdminHandler,
+		RecommendationHandler:    recommendationHandler,
 		AdminHandler:             adminHandler,
 		JWTSecret:                []byte(cfg.JWTSecret),
 		UploadsPath:              cfg.StoragePath,
@@ -491,6 +504,8 @@ func run() error {
 	// Background workers (in-process for now; split into separate worker cmd later)
 	worker := workers.NewGymLoadSnapshotWorker(log, gymRepo, snapshotRepo, loadService, cfg.GymSnapshotInterval, cfg.GymSnapshotBatchSize)
 	go worker.Run(ctx)
+	recommendationWorker := workers.NewRecommendationWorker(log, recommendationRepo, 20*time.Second, 50)
+	go recommendationWorker.Run(ctx)
 
 	go func() {
 		ticker := time.NewTicker(30 * time.Second)

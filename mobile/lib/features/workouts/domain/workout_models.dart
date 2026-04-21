@@ -263,14 +263,20 @@ class TemplateExercise {
   final List<TemplateExerciseSet> sets;
   factory TemplateExercise.fromJson(Map<String, dynamic> json) {
     List<TemplateExerciseSet> _sets(dynamic v) {
-      if (v is List) return v.map((e) => TemplateExerciseSet.fromJson(e as Map<String, dynamic>)).toList();
+      if (v is List)
+        return v
+            .map((e) => TemplateExerciseSet.fromJson(e as Map<String, dynamic>))
+            .toList();
       return [];
     }
+
     return TemplateExercise(
       id: (json['id'] as String?) ?? '',
       exerciseId: (json['exercise_id'] as String?) ?? '',
       exerciseOrder: (json['exercise_order'] as int?) ?? 0,
-      exercise: json['exercise'] != null ? Exercise.fromJson(json['exercise'] as Map<String, dynamic>) : null,
+      exercise: json['exercise'] != null
+          ? Exercise.fromJson(json['exercise'] as Map<String, dynamic>)
+          : null,
       sets: _sets(json['sets']),
     );
   }
@@ -283,4 +289,88 @@ class TemplateDetail {
   });
   final WorkoutTemplate template;
   final List<TemplateExercise> exercises;
+}
+
+class WorkoutFeedback {
+  WorkoutFeedback({
+    required this.sessionQuality,
+    required this.overallWellbeing,
+    required this.fatigue,
+    this.muscleSoreness,
+    this.painDiscomfort,
+    this.stressLevel,
+    this.sleepHours,
+    this.sleepQuality,
+    this.note,
+  });
+
+  final int sessionQuality;
+  final int overallWellbeing;
+  final int fatigue;
+  final int? muscleSoreness;
+  final int? painDiscomfort;
+  final int? stressLevel;
+  final double? sleepHours;
+  final int? sleepQuality;
+  final String? note;
+
+  factory WorkoutFeedback.fromJson(Map<String, dynamic> json) {
+    return WorkoutFeedback(
+      sessionQuality: (json['session_quality'] as num?)?.toInt() ?? 0,
+      overallWellbeing: (json['overall_wellbeing'] as num?)?.toInt() ?? 0,
+      fatigue: (json['fatigue'] as num?)?.toInt() ?? 0,
+      muscleSoreness: (json['muscle_soreness'] as num?)?.toInt(),
+      painDiscomfort: (json['pain_discomfort'] as num?)?.toInt(),
+      stressLevel: (json['stress_level'] as num?)?.toInt(),
+      sleepHours: (json['sleep_hours'] as num?)?.toDouble(),
+      sleepQuality: (json['sleep_quality'] as num?)?.toInt(),
+      note: json['note'] as String?,
+    );
+  }
+}
+
+class WorkoutRecommendation {
+  WorkoutRecommendation({
+    required this.id,
+    required this.workoutId,
+    required this.type,
+    required this.severity,
+    required this.title,
+    required this.message,
+    this.payload = const {},
+    this.ruleVersion,
+    required this.createdAt,
+    this.expiresAt,
+    this.readAt,
+  });
+
+  final String id;
+  final String workoutId;
+  final String type;
+  final String severity;
+  final String title;
+  final String message;
+  final Map<String, dynamic> payload;
+  final String? ruleVersion;
+  final String createdAt;
+  final String? expiresAt;
+  final String? readAt;
+
+  factory WorkoutRecommendation.fromJson(Map<String, dynamic> json) {
+    final rawPayload = json['payload'];
+    return WorkoutRecommendation(
+      id: (json['id'] as String?) ?? '',
+      workoutId: (json['workout_id'] as String?) ?? '',
+      type: (json['type'] as String?) ?? '',
+      severity: (json['severity'] as String?) ?? 'info',
+      title: (json['title'] as String?) ?? '',
+      message: (json['message'] as String?) ?? '',
+      payload:
+          rawPayload is Map ? Map<String, dynamic>.from(rawPayload) : const {},
+      ruleVersion: json['rule_version'] as String?,
+      createdAt: (json['created_at'] as String?) ?? '',
+      expiresAt: json['expires_at'] as String?,
+      readAt: json['read_at'] as String?,
+    );
+  }
 }

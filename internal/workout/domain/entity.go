@@ -40,13 +40,13 @@ type ProgramExercise struct {
 }
 
 type WorkoutTemplate struct {
-	ID            uuid.UUID
-	Name          string
-	CreatedBy     uuid.UUID
-	CreatedAt     time.Time
-	DeletedAt     *time.Time
-	UseRestTimer  bool
-	RestSeconds   int
+	ID           uuid.UUID
+	Name         string
+	CreatedBy    uuid.UUID
+	CreatedAt    time.Time
+	DeletedAt    *time.Time
+	UseRestTimer bool
+	RestSeconds  int
 }
 
 type WorkoutTemplateExercise struct {
@@ -55,7 +55,7 @@ type WorkoutTemplateExercise struct {
 	ExerciseID    uuid.UUID
 	ExerciseOrder int
 	Exercise      *Exercise
-	Sets         []*TemplateExerciseSet
+	Sets          []*TemplateExerciseSet
 }
 
 type TemplateExerciseSet struct {
@@ -91,12 +91,30 @@ type WorkoutExercise struct {
 }
 
 type ExerciseLog struct {
-	ID         uuid.UUID
-	WorkoutID  uuid.UUID
-	ExerciseID uuid.UUID
-	SetNumber  int
-	Reps       *int
-	WeightKg   *float64
+	ID          uuid.UUID
+	WorkoutID   uuid.UUID
+	ExerciseID  uuid.UUID
+	SetNumber   int
+	Reps        *int
+	WeightKg    *float64
 	RestSeconds *int
-	LoggedAt   time.Time
+	LoggedAt    time.Time
+}
+
+// WorkoutFeedback is a post-workout subjective assessment.
+// Core fields are mandatory; extended fields are optional.
+type WorkoutFeedback struct {
+	WorkoutID        uuid.UUID
+	UserID           uuid.UUID
+	SessionQuality   int16
+	OverallWellbeing int16
+	Fatigue          int16
+	MuscleSoreness   *int16
+	PainDiscomfort   *int16
+	StressLevel      *int16
+	SleepHours       *float64
+	SleepQuality     *int16
+	Note             *string
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
 }

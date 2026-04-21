@@ -96,3 +96,8 @@ type TemplateExerciseSetRepository interface {
 	DeleteByIDAndTemplateExerciseID(ctx context.Context, setID, templateExerciseID uuid.UUID) error
 	DeleteByTemplateExerciseID(ctx context.Context, templateExerciseID uuid.UUID) error
 }
+
+type WorkoutFeedbackRepository interface {
+	Upsert(ctx context.Context, feedback *WorkoutFeedback) (*WorkoutFeedback, error)
+	GetByWorkoutID(ctx context.Context, workoutID uuid.UUID) (*WorkoutFeedback, error)
+}

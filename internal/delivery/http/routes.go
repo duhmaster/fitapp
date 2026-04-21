@@ -18,6 +18,7 @@ import (
 	photodelivery "github.com/fitflow/fitflow/internal/photo/delivery"
 	"github.com/fitflow/fitflow/internal/pkg/version"
 	progressdelivery "github.com/fitflow/fitflow/internal/progress/delivery"
+	recommendationdelivery "github.com/fitflow/fitflow/internal/recommendation/delivery"
 	socialdelivery "github.com/fitflow/fitflow/internal/social/delivery"
 	systemmessagedelivery "github.com/fitflow/fitflow/internal/systemmessage/delivery"
 	trainerdelivery "github.com/fitflow/fitflow/internal/trainer/delivery"
@@ -45,6 +46,7 @@ type RoutesConfig struct {
 	PhotoHandler             *photodelivery.Handler
 	GamificationHandler      *gamificationdelivery.Handler
 	GamificationAdminHandler *gamificationdelivery.AdminHandler
+	RecommendationHandler    *recommendationdelivery.Handler
 	AdminHandler             *admin.Handler
 	JWTSecret                []byte
 	UploadsPath              string      // local path for serving uploads (e.g. ./uploads)
@@ -177,6 +179,7 @@ func (s *Server) RegisterRoutes(cfg *RoutesConfig) {
 					protected.DELETE("/me/workouts/:workout_id", cfg.WorkoutHandler.DeleteWorkout)
 					protected.PATCH("/me/workouts/:workout_id/start", cfg.WorkoutHandler.StartWorkout)
 					protected.PATCH("/me/workouts/:workout_id/finish", cfg.WorkoutHandler.FinishWorkout)
+					protected.POST("/me/workouts/:workout_id/feedback", cfg.WorkoutHandler.UpsertWorkoutFeedback)
 					protected.POST("/me/workouts/:workout_id/exercises", cfg.WorkoutHandler.AddExerciseToWorkout)
 					protected.POST("/me/workouts/:workout_id/logs", cfg.WorkoutHandler.LogSet)
 					// Workout templates (literal "exercises" routes before :template_id to avoid matching)
@@ -193,6 +196,10 @@ func (s *Server) RegisterRoutes(cfg *RoutesConfig) {
 					protected.POST("/me/workout-templates/:template_id/start", cfg.WorkoutHandler.StartWorkoutFromTemplate)
 					protected.GET("/me/progress/exercise-ids", cfg.WorkoutHandler.ListProgressExerciseIDs)
 					protected.GET("/me/progress/exercises/:exercise_id/volume-history", cfg.WorkoutHandler.ListExerciseVolumeHistory)
+				}
+
+				if cfg.RecommendationHandler != nil {
+					protected.GET("/me/workout-recommendations", cfg.RecommendationHandler.ListMine)
 				}
 
 				if cfg.ProgressHandler != nil {
