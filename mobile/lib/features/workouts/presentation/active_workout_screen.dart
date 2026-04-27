@@ -246,6 +246,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
     bool recommendationsLoading,
   ) {
     final template = templateDetail.template;
+    final canEditWorkout = !widget.readOnly && !detail.workout.isCompleted;
     final planned = _plannedExercisesWithSets(templateDetail, detail);
     if (planned.isEmpty) {
       return _buildWithoutTemplate(
@@ -265,7 +266,8 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
         .where((l) => l.exerciseId == currentPlanned.exerciseId)
         .toList();
     final nextSetToLog = _nextSetIndex(logsForExercise, setCount);
-    final showSetPanel = nextSetToLog < setCount && _restSecondsRemaining == 0;
+    final showSetPanel =
+        canEditWorkout && nextSetToLog < setCount && _restSecondsRemaining == 0;
     final defaultWeight = nextSetToLog < setCount
         ? (currentPlanned.sets[nextSetToLog].weightKg ?? 0)
         : 0;
@@ -489,7 +491,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                 ] else if (nextSetToLog >= setCount && setCount > 0) ...[
                   Text(tr('exercise_completed'),
                       style: Theme.of(context).textTheme.titleMedium),
-                  if (!widget.readOnly) ...[
+                  if (canEditWorkout) ...[
                     const SizedBox(height: 12),
                     if (_currentExerciseIndex < planned.length - 1)
                       FilledButton(
@@ -513,7 +515,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
             ),
           ),
         ),
-        if (showSetPanel && !widget.readOnly)
+        if (showSetPanel)
           Material(
             elevation: 8,
             child: SafeArea(
