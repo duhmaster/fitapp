@@ -1,6 +1,7 @@
 package admin
 
 import (
+	"errors"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -8,13 +9,16 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	authdomain "github.com/fitflow/fitflow/internal/auth/domain"
+	billingdomain "github.com/fitflow/fitflow/internal/billing/domain"
 	photodomain "github.com/fitflow/fitflow/internal/photo/domain"
 	systemmessagedomain "github.com/fitflow/fitflow/internal/systemmessage/domain"
 	workoutdomain "github.com/fitflow/fitflow/internal/workout/domain"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // ListRow is one row in the admin table (ID + cells for display).
@@ -41,6 +45,7 @@ type ListData struct {
 	PrevURL           string
 	NextURL           string
 	PaginationSummary string
+	RowAction         string // e.g. Edit, View
 }
 
 // Handler for admin panel.
@@ -197,7 +202,10 @@ func (h *Handler) renderOK(c *gin.Context, bodyTmpl string, data gin.H) {
 	}
 }
 
-func (h *Handler) listData(entity, listPath, newPath, editPath, deletePath string, headers []string, rows []ListRow, searchQ string, allowDelete bool, page, limit, offset int, totalCount int) ListData {
+func (h *Handler) listData(entity, listPath, newPath, editPath, deletePath string, headers []string, rows []ListRow, searchQ string, allowDelete bool, page, limit, offset int, totalCount int, rowAction string) ListData {
+	if rowAction == "" {
+		rowAction = "Edit"
+	}
 	prevURL := ""
 	nextURL := ""
 	qParam := ""
@@ -239,6 +247,7 @@ func (h *Handler) listData(entity, listPath, newPath, editPath, deletePath strin
 		PrevURL:           prevURL,
 		NextURL:           nextURL,
 		PaginationSummary: paginationSummary,
+		RowAction:         rowAction,
 	}
 }
 
@@ -265,14 +274,18 @@ func (h *Handler) UsersList(c *gin.Context) {
 	}
 	rows := make([]ListRow, 0, len(list))
 	for _, u := range list {
+		paid := "no"
+		if u.PaidSubscriber {
+			paid = "yes"
+		}
 		rows = append(rows, ListRow{
 			ID:    u.ID.String(),
-			Cells: []string{u.Email, string(u.Role), u.CreatedAt.Format("2006-01-02 15:04")},
+			Cells: []string{u.Email, string(u.Role), paid, u.CreatedAt.Format("2006-01-02 15:04")},
 		})
 	}
-	data := h.listData("Users", "/admin/entities/users", "/admin/entities/users/new", "/admin/entities/users", "/admin/entities/users/delete", []string{"Email", "Role", "Created"}, rows, q, false, page, limit, offset, -1)
+	data := h.listData("Users", "/admin/entities/users", "/admin/entities/users/new", "/admin/entities/users", "/admin/entities/users/delete", []string{"Email", "Role", "Paid", "Created"}, rows, q, false, page, limit, offset, -1, "")
 	data.FilterPlaceholder = ""
-	h.renderOK(c, listHTML, gin.H{"ShowBar": true, "Title": data.Title, "Headers": data.Headers, "Rows": data.Rows, "ListPath": data.ListPath, "NewPath": data.NewPath, "EditPath": data.EditPath, "DeletePath": data.DeletePath, "AllowDelete": data.AllowDelete, "SearchQ": data.SearchQ, "HasPrev": data.HasPrev, "HasNext": data.HasNext, "PrevURL": data.PrevURL, "NextURL": data.NextURL, "PaginationSummary": data.PaginationSummary})
+	h.renderOK(c, listHTML, gin.H{"ShowBar": true, "Title": data.Title, "Headers": data.Headers, "Rows": data.Rows, "ListPath": data.ListPath, "NewPath": data.NewPath, "EditPath": data.EditPath, "DeletePath": data.DeletePath, "AllowDelete": data.AllowDelete, "SearchQ": data.SearchQ, "HasPrev": data.HasPrev, "HasNext": data.HasNext, "PrevURL": data.PrevURL, "NextURL": data.NextURL, "PaginationSummary": data.PaginationSummary, "RowAction": data.RowAction})
 }
 
 func (h *Handler) UsersNew(c *gin.Context) {
@@ -290,10 +303,57 @@ func (h *Handler) UsersEdit(c *gin.Context) {
 		c.String(http.StatusNotFound, err.Error())
 		return
 	}
-	fields := `<label>Email</label><input type="text" value="` + template.HTMLEscaper(u.Email) + `" disabled>
+	subExp := ""
+	if u.SubscriptionExpiresAt != nil {
+		subExp = u.SubscriptionExpiresAt.UTC().Format(time.RFC3339)
+	}
+	paidChk := ""
+	if u.PaidSubscriber {
+		paidChk = " checked"
+	}
+	var coach *billingdomain.CoachSubscriptionInfo
+	if h.Deps.CoachSubscriptionGet != nil {
+		coach, err = h.Deps.CoachSubscriptionGet(c.Request.Context(), id)
+		if err != nil {
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
+	}
+	coachSel := ""
+	coachPeriod := ""
+	coachSection := ""
+	if h.Deps.CoachSubscriptionSet != nil {
+		if coach != nil {
+			coachSel = coach.PlanCode
+			coachPeriod = coach.CurrentPeriodEnd.UTC().Format(time.RFC3339)
+		}
+		coachMeta := ""
+		if coach != nil {
+			coachMeta = `<p class="muted">Coach subscription: ` + template.HTMLEscaper(coach.Status) + `, period ends ` + template.HTMLEscaper(coach.CurrentPeriodEnd.UTC().Format("2006-01-02 15:04 UTC")) + `</p>`
+		}
+		coachSection = `<hr style="margin:16px 0;border:none;border-top:1px solid #ddd;">
+<h3 style="margin:0 0 8px;">Trainer (coach) billing</h3>
+` + coachMeta + `
+<label>Coach plan</label><select name="coach_plan">` +
+			coachPlanOption("", "None — cancel coach subscription rows", coachSel) +
+			coachPlanOption("free_coach", "free_coach", coachSel) +
+			coachPlanOption("coach_pro", "coach_pro (monthly)", coachSel) +
+			coachPlanOption("coach_pro_yearly", "coach_pro_yearly", coachSel) +
+			`</select>
+<label>Coach period ends (RFC3339 UTC, empty = default for plan)</label><input type="text" name="coach_period_end" value="` + template.HTMLEscaper(coachPeriod) + `" placeholder="2026-12-31T23:59:59Z">
+<p class="muted">Applies coach-tier rows in user_subscriptions. None removes active coach rows; entitlements fall back until Stripe or another purchase applies.</p>`
+	}
+	fields := `<label>Email</label><input type="email" name="email" value="` + template.HTMLEscaper(u.Email) + `" required>
 <label>Role</label><select name="role">` +
 		option("user", string(u.Role)) + option("trainer", string(u.Role)) + option("admin", string(u.Role)) +
 		`</select>
+<label>Theme</label><input type="text" name="theme" value="` + template.HTMLEscaper(u.Theme) + `" placeholder="e.g. gaming, light">
+<label>Locale</label><input type="text" name="locale" value="` + template.HTMLEscaper(u.Locale) + `" placeholder="ru, en">
+<label style="display:block;margin-top:8px;"><input type="checkbox" name="paid_subscriber" value="1"` + paidChk + `> Paid subscriber</label>
+<label>Subscription expires (RFC3339 UTC, empty = none)</label><input type="text" name="subscription_expires_at" value="` + template.HTMLEscaper(subExp) + `" placeholder="2026-12-31T23:59:59Z">
+<p class="muted">Leave subscription empty and uncheck paid for a free account.</p>
+<label>New password</label><input type="password" name="new_password" autocomplete="new-password" placeholder="leave blank to keep current">
+` + coachSection + `
 <input type="hidden" name="id" value="` + u.ID.String() + `">`
 	h.renderOK(c, formHTML, gin.H{"ShowBar": true, "Title": "Edit user", "Action": "/admin/entities/users/update", "FieldsHTML": template.HTML(fields), "SubmitLabel": "Save", "CancelURL": "/admin/entities/users"})
 }
@@ -304,15 +364,167 @@ func (h *Handler) UsersUpdate(c *gin.Context) {
 		c.String(http.StatusBadRequest, "invalid id")
 		return
 	}
+	email := strings.TrimSpace(c.PostForm("email"))
+	if email == "" {
+		c.String(http.StatusBadRequest, "email required")
+		return
+	}
 	role := authdomain.Role(c.PostForm("role"))
 	if role != authdomain.RoleUser && role != authdomain.RoleTrainer && role != authdomain.RoleAdmin {
 		role = authdomain.RoleUser
 	}
-	if err := h.Deps.UsersUpdateRole(c.Request.Context(), id, role); err != nil {
+	theme := strings.TrimSpace(c.PostForm("theme"))
+	locale := strings.TrimSpace(c.PostForm("locale"))
+	paid := c.PostForm("paid_subscriber") == "1"
+	var subExp *time.Time
+	if s := strings.TrimSpace(c.PostForm("subscription_expires_at")); s != "" {
+		t, err := time.Parse(time.RFC3339, s)
+		if err != nil {
+			c.String(http.StatusBadRequest, "subscription_expires_at: use RFC3339, e.g. 2026-12-31T23:59:59Z")
+			return
+		}
+		subExp = &t
+	}
+	newPw := strings.TrimSpace(c.PostForm("new_password"))
+	hashStr := ""
+	if newPw != "" {
+		if len(newPw) < 6 {
+			c.String(http.StatusBadRequest, "password must be at least 6 characters")
+			return
+		}
+		hBytes, err := bcrypt.GenerateFromPassword([]byte(newPw), bcrypt.DefaultCost)
+		if err != nil {
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
+		hashStr = string(hBytes)
+	}
+	if h.Deps.UsersUpdate == nil {
+		c.String(http.StatusInternalServerError, "UsersUpdate not configured")
+		return
+	}
+	if err := h.Deps.UsersUpdate(c.Request.Context(), id, email, role, theme, locale, paid, subExp, hashStr); err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
+	if h.Deps.CoachSubscriptionSet != nil {
+		coachPlan := strings.TrimSpace(c.PostForm("coach_plan"))
+		var coachEnd *time.Time
+		if s := strings.TrimSpace(c.PostForm("coach_period_end")); s != "" {
+			t, err := time.Parse(time.RFC3339, s)
+			if err != nil {
+				c.String(http.StatusBadRequest, "coach_period_end: use RFC3339, e.g. 2026-12-31T23:59:59Z")
+				return
+			}
+			coachEnd = &t
+		}
+		if err := h.Deps.CoachSubscriptionSet(c.Request.Context(), id, coachPlan, coachEnd); err != nil {
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
+	}
 	c.Redirect(http.StatusFound, "/admin/entities/users?flash=Updated")
+}
+
+func adminFmtTime(t *time.Time) string {
+	if t == nil {
+		return "—"
+	}
+	return t.UTC().Format("2006-01-02 15:04")
+}
+
+// --- Workouts (read-only list + detail)
+func (h *Handler) WorkoutsList(c *gin.Context) {
+	if h.Deps.WorkoutsList == nil || h.Deps.WorkoutsCount == nil {
+		c.String(http.StatusNotImplemented, "workouts admin not configured")
+		return
+	}
+	page, limit, offset := pageLimit(c)
+	total, err := h.Deps.WorkoutsCount(c.Request.Context())
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+	list, err := h.Deps.WorkoutsList(c.Request.Context(), limit, offset)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+	rows := make([]ListRow, 0, len(list))
+	for _, w := range list {
+		tpl := "—"
+		if w.TemplateID != nil {
+			s := w.TemplateID.String()
+			if len(s) >= 8 {
+				tpl = s[:8]
+			}
+		}
+		gym := "—"
+		if w.GymName != nil && strings.TrimSpace(*w.GymName) != "" {
+			gym = *w.GymName
+			if len(gym) > 28 {
+				gym = gym[:25] + "..."
+			}
+		}
+		uid := w.UserID.String()
+		if len(uid) >= 8 {
+			uid = uid[:8]
+		}
+		rows = append(rows, ListRow{
+			ID: w.ID.String(),
+			Cells: []string{
+				uid,
+				tpl,
+				adminFmtTime(w.ScheduledAt),
+				adminFmtTime(w.StartedAt),
+				adminFmtTime(w.FinishedAt),
+				w.CreatedAt.UTC().Format("2006-01-02 15:04"),
+				gym,
+			},
+		})
+	}
+	data := h.listData("Workouts", "/admin/entities/workouts", "", "/admin/entities/workouts", "",
+		[]string{"User", "Template", "Scheduled", "Started", "Finished", "Created", "Gym"},
+		rows, "", false, page, limit, offset, total, "View")
+	h.renderOK(c, listHTML, gin.H{"ShowBar": true, "Title": data.Title, "Headers": data.Headers, "Rows": data.Rows, "ListPath": data.ListPath, "NewPath": data.NewPath, "EditPath": data.EditPath, "DeletePath": data.DeletePath, "AllowDelete": data.AllowDelete, "SearchQ": data.SearchQ, "HasPrev": data.HasPrev, "HasNext": data.HasNext, "PrevURL": data.PrevURL, "NextURL": data.NextURL, "PaginationSummary": data.PaginationSummary, "RowAction": data.RowAction})
+}
+
+func (h *Handler) WorkoutsView(c *gin.Context) {
+	if h.Deps.WorkoutsGetByID == nil {
+		c.String(http.StatusNotImplemented, "workouts admin not configured")
+		return
+	}
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.String(http.StatusBadRequest, "invalid id")
+		return
+	}
+	w, err := h.Deps.WorkoutsGetByID(c.Request.Context(), id)
+	if err != nil {
+		if errors.Is(err, workoutdomain.ErrWorkoutNotFound) {
+			c.String(http.StatusNotFound, "workout not found")
+			return
+		}
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+	uuidOpt := func(u *uuid.UUID) string {
+		if u == nil {
+			return "—"
+		}
+		return u.String()
+	}
+	fields := `<p><strong>ID</strong> ` + w.ID.String() + `</p>
+<p><strong>User ID</strong> ` + w.UserID.String() + `</p>
+<p><strong>Template ID</strong> ` + uuidOpt(w.TemplateID) + `</p>
+<p><strong>Program ID</strong> ` + uuidOpt(w.ProgramID) + `</p>
+<p><strong>Trainer ID</strong> ` + uuidOpt(w.TrainerID) + `</p>
+<p><strong>Gym ID</strong> ` + uuidOpt(w.GymID) + `</p>
+<p><strong>Scheduled</strong> ` + adminFmtTime(w.ScheduledAt) + `</p>
+<p><strong>Started</strong> ` + adminFmtTime(w.StartedAt) + `</p>
+<p><strong>Finished</strong> ` + adminFmtTime(w.FinishedAt) + `</p>
+<p><strong>Created</strong> ` + w.CreatedAt.UTC().Format(time.RFC3339) + `</p>`
+	h.renderOK(c, viewHTML, gin.H{"ShowBar": true, "Title": "Workout", "FieldsHTML": template.HTML(fields), "CancelURL": "/admin/entities/workouts"})
 }
 
 func option(val, selected string) string {
@@ -321,6 +533,14 @@ func option(val, selected string) string {
 		s += ` selected`
 	}
 	return s + ">" + val + "</option>"
+}
+
+func coachPlanOption(val, label, selected string) string {
+	s := `<option value="` + template.HTMLEscaper(val) + `"`
+	if val == selected {
+		s += ` selected`
+	}
+	return s + `>` + template.HTMLEscaper(label) + `</option>`
 }
 
 // --- Gyms
@@ -340,8 +560,8 @@ func (h *Handler) GymsList(c *gin.Context) {
 		}
 		rows = append(rows, ListRow{ID: g.ID.String(), Cells: []string{g.Name, addr, g.CreatedAt.Format("2006-01-02")}})
 	}
-	data := h.listData("Gyms", "/admin/entities/gyms", "/admin/entities/gyms/new", "/admin/entities/gyms", "/admin/entities/gyms/delete", []string{"Name", "Address", "Created"}, rows, q, true, page, limit, offset, -1)
-	h.renderOK(c, listHTML, gin.H{"ShowBar": true, "Title": data.Title, "Headers": data.Headers, "Rows": data.Rows, "ListPath": data.ListPath, "NewPath": data.NewPath, "EditPath": data.EditPath, "DeletePath": data.DeletePath, "AllowDelete": data.AllowDelete, "SearchQ": data.SearchQ, "HasPrev": data.HasPrev, "HasNext": data.HasNext, "PrevURL": data.PrevURL, "NextURL": data.NextURL, "PaginationSummary": data.PaginationSummary})
+	data := h.listData("Gyms", "/admin/entities/gyms", "/admin/entities/gyms/new", "/admin/entities/gyms", "/admin/entities/gyms/delete", []string{"Name", "Address", "Created"}, rows, q, true, page, limit, offset, -1, "")
+	h.renderOK(c, listHTML, gin.H{"ShowBar": true, "Title": data.Title, "Headers": data.Headers, "Rows": data.Rows, "ListPath": data.ListPath, "NewPath": data.NewPath, "EditPath": data.EditPath, "DeletePath": data.DeletePath, "AllowDelete": data.AllowDelete, "SearchQ": data.SearchQ, "HasPrev": data.HasPrev, "HasNext": data.HasNext, "PrevURL": data.PrevURL, "NextURL": data.NextURL, "PaginationSummary": data.PaginationSummary, "RowAction": data.RowAction})
 }
 
 func (h *Handler) GymsNew(c *gin.Context) {
@@ -464,8 +684,8 @@ func (h *Handler) ExercisesList(c *gin.Context) {
 		mg := exerciseMuscleGroupsDisplay(e)
 		rows = append(rows, ListRow{ID: e.ID.String(), Cells: []string{e.Name, mg, e.CreatedAt.Format("2006-01-02")}})
 	}
-	data := h.listData("Exercises", "/admin/entities/exercises", "/admin/entities/exercises/new", "/admin/entities/exercises", "/admin/entities/exercises/delete", []string{"Name", "Muscle groups", "Created"}, rows, q, true, page, limit, offset, total)
-	h.renderOK(c, listHTML, gin.H{"ShowBar": true, "Title": data.Title, "Headers": data.Headers, "Rows": data.Rows, "ListPath": data.ListPath, "NewPath": data.NewPath, "EditPath": data.EditPath, "DeletePath": data.DeletePath, "AllowDelete": data.AllowDelete, "SearchQ": data.SearchQ, "HasPrev": data.HasPrev, "HasNext": data.HasNext, "PrevURL": data.PrevURL, "NextURL": data.NextURL, "PaginationSummary": data.PaginationSummary})
+	data := h.listData("Exercises", "/admin/entities/exercises", "/admin/entities/exercises/new", "/admin/entities/exercises", "/admin/entities/exercises/delete", []string{"Name", "Muscle groups", "Created"}, rows, q, true, page, limit, offset, total, "")
+	h.renderOK(c, listHTML, gin.H{"ShowBar": true, "Title": data.Title, "Headers": data.Headers, "Rows": data.Rows, "ListPath": data.ListPath, "NewPath": data.NewPath, "EditPath": data.EditPath, "DeletePath": data.DeletePath, "AllowDelete": data.AllowDelete, "SearchQ": data.SearchQ, "HasPrev": data.HasPrev, "HasNext": data.HasNext, "PrevURL": data.PrevURL, "NextURL": data.NextURL, "PaginationSummary": data.PaginationSummary, "RowAction": data.RowAction})
 }
 
 func (h *Handler) ExercisesNew(c *gin.Context) {
@@ -620,8 +840,8 @@ func (h *Handler) ProgramsList(c *gin.Context) {
 	for _, p := range list {
 		rows = append(rows, ListRow{ID: p.ID.String(), Cells: []string{p.Name, p.CreatedAt.Format("2006-01-02")}})
 	}
-	data := h.listData("Programs", "/admin/entities/programs", "/admin/entities/programs/new", "/admin/entities/programs", "/admin/entities/programs/delete", []string{"Name", "Created"}, rows, "", true, page, limit, offset, -1)
-	h.renderOK(c, listHTML, gin.H{"ShowBar": true, "Title": data.Title, "Headers": data.Headers, "Rows": data.Rows, "ListPath": data.ListPath, "NewPath": data.NewPath, "EditPath": data.EditPath, "DeletePath": data.DeletePath, "AllowDelete": data.AllowDelete, "SearchQ": data.SearchQ, "HasPrev": data.HasPrev, "HasNext": data.HasNext, "PrevURL": data.PrevURL, "NextURL": data.NextURL, "PaginationSummary": data.PaginationSummary})
+	data := h.listData("Programs", "/admin/entities/programs", "/admin/entities/programs/new", "/admin/entities/programs", "/admin/entities/programs/delete", []string{"Name", "Created"}, rows, "", true, page, limit, offset, -1, "")
+	h.renderOK(c, listHTML, gin.H{"ShowBar": true, "Title": data.Title, "Headers": data.Headers, "Rows": data.Rows, "ListPath": data.ListPath, "NewPath": data.NewPath, "EditPath": data.EditPath, "DeletePath": data.DeletePath, "AllowDelete": data.AllowDelete, "SearchQ": data.SearchQ, "HasPrev": data.HasPrev, "HasNext": data.HasNext, "PrevURL": data.PrevURL, "NextURL": data.NextURL, "PaginationSummary": data.PaginationSummary, "RowAction": data.RowAction})
 }
 
 func (h *Handler) ProgramsNew(c *gin.Context) {
@@ -703,8 +923,8 @@ func (h *Handler) TagsList(c *gin.Context) {
 	for _, t := range list {
 		rows = append(rows, ListRow{ID: t.ID.String(), Cells: []string{t.Name}})
 	}
-	data := h.listData("Tags", "/admin/entities/tags", "/admin/entities/tags/new", "/admin/entities/tags", "/admin/entities/tags/delete", []string{"Name"}, rows, "", true, page, limit, offset, -1)
-	h.renderOK(c, listHTML, gin.H{"ShowBar": true, "Title": data.Title, "Headers": data.Headers, "Rows": data.Rows, "ListPath": data.ListPath, "NewPath": data.NewPath, "EditPath": data.EditPath, "DeletePath": data.DeletePath, "AllowDelete": data.AllowDelete, "SearchQ": data.SearchQ, "HasPrev": data.HasPrev, "HasNext": data.HasNext, "PrevURL": data.PrevURL, "NextURL": data.NextURL, "PaginationSummary": data.PaginationSummary})
+	data := h.listData("Tags", "/admin/entities/tags", "/admin/entities/tags/new", "/admin/entities/tags", "/admin/entities/tags/delete", []string{"Name"}, rows, "", true, page, limit, offset, -1, "")
+	h.renderOK(c, listHTML, gin.H{"ShowBar": true, "Title": data.Title, "Headers": data.Headers, "Rows": data.Rows, "ListPath": data.ListPath, "NewPath": data.NewPath, "EditPath": data.EditPath, "DeletePath": data.DeletePath, "AllowDelete": data.AllowDelete, "SearchQ": data.SearchQ, "HasPrev": data.HasPrev, "HasNext": data.HasNext, "PrevURL": data.PrevURL, "NextURL": data.NextURL, "PaginationSummary": data.PaginationSummary, "RowAction": data.RowAction})
 }
 
 func (h *Handler) TagsNew(c *gin.Context) {
@@ -751,8 +971,8 @@ func (h *Handler) BlogPostsList(c *gin.Context) {
 	for _, p := range list {
 		rows = append(rows, ListRow{ID: p.ID.String(), Cells: []string{p.Title, p.UserID.String(), p.CreatedAt.Format("2006-01-02")}})
 	}
-	data := h.listData("Blog posts", "/admin/entities/blog_posts", "/admin/entities/blog_posts/new", "/admin/entities/blog_posts", "/admin/entities/blog_posts/delete", []string{"Title", "User ID", "Created"}, rows, "", true, page, limit, offset, -1)
-	h.renderOK(c, listHTML, gin.H{"ShowBar": true, "Title": data.Title, "Headers": data.Headers, "Rows": data.Rows, "ListPath": data.ListPath, "NewPath": data.NewPath, "EditPath": data.EditPath, "DeletePath": data.DeletePath, "AllowDelete": data.AllowDelete, "SearchQ": data.SearchQ, "HasPrev": data.HasPrev, "HasNext": data.HasNext, "PrevURL": data.PrevURL, "NextURL": data.NextURL, "PaginationSummary": data.PaginationSummary})
+	data := h.listData("Blog posts", "/admin/entities/blog_posts", "/admin/entities/blog_posts/new", "/admin/entities/blog_posts", "/admin/entities/blog_posts/delete", []string{"Title", "User ID", "Created"}, rows, "", true, page, limit, offset, -1, "")
+	h.renderOK(c, listHTML, gin.H{"ShowBar": true, "Title": data.Title, "Headers": data.Headers, "Rows": data.Rows, "ListPath": data.ListPath, "NewPath": data.NewPath, "EditPath": data.EditPath, "DeletePath": data.DeletePath, "AllowDelete": data.AllowDelete, "SearchQ": data.SearchQ, "HasPrev": data.HasPrev, "HasNext": data.HasNext, "PrevURL": data.PrevURL, "NextURL": data.NextURL, "PaginationSummary": data.PaginationSummary, "RowAction": data.RowAction})
 }
 
 func (h *Handler) BlogPostsNew(c *gin.Context) {
@@ -856,8 +1076,8 @@ func (h *Handler) SystemMessagesList(c *gin.Context) {
 		}
 		rows = append(rows, ListRow{ID: m.ID.String(), Cells: []string{m.Title, active, m.CreatedAt.Format("2006-01-02"), body}})
 	}
-	data := h.listData("System messages", "/admin/entities/system_messages", "/admin/entities/system_messages/new", "/admin/entities/system_messages", "/admin/entities/system_messages/delete", []string{"Title", "Active", "Created", "Body"}, rows, "", true, page, limit, offset, -1)
-	h.renderOK(c, listHTML, gin.H{"ShowBar": true, "Title": data.Title, "Headers": data.Headers, "Rows": data.Rows, "ListPath": data.ListPath, "NewPath": data.NewPath, "EditPath": data.EditPath, "DeletePath": data.DeletePath, "AllowDelete": data.AllowDelete, "SearchQ": data.SearchQ, "HasPrev": data.HasPrev, "HasNext": data.HasNext, "PrevURL": data.PrevURL, "NextURL": data.NextURL, "PaginationSummary": data.PaginationSummary})
+	data := h.listData("System messages", "/admin/entities/system_messages", "/admin/entities/system_messages/new", "/admin/entities/system_messages", "/admin/entities/system_messages/delete", []string{"Title", "Active", "Created", "Body"}, rows, "", true, page, limit, offset, -1, "")
+	h.renderOK(c, listHTML, gin.H{"ShowBar": true, "Title": data.Title, "Headers": data.Headers, "Rows": data.Rows, "ListPath": data.ListPath, "NewPath": data.NewPath, "EditPath": data.EditPath, "DeletePath": data.DeletePath, "AllowDelete": data.AllowDelete, "SearchQ": data.SearchQ, "HasPrev": data.HasPrev, "HasNext": data.HasNext, "PrevURL": data.PrevURL, "NextURL": data.NextURL, "PaginationSummary": data.PaginationSummary, "RowAction": data.RowAction})
 }
 
 func (h *Handler) SystemMessagesNew(c *gin.Context) {
@@ -958,8 +1178,8 @@ func (h *Handler) BucketsList(c *gin.Context) {
 	for _, b := range list {
 		rows = append(rows, ListRow{ID: b.ID.String(), Cells: []string{b.Name, b.Endpoint, b.Region, b.PublicURL}})
 	}
-	data := h.listData("Buckets", "/admin/entities/buckets", "/admin/entities/buckets/new", "/admin/entities/buckets", "/admin/entities/buckets/delete", []string{"Name", "Endpoint", "Region", "Public URL"}, rows, "", false, 1, len(list), 0, len(list))
-	h.renderOK(c, listHTML, gin.H{"ShowBar": true, "Title": data.Title, "Headers": data.Headers, "Rows": data.Rows, "ListPath": data.ListPath, "NewPath": data.NewPath, "EditPath": data.EditPath, "DeletePath": data.DeletePath, "AllowDelete": data.AllowDelete, "SearchQ": data.SearchQ, "HasPrev": data.HasPrev, "HasNext": data.HasNext, "PrevURL": data.PrevURL, "NextURL": data.NextURL, "PaginationSummary": data.PaginationSummary})
+	data := h.listData("Buckets", "/admin/entities/buckets", "/admin/entities/buckets/new", "/admin/entities/buckets", "/admin/entities/buckets/delete", []string{"Name", "Endpoint", "Region", "Public URL"}, rows, "", false, 1, len(list), 0, len(list), "")
+	h.renderOK(c, listHTML, gin.H{"ShowBar": true, "Title": data.Title, "Headers": data.Headers, "Rows": data.Rows, "ListPath": data.ListPath, "NewPath": data.NewPath, "EditPath": data.EditPath, "DeletePath": data.DeletePath, "AllowDelete": data.AllowDelete, "SearchQ": data.SearchQ, "HasPrev": data.HasPrev, "HasNext": data.HasNext, "PrevURL": data.PrevURL, "NextURL": data.NextURL, "PaginationSummary": data.PaginationSummary, "RowAction": data.RowAction})
 }
 
 func (h *Handler) BucketsNew(c *gin.Context) {
@@ -1065,8 +1285,8 @@ func (h *Handler) PhotosList(c *gin.Context) {
 		}
 		rows = append(rows, ListRow{ID: p.ID.String(), Cells: []string{p.ID.String()[:8], urlShort, p.CreatedAt.Format("2006-01-02 15:04")}})
 	}
-	data := h.listData("Photos", "/admin/entities/photos", "/admin/entities/photos/new", "/admin/entities/photos", "/admin/entities/photos/delete", []string{"ID", "URL", "Created"}, rows, "", true, page, limit, offset, -1)
-	h.renderOK(c, listHTML, gin.H{"ShowBar": true, "Title": data.Title, "Headers": data.Headers, "Rows": data.Rows, "ListPath": data.ListPath, "NewPath": data.NewPath, "EditPath": data.EditPath, "DeletePath": data.DeletePath, "AllowDelete": data.AllowDelete, "SearchQ": data.SearchQ, "HasPrev": data.HasPrev, "HasNext": data.HasNext, "PrevURL": data.PrevURL, "NextURL": data.NextURL, "PaginationSummary": data.PaginationSummary})
+	data := h.listData("Photos", "/admin/entities/photos", "/admin/entities/photos/new", "/admin/entities/photos", "/admin/entities/photos/delete", []string{"ID", "URL", "Created"}, rows, "", true, page, limit, offset, -1, "")
+	h.renderOK(c, listHTML, gin.H{"ShowBar": true, "Title": data.Title, "Headers": data.Headers, "Rows": data.Rows, "ListPath": data.ListPath, "NewPath": data.NewPath, "EditPath": data.EditPath, "DeletePath": data.DeletePath, "AllowDelete": data.AllowDelete, "SearchQ": data.SearchQ, "HasPrev": data.HasPrev, "HasNext": data.HasNext, "PrevURL": data.PrevURL, "NextURL": data.NextURL, "PaginationSummary": data.PaginationSummary, "RowAction": data.RowAction})
 }
 
 func (h *Handler) PhotosNew(c *gin.Context) {

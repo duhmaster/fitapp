@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	authdomain "github.com/fitflow/fitflow/internal/auth/domain"
@@ -264,4 +265,85 @@ func (r *PG) MarkProviderEventProcessed(ctx context.Context, provider, providerE
 		WHERE provider = $1 AND provider_event_id = $2
 	`, provider, providerEventID)
 	return err
+}
+
+// GetCoachSubscriptionForAdmin returns the active coach-tier subscription row, if any.
+func (r *PG) GetCoachSubscriptionForAdmin(ctx context.Context, userID uuid.UUID) (*billingdomain.CoachSubscriptionInfo, error) {
+	row := r.pool.QueryRow(ctx, `
+		SELECT plan_code, status, current_period_end
+		FROM user_subscriptions
+		WHERE user_id = $1
+		  AND plan_code IN ('free_coach', 'coach_pro', 'coach_pro_yearly')
+		  AND status IN ('trial', 'active', 'grace')
+		ORDER BY current_period_end DESC
+		LIMIT 1
+	`, userID)
+	var info billingdomain.CoachSubscriptionInfo
+	if err := row.Scan(&info.PlanCode, &info.Status, &info.CurrentPeriodEnd); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &info, nil
+}
+
+// AdminReplaceCoachSubscription cancels active coach-tier rows and optionally inserts a new one from the admin panel.
+// planCode empty: only cancel. Otherwise one of free_coach, coach_pro, coach_pro_yearly.
+// If periodEnd is nil, a default end date is chosen from the plan’s billing period.
+func (r *PG) AdminReplaceCoachSubscription(ctx context.Context, userID uuid.UUID, planCode string, periodEnd *time.Time) error {
+	planCode = strings.TrimSpace(planCode)
+	if planCode == "" {
+		_, err := r.pool.Exec(ctx, `
+			UPDATE user_subscriptions
+			SET status = 'canceled', updated_at = NOW()
+			WHERE user_id = $1
+			  AND plan_code IN ('free_coach', 'coach_pro', 'coach_pro_yearly')
+			  AND status IN ('trial', 'active', 'grace')
+		`, userID)
+		return err
+	}
+	if planCode != "free_coach" && planCode != "coach_pro" && planCode != "coach_pro_yearly" {
+		return fmt.Errorf("invalid coach plan: %q", planCode)
+	}
+	now := time.Now().UTC()
+	end := periodEnd
+	if end == nil {
+		switch planCode {
+		case "free_coach":
+			t := now.AddDate(50, 0, 0)
+			end = &t
+		case "coach_pro":
+			t := now.AddDate(0, 1, 0)
+			end = &t
+		case "coach_pro_yearly":
+			t := now.AddDate(1, 0, 0)
+			end = &t
+		}
+	}
+	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	if _, err := tx.Exec(ctx, `
+		UPDATE user_subscriptions
+		SET status = 'canceled', updated_at = NOW()
+		WHERE user_id = $1
+		  AND plan_code IN ('free_coach', 'coach_pro', 'coach_pro_yearly')
+		  AND status IN ('trial', 'active', 'grace')
+	`, userID); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(ctx, `
+		INSERT INTO user_subscriptions (
+			user_id, plan_code, provider, provider_subscription_id,
+			status, auto_renew, current_period_start, current_period_end,
+			created_at, updated_at
+		)
+		VALUES ($1, $2, 'admin', 'admin_panel', 'active', FALSE, $3, $4, NOW(), NOW())
+	`, userID, planCode, now, *end); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
 }

@@ -425,9 +425,16 @@ func run() error {
 			AdminUsername:   cfg.AdminUsername,
 			AdminPassword:   cfg.AdminPassword,
 			SessionSecret:   cfg.AdminPassword,
-			UsersList:       authUserRepo.List,
-			UsersGet:        authUserRepo.GetByID,
-			UsersUpdateRole: authUserRepo.UpdateRole,
+			UsersList:    authUserRepo.List,
+			UsersGet:     authUserRepo.GetByID,
+			UsersUpdate:  authUserRepo.AdminUpdate,
+			CoachSubscriptionGet: billingRepo.GetCoachSubscriptionForAdmin,
+			CoachSubscriptionSet: billingRepo.AdminReplaceCoachSubscription,
+			WorkoutsList: workoutRepo.ListAll,
+			WorkoutsCount: func(ctx context.Context) (int, error) {
+				return workoutRepo.CountAll(ctx)
+			},
+			WorkoutsGetByID: workoutRepo.GetByID,
 			GymsSearch: func(ctx context.Context, q, city string, lat, lng *float64, limit, offset int) ([]*gymdomain.Gym, error) {
 				return gymRepo.Search(ctx, q, city, lat, lng, limit, offset)
 			},

@@ -63,6 +63,13 @@ type ProviderEvent struct {
 	SignatureValid  bool
 }
 
+// CoachSubscriptionInfo is an active coach-tier row (free_coach / coach_pro / coach_pro_yearly) for admin UI.
+type CoachSubscriptionInfo struct {
+	PlanCode         string
+	Status           string
+	CurrentPeriodEnd time.Time
+}
+
 type Entitlements struct {
 	PremiumUser           bool
 	CoachPro              bool

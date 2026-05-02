@@ -3,8 +3,10 @@ package admin
 import (
 	"context"
 	"io"
+	"time"
 
 	authdomain "github.com/fitflow/fitflow/internal/auth/domain"
+	billingdomain "github.com/fitflow/fitflow/internal/billing/domain"
 	blogdomain "github.com/fitflow/fitflow/internal/blog/domain"
 	gymdomain "github.com/fitflow/fitflow/internal/gym/domain"
 	photodomain "github.com/fitflow/fitflow/internal/photo/domain"
@@ -23,9 +25,16 @@ type Deps struct {
 	SessionSecret string
 
 	// Repos (interfaces) — set concrete impls when wiring
-	UsersList       func(ctx context.Context, limit, offset int, search string) ([]*authdomain.UserRecord, error)
-	UsersGet        func(ctx context.Context, id uuid.UUID) (*authdomain.UserRecord, error)
-	UsersUpdateRole func(ctx context.Context, id uuid.UUID, role authdomain.Role) error
+	UsersList    func(ctx context.Context, limit, offset int, search string) ([]*authdomain.UserRecord, error)
+	UsersGet     func(ctx context.Context, id uuid.UUID) (*authdomain.UserRecord, error)
+	UsersUpdate  func(ctx context.Context, id uuid.UUID, email string, role authdomain.Role, theme, locale string, paidSubscriber bool, subscriptionExpiresAt *time.Time, newPasswordHash string) error
+
+	CoachSubscriptionGet func(ctx context.Context, userID uuid.UUID) (*billingdomain.CoachSubscriptionInfo, error)
+	CoachSubscriptionSet func(ctx context.Context, userID uuid.UUID, planCode string, periodEnd *time.Time) error
+
+	WorkoutsList    func(ctx context.Context, limit, offset int) ([]*workoutdomain.Workout, error)
+	WorkoutsCount   func(ctx context.Context) (int, error)
+	WorkoutsGetByID func(ctx context.Context, id uuid.UUID) (*workoutdomain.Workout, error)
 
 	GymsSearch func(ctx context.Context, q, city string, lat, lng *float64, limit, offset int) ([]*gymdomain.Gym, error)
 	GymsCreate func(ctx context.Context, name string, lat, lng *float64, address string) (*gymdomain.Gym, error)

@@ -30,6 +30,9 @@ func RegisterRoutes(g *gin.RouterGroup, h *Handler) {
 		admin.GET("/entities/users/:id", h.UsersEdit)
 		admin.POST("/entities/users/update", h.UsersUpdate)
 
+		admin.GET("/entities/workouts", h.WorkoutsList)
+		admin.GET("/entities/workouts/:id", h.WorkoutsView)
+
 		// Gyms
 		admin.GET("/entities/gyms", h.GymsList)
 		admin.GET("/entities/gyms/new", h.GymsNew)

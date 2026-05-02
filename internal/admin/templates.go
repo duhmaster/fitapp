@@ -37,6 +37,7 @@ const (
   <div class="bar">
     <a href="/admin/dashboard">GymMore Admin</a>
     <a href="/admin/entities/users">Users</a>
+    <a href="/admin/entities/workouts">Workouts</a>
     <a href="/admin/entities/gyms">Gyms</a>
     <a href="/admin/entities/exercises">Exercises</a>
     <a href="/admin/entities/programs">Programs</a>
@@ -74,7 +75,8 @@ const (
 	dashboardHTML = `{{define "body"}}
 <div class="card">
   <h2>Dashboard</h2>
-  <p><a href="/admin/entities/users">Users</a> – list, search, edit role</p>
+  <p><a href="/admin/entities/users">Users</a> – list, search, edit email, role, theme, locale, subscription, password</p>
+  <p><a href="/admin/entities/workouts">Workouts</a> – list (newest first), view detail</p>
   <p><a href="/admin/entities/gyms">Gyms</a> – list, search, CRUD</p>
   <p><a href="/admin/entities/exercises">Exercises</a> – list, filter, CRUD</p>
   <p><a href="/admin/entities/programs">Programs</a> – list, CRUD</p>
@@ -114,13 +116,13 @@ const (
     {{if .FilterPlaceholder}}<input type="text" name="filter" value="{{.FilterValue}}" placeholder="{{.FilterPlaceholder}}">{{end}}
     <button type="submit" class="btn">Search</button>
   </form>
-  <p><a href="{{.NewPath}}" class="btn">New</a></p>
+  {{if .NewPath}}<p><a href="{{.NewPath}}" class="btn">New</a></p>{{end}}
   <table>
     <thead><tr>{{range .Headers}}<th>{{.}}</th>{{end}}<th>Actions</th></tr></thead>
     <tbody>
     {{range .Rows}}
     <tr>{{range .Cells}}<td>{{.}}</td>{{end}}<td>
-      <a href="{{$.EditPath}}/{{.ID}}" class="btn btn-sm">Edit</a>
+      <a href="{{$.EditPath}}/{{.ID}}" class="btn btn-sm">{{$.RowAction}}</a>
       {{if $.AllowDelete}}<form action="{{$.DeletePath}}/{{.ID}}" method="post" style="display:inline;" onsubmit="return confirm('Delete?');"><button type="submit" class="btn btn-sm btn-danger">Delete</button></form>{{end}}
     </td></tr>
     {{end}}

@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/fitflow/fitflow/internal/auth/domain"
@@ -116,6 +117,29 @@ func (r *UserRepository) List(ctx context.Context, limit, offset int, search str
 func (r *UserRepository) UpdateRole(ctx context.Context, userID uuid.UUID, role domain.Role) error {
 	query := `UPDATE users SET role = $1, updated_at = NOW() WHERE id = $2 AND deleted_at IS NULL`
 	_, err := r.pool.Exec(ctx, query, string(role), userID)
+	return err
+}
+
+// AdminUpdate updates editable user fields from the admin panel.
+// If newPasswordHash is non-empty, replaces the stored password hash.
+func (r *UserRepository) AdminUpdate(ctx context.Context, userID uuid.UUID, email string, role domain.Role, theme, locale string, paidSubscriber bool, subscriptionExpiresAt *time.Time, newPasswordHash string) error {
+	newPasswordHash = strings.TrimSpace(newPasswordHash)
+	if newPasswordHash != "" {
+		q := `
+			UPDATE users
+			SET email = $1, role = $2, theme = $3, locale = $4,
+			    paid_subscriber = $5, subscription_expires_at = $6,
+			    password_hash = $7, updated_at = NOW()
+			WHERE id = $8 AND deleted_at IS NULL`
+		_, err := r.pool.Exec(ctx, q, email, string(role), theme, locale, paidSubscriber, subscriptionExpiresAt, newPasswordHash, userID)
+		return err
+	}
+	q := `
+		UPDATE users
+		SET email = $1, role = $2, theme = $3, locale = $4,
+		    paid_subscriber = $5, subscription_expires_at = $6, updated_at = NOW()
+		WHERE id = $7 AND deleted_at IS NULL`
+	_, err := r.pool.Exec(ctx, q, email, string(role), theme, locale, paidSubscriber, subscriptionExpiresAt, userID)
 	return err
 }
 

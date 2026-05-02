@@ -198,7 +198,7 @@ func (uc *WorkoutUseCase) ListMyWorkouts(ctx context.Context, user *authdomain.U
 			return nil, err
 		}
 		if !isPremium {
-			cutoff := time.Now().UTC().AddDate(0, 0, -14)
+			cutoff := time.Now().UTC().AddDate(0, 0, -28)
 			if offset > 0 {
 				return nil, workoutdomain.ErrPremiumRequired
 			}

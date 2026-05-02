@@ -149,6 +149,52 @@ func (r *WorkoutRepository) CountByTrainerID(ctx context.Context, trainerID uuid
 	return n, err
 }
 
+// ListAll returns workouts across all users (admin), newest first.
+func (r *WorkoutRepository) ListAll(ctx context.Context, limit, offset int) ([]*workoutdomain.Workout, error) {
+	if limit <= 0 {
+		limit = 20
+	}
+	if limit > 200 {
+		limit = 200
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	query := `
+		SELECT w.id, w.template_id, w.program_id, w.user_id, w.trainer_id, w.gym_id, w.scheduled_at, w.started_at, w.finished_at, w.created_at, COALESCE(g.name, '')
+		FROM workouts w
+		LEFT JOIN gyms g ON g.id = w.gym_id
+		ORDER BY w.created_at DESC
+		LIMIT $1 OFFSET $2
+	`
+	rows, err := r.pool.Query(ctx, query, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var list []*workoutdomain.Workout
+	for rows.Next() {
+		var w workoutdomain.Workout
+		var gymName sql.NullString
+		if err := rows.Scan(&w.ID, &w.TemplateID, &w.ProgramID, &w.UserID, &w.TrainerID, &w.GymID, &w.ScheduledAt, &w.StartedAt, &w.FinishedAt, &w.CreatedAt, &gymName); err != nil {
+			return nil, err
+		}
+		if gymName.Valid && gymName.String != "" {
+			s := gymName.String
+			w.GymName = &s
+		}
+		list = append(list, &w)
+	}
+	return list, rows.Err()
+}
+
+// CountAll returns total workout rows (admin pagination).
+func (r *WorkoutRepository) CountAll(ctx context.Context) (int, error) {
+	var n int
+	err := r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM workouts`).Scan(&n)
+	return n, err
+}
+
 func (r *WorkoutRepository) Start(ctx context.Context, id uuid.UUID, at time.Time) (*workoutdomain.Workout, error) {
 	query := `
 		UPDATE workouts
