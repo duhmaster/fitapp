@@ -143,6 +143,16 @@ func (r *UserRepository) AdminUpdate(ctx context.Context, userID uuid.UUID, emai
 	return err
 }
 
+// AdminSetLegacyPremium updates only paid_subscriber and subscription_expires_at (for sync with billing.user_subscriptions).
+func (r *UserRepository) AdminSetLegacyPremium(ctx context.Context, userID uuid.UUID, paid bool, expiresAt *time.Time) error {
+	_, err := r.pool.Exec(ctx, `
+		UPDATE users
+		SET paid_subscriber = $1, subscription_expires_at = $2, updated_at = NOW()
+		WHERE id = $3 AND deleted_at IS NULL
+	`, paid, expiresAt, userID)
+	return err
+}
+
 func (r *UserRepository) scanUser(row pgx.Row) (*domain.UserRecord, error) {
 	var u domain.UserRecord
 	var roleStr string

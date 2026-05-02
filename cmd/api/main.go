@@ -430,6 +430,9 @@ func run() error {
 			UsersUpdate:  authUserRepo.AdminUpdate,
 			CoachSubscriptionGet: billingRepo.GetCoachSubscriptionForAdmin,
 			CoachSubscriptionSet: billingRepo.AdminReplaceCoachSubscription,
+			UserPremiumSubscriptionGet: billingRepo.GetUserPremiumSubscriptionForAdmin,
+			UserPremiumSubscriptionSet: billingRepo.AdminReplaceUserPremiumSubscription,
+			UsersSetLegacyPremium:      authUserRepo.AdminSetLegacyPremium,
 			WorkoutsList: workoutRepo.ListAll,
 			WorkoutsCount: func(ctx context.Context) (int, error) {
 				return workoutRepo.CountAll(ctx)

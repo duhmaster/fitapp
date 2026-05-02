@@ -32,6 +32,11 @@ type Deps struct {
 	CoachSubscriptionGet func(ctx context.Context, userID uuid.UUID) (*billingdomain.CoachSubscriptionInfo, error)
 	CoachSubscriptionSet func(ctx context.Context, userID uuid.UUID, planCode string, periodEnd *time.Time) error
 
+	UserPremiumSubscriptionGet func(ctx context.Context, userID uuid.UUID) (*billingdomain.UserPremiumSubscriptionInfo, error)
+	UserPremiumSubscriptionSet func(ctx context.Context, userID uuid.UUID, planCode string, periodEnd *time.Time) error
+	// UsersSetLegacyPremium syncs users.paid_subscriber with billing after premium subscription changes.
+	UsersSetLegacyPremium func(ctx context.Context, userID uuid.UUID, paid bool, subscriptionExpiresAt *time.Time) error
+
 	WorkoutsList    func(ctx context.Context, limit, offset int) ([]*workoutdomain.Workout, error)
 	WorkoutsCount   func(ctx context.Context) (int, error)
 	WorkoutsGetByID func(ctx context.Context, id uuid.UUID) (*workoutdomain.Workout, error)

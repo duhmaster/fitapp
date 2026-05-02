@@ -70,6 +70,13 @@ type CoachSubscriptionInfo struct {
 	CurrentPeriodEnd time.Time
 }
 
+// UserPremiumSubscriptionInfo is an active premium-tier row (premium_user / premium_user_yearly) for admin UI.
+type UserPremiumSubscriptionInfo struct {
+	PlanCode         string
+	Status           string
+	CurrentPeriodEnd time.Time
+}
+
 type Entitlements struct {
 	PremiumUser           bool
 	CoachPro              bool

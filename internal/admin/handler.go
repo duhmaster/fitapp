@@ -311,6 +311,46 @@ func (h *Handler) UsersEdit(c *gin.Context) {
 	if u.PaidSubscriber {
 		paidChk = " checked"
 	}
+	var prem *billingdomain.UserPremiumSubscriptionInfo
+	if h.Deps.UserPremiumSubscriptionGet != nil {
+		prem, err = h.Deps.UserPremiumSubscriptionGet(c.Request.Context(), id)
+		if err != nil {
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
+	}
+	premiumSel := ""
+	premiumPeriod := ""
+	premiumSection := ""
+	usePremiumBilling := h.Deps.UserPremiumSubscriptionGet != nil && h.Deps.UserPremiumSubscriptionSet != nil && h.Deps.UsersSetLegacyPremium != nil
+	if usePremiumBilling {
+		if prem != nil {
+			premiumSel = prem.PlanCode
+			premiumPeriod = prem.CurrentPeriodEnd.UTC().Format(time.RFC3339)
+		}
+		premiumMeta := ""
+		if prem != nil {
+			premiumMeta = `<p class="muted">Billing row: ` + template.HTMLEscaper(prem.Status) + `, period ends ` + template.HTMLEscaper(prem.CurrentPeriodEnd.UTC().Format("2006-01-02 15:04 UTC")) + `. Legacy flags sync for GET /me.</p>`
+		}
+		premiumSection = `<hr style="margin:16px 0;border:none;border-top:1px solid #ddd;">
+<h3 style="margin:0 0 8px;">User app premium (billing)</h3>
+<p class="muted">Matches <code>user_subscriptions</code> plans used by entitlements (<code>premium_user</code> / <code>premium_user_yearly</code>). Same source as in-app billing checkout.</p>
+` + premiumMeta + `
+<label>Premium plan</label><select name="user_premium_plan">` +
+			coachPlanOption("", "None — cancel premium subscription rows", premiumSel) +
+			coachPlanOption("premium_user", "premium_user (monthly)", premiumSel) +
+			coachPlanOption("premium_user_yearly", "premium_user_yearly", premiumSel) +
+			`</select>
+<label>Premium period ends (RFC3339 UTC, empty = default by plan)</label><input type="text" name="user_premium_period_end" value="` + template.HTMLEscaper(premiumPeriod) + `" placeholder="2026-12-31T23:59:59Z">
+`
+	}
+	legacyPremiumSection := ""
+	if !usePremiumBilling {
+		legacyPremiumSection = `<label style="display:block;margin-top:8px;"><input type="checkbox" name="paid_subscriber" value="1"` + paidChk + `> Paid subscriber (legacy)</label>
+<label>Subscription expires (RFC3339 UTC, empty = none)</label><input type="text" name="subscription_expires_at" value="` + template.HTMLEscaper(subExp) + `" placeholder="2026-12-31T23:59:59Z">
+<p class="muted">Legacy fields only. Prefer wiring billing admin below for <code>user_subscriptions</code>.</p>
+`
+	}
 	var coach *billingdomain.CoachSubscriptionInfo
 	if h.Deps.CoachSubscriptionGet != nil {
 		coach, err = h.Deps.CoachSubscriptionGet(c.Request.Context(), id)
@@ -333,15 +373,15 @@ func (h *Handler) UsersEdit(c *gin.Context) {
 		}
 		coachSection = `<hr style="margin:16px 0;border:none;border-top:1px solid #ddd;">
 <h3 style="margin:0 0 8px;">Trainer (coach) billing</h3>
+<p class="muted"><code>coach_pro</code> / <code>coach_pro_yearly</code> grant Coach Pro in app entitlements. Free trainer limits apply when there is no active Pro row.</p>
 ` + coachMeta + `
 <label>Coach plan</label><select name="coach_plan">` +
 			coachPlanOption("", "None — cancel coach subscription rows", coachSel) +
-			coachPlanOption("free_coach", "free_coach", coachSel) +
 			coachPlanOption("coach_pro", "coach_pro (monthly)", coachSel) +
 			coachPlanOption("coach_pro_yearly", "coach_pro_yearly", coachSel) +
 			`</select>
 <label>Coach period ends (RFC3339 UTC, empty = default for plan)</label><input type="text" name="coach_period_end" value="` + template.HTMLEscaper(coachPeriod) + `" placeholder="2026-12-31T23:59:59Z">
-<p class="muted">Applies coach-tier rows in user_subscriptions. None removes active coach rows; entitlements fall back until Stripe or another purchase applies.</p>`
+<p class="muted">Writes <code>user_subscriptions</code> coach-tier rows (same layer as checkout).</p>`
 	}
 	fields := `<label>Email</label><input type="email" name="email" value="` + template.HTMLEscaper(u.Email) + `" required>
 <label>Role</label><select name="role">` +
@@ -349,9 +389,7 @@ func (h *Handler) UsersEdit(c *gin.Context) {
 		`</select>
 <label>Theme</label><input type="text" name="theme" value="` + template.HTMLEscaper(u.Theme) + `" placeholder="e.g. gaming, light">
 <label>Locale</label><input type="text" name="locale" value="` + template.HTMLEscaper(u.Locale) + `" placeholder="ru, en">
-<label style="display:block;margin-top:8px;"><input type="checkbox" name="paid_subscriber" value="1"` + paidChk + `> Paid subscriber</label>
-<label>Subscription expires (RFC3339 UTC, empty = none)</label><input type="text" name="subscription_expires_at" value="` + template.HTMLEscaper(subExp) + `" placeholder="2026-12-31T23:59:59Z">
-<p class="muted">Leave subscription empty and uncheck paid for a free account.</p>
+` + legacyPremiumSection + premiumSection + `
 <label>New password</label><input type="password" name="new_password" autocomplete="new-password" placeholder="leave blank to keep current">
 ` + coachSection + `
 <input type="hidden" name="id" value="` + u.ID.String() + `">`
@@ -375,15 +413,22 @@ func (h *Handler) UsersUpdate(c *gin.Context) {
 	}
 	theme := strings.TrimSpace(c.PostForm("theme"))
 	locale := strings.TrimSpace(c.PostForm("locale"))
-	paid := c.PostForm("paid_subscriber") == "1"
+	usePremiumBilling := h.Deps.UserPremiumSubscriptionGet != nil && h.Deps.UserPremiumSubscriptionSet != nil && h.Deps.UsersSetLegacyPremium != nil
+	paid := false
 	var subExp *time.Time
-	if s := strings.TrimSpace(c.PostForm("subscription_expires_at")); s != "" {
-		t, err := time.Parse(time.RFC3339, s)
-		if err != nil {
-			c.String(http.StatusBadRequest, "subscription_expires_at: use RFC3339, e.g. 2026-12-31T23:59:59Z")
-			return
+	if usePremiumBilling {
+		paid = false
+		subExp = nil
+	} else {
+		paid = c.PostForm("paid_subscriber") == "1"
+		if s := strings.TrimSpace(c.PostForm("subscription_expires_at")); s != "" {
+			t, err := time.Parse(time.RFC3339, s)
+			if err != nil {
+				c.String(http.StatusBadRequest, "subscription_expires_at: use RFC3339, e.g. 2026-12-31T23:59:59Z")
+				return
+			}
+			subExp = &t
 		}
-		subExp = &t
 	}
 	newPw := strings.TrimSpace(c.PostForm("new_password"))
 	hashStr := ""
@@ -406,6 +451,39 @@ func (h *Handler) UsersUpdate(c *gin.Context) {
 	if err := h.Deps.UsersUpdate(c.Request.Context(), id, email, role, theme, locale, paid, subExp, hashStr); err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
+	}
+	if usePremiumBilling {
+		premPlan := strings.TrimSpace(c.PostForm("user_premium_plan"))
+		var premEnd *time.Time
+		if s := strings.TrimSpace(c.PostForm("user_premium_period_end")); s != "" {
+			t, err := time.Parse(time.RFC3339, s)
+			if err != nil {
+				c.String(http.StatusBadRequest, "user_premium_period_end: use RFC3339, e.g. 2026-12-31T23:59:59Z")
+				return
+			}
+			premEnd = &t
+		}
+		if err := h.Deps.UserPremiumSubscriptionSet(c.Request.Context(), id, premPlan, premEnd); err != nil {
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
+		info, err := h.Deps.UserPremiumSubscriptionGet(c.Request.Context(), id)
+		if err != nil {
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
+		if info == nil {
+			if err := h.Deps.UsersSetLegacyPremium(c.Request.Context(), id, false, nil); err != nil {
+				c.String(http.StatusInternalServerError, err.Error())
+				return
+			}
+		} else {
+			end := info.CurrentPeriodEnd
+			if err := h.Deps.UsersSetLegacyPremium(c.Request.Context(), id, true, &end); err != nil {
+				c.String(http.StatusInternalServerError, err.Error())
+				return
+			}
+		}
 	}
 	if h.Deps.CoachSubscriptionSet != nil {
 		coachPlan := strings.TrimSpace(c.PostForm("coach_plan"))

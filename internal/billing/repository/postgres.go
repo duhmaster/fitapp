@@ -347,3 +347,80 @@ func (r *PG) AdminReplaceCoachSubscription(ctx context.Context, userID uuid.UUID
 	}
 	return tx.Commit(ctx)
 }
+
+// GetUserPremiumSubscriptionForAdmin returns the active premium-tier subscription row, if any.
+func (r *PG) GetUserPremiumSubscriptionForAdmin(ctx context.Context, userID uuid.UUID) (*billingdomain.UserPremiumSubscriptionInfo, error) {
+	row := r.pool.QueryRow(ctx, `
+		SELECT plan_code, status, current_period_end
+		FROM user_subscriptions
+		WHERE user_id = $1
+		  AND plan_code IN ('premium_user', 'premium_user_yearly')
+		  AND status IN ('trial', 'active', 'grace')
+		ORDER BY current_period_end DESC
+		LIMIT 1
+	`, userID)
+	var info billingdomain.UserPremiumSubscriptionInfo
+	if err := row.Scan(&info.PlanCode, &info.Status, &info.CurrentPeriodEnd); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &info, nil
+}
+
+// AdminReplaceUserPremiumSubscription cancels active premium-tier rows and optionally inserts one from the admin panel.
+// planCode empty: only cancel. Otherwise premium_user or premium_user_yearly.
+func (r *PG) AdminReplaceUserPremiumSubscription(ctx context.Context, userID uuid.UUID, planCode string, periodEnd *time.Time) error {
+	planCode = strings.TrimSpace(planCode)
+	if planCode == "" {
+		_, err := r.pool.Exec(ctx, `
+			UPDATE user_subscriptions
+			SET status = 'canceled', updated_at = NOW()
+			WHERE user_id = $1
+			  AND plan_code IN ('premium_user', 'premium_user_yearly')
+			  AND status IN ('trial', 'active', 'grace')
+		`, userID)
+		return err
+	}
+	if planCode != "premium_user" && planCode != "premium_user_yearly" {
+		return fmt.Errorf("invalid user premium plan: %q", planCode)
+	}
+	now := time.Now().UTC()
+	end := periodEnd
+	if end == nil {
+		switch planCode {
+		case "premium_user":
+			t := now.AddDate(0, 1, 0)
+			end = &t
+		case "premium_user_yearly":
+			t := now.AddDate(1, 0, 0)
+			end = &t
+		}
+	}
+	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	if _, err := tx.Exec(ctx, `
+		UPDATE user_subscriptions
+		SET status = 'canceled', updated_at = NOW()
+		WHERE user_id = $1
+		  AND plan_code IN ('premium_user', 'premium_user_yearly')
+		  AND status IN ('trial', 'active', 'grace')
+	`, userID); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(ctx, `
+		INSERT INTO user_subscriptions (
+			user_id, plan_code, provider, provider_subscription_id,
+			status, auto_renew, current_period_start, current_period_end,
+			created_at, updated_at
+		)
+		VALUES ($1, $2, 'admin', 'admin_panel', 'active', FALSE, $3, $4, NOW(), NOW())
+	`, userID, planCode, now, *end); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
+}
