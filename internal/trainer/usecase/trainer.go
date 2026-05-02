@@ -11,13 +11,15 @@ import (
 )
 
 type TrainerUseCase struct {
-	clients   trainerdomain.TrainerClientRepository
-	programs  trainerdomain.TrainingProgramRepository
-	comments  trainerdomain.TrainerCommentRepository
-	profile   trainerdomain.TrainerProfileRepository
-	photos    trainerdomain.TrainerPhotoRepository
-	userGyms  gymdomain.UserGymRepository
+	clients  trainerdomain.TrainerClientRepository
+	programs trainerdomain.TrainingProgramRepository
+	comments trainerdomain.TrainerCommentRepository
+	profile  trainerdomain.TrainerProfileRepository
+	photos   trainerdomain.TrainerPhotoRepository
+	userGyms gymdomain.UserGymRepository
 }
+
+const freeCoachActiveClientsLimit = 5
 
 func NewTrainerUseCase(
 	clients trainerdomain.TrainerClientRepository,
@@ -38,6 +40,13 @@ func NewTrainerUseCase(
 }
 
 func (uc *TrainerUseCase) AddClient(ctx context.Context, trainer *authdomain.User, clientID uuid.UUID, status string) (*trainerdomain.TrainerClient, error) {
+	activeClients, err := uc.clients.ListClientsByTrainer(ctx, trainer.ID, "active", freeCoachActiveClientsLimit+1, 0)
+	if err != nil {
+		return nil, err
+	}
+	if len(activeClients) >= freeCoachActiveClientsLimit {
+		return nil, trainerdomain.ErrCoachClientLimitExceeded
+	}
 	return uc.clients.Create(ctx, trainer.ID, clientID, status)
 }
 

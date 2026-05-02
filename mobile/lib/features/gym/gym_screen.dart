@@ -5,6 +5,7 @@ import 'package:fitflow/core/locale/locale_provider.dart';
 import 'package:fitflow/core/network/geo_repository.dart';
 import 'package:fitflow/features/gym/data/gym_repository.dart';
 import 'package:fitflow/features/profile/data/profile_repository.dart';
+import 'package:fitflow/features/profile/presentation/profile_provider.dart';
 import 'package:fitflow/features/trainer/trainer_providers.dart';
 
 final myGymsForPurposeProvider =
@@ -82,10 +83,14 @@ class _GymScreenState extends ConsumerState<GymScreen> {
   @override
   Widget build(BuildContext context) {
     final tr = ref.watch(trProvider);
-    final isTrainer = ref.watch(isTrainerProvider).valueOrNull ?? false;
+    final me = ref.watch(currentUserProvider).valueOrNull;
+    final hasTrainerProfile = ref.watch(isTrainerProvider).valueOrNull ?? false;
+    final showCoachingSection =
+        hasTrainerProfile || (me?.role == 'trainer');
     final personalAsync = ref.watch(myGymsForPurposeProvider(UserGymPurpose.personal));
-    final coachingAsync =
-        isTrainer ? ref.watch(myGymsForPurposeProvider(UserGymPurpose.coaching)) : null;
+    final coachingAsync = showCoachingSection
+        ? ref.watch(myGymsForPurposeProvider(UserGymPurpose.coaching))
+        : null;
 
     return Scaffold(
       appBar: AppBar(
@@ -116,7 +121,7 @@ class _GymScreenState extends ConsumerState<GymScreen> {
               onAdd: () => _openAddGym(UserGymPurpose.personal),
               emptyHint: tr('gyms_section_personal_empty'),
             ),
-            if (isTrainer) ...[
+            if (showCoachingSection) ...[
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
                 sliver: SliverToBoxAdapter(

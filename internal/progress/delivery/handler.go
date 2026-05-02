@@ -95,6 +95,13 @@ func (h *Handler) ListWeightHistory(c *gin.Context) {
 
 	list, err := h.uc.ListWeightHistory(c.Request.Context(), user, limit, offset)
 	if err != nil {
+		if err == progressdomain.ErrPremiumRequired {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error": "premium required",
+				"code":  "premium_required",
+			})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -144,6 +151,13 @@ func (h *Handler) ListBodyFatHistory(c *gin.Context) {
 
 	list, err := h.uc.ListBodyFatHistory(c.Request.Context(), user, limit, offset)
 	if err != nil {
+		if err == progressdomain.ErrPremiumRequired {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error": "premium required",
+				"code":  "premium_required",
+			})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -194,6 +208,13 @@ func (h *Handler) ListHealthMetrics(c *gin.Context) {
 
 	list, err := h.uc.ListHealthMetrics(c.Request.Context(), user, metricType, limit, offset)
 	if err != nil {
+		if err == progressdomain.ErrPremiumRequired {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error": "premium required",
+				"code":  "premium_required",
+			})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

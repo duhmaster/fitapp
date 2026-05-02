@@ -345,7 +345,21 @@ func (r *GroupTrainingRepository) GetBookingDisplayByID(ctx context.Context, tra
 			t.gym_id,
 			t.city,
 			COALESCE(g.name, ''),
-			COUNT(reg.user_id) AS participants_count
+			COUNT(reg.user_id) AS participants_count,
+			(
+				SELECT CASE
+					WHEN trp.display_name IS NOT NULL AND BTRIM(trp.display_name) <> '' THEN BTRIM(trp.display_name)
+					ELSE SPLIT_PART(tu.email, '@', 1)
+				END
+				FROM users tu
+				LEFT JOIN user_profiles trp ON trp.user_id = tu.id
+				WHERE tu.id = t.trainer_user_id
+			) AS trainer_display_name,
+			(
+				SELECT trp.avatar_url
+				FROM user_profiles trp
+				WHERE trp.user_id = t.trainer_user_id
+			) AS trainer_avatar_url
 		FROM group_trainings t
 		INNER JOIN group_training_templates tpl ON tpl.id = t.template_id
 		LEFT JOIN photos p ON tpl.photo_id = p.id
@@ -382,6 +396,8 @@ func (r *GroupTrainingRepository) GetBookingDisplayByID(ctx context.Context, tra
 		&item.City,
 		&item.GymName,
 		&item.ParticipantsCount,
+		&item.TrainerDisplayName,
+		&item.TrainerAvatarURL,
 	); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, domain.ErrGroupTrainingNotFound
@@ -659,4 +675,3 @@ func (r *GroupTrainingRepository) ListTrainersAtGym(ctx context.Context, gymID u
 }
 
 var _ uuid.UUID
-

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:fitflow/core/locale/locale_provider.dart';
 import 'package:fitflow/core/locale/locale_repository.dart';
 import 'package:fitflow/core/theme/theme_provider.dart';
@@ -47,7 +48,6 @@ class _OptionsScreenState extends ConsumerState<OptionsScreen> {
     if (mounted) setState(() => _savingCode = null);
   }
 
-
   @override
   Widget build(BuildContext context) {
     final tr = ref.watch(trProvider);
@@ -59,19 +59,23 @@ class _OptionsScreenState extends ConsumerState<OptionsScreen> {
       appBar: AppBar(title: Text(tr('options'))),
       body: listAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, __) => _buildBody(context, tr, ['en', 'ru'], selectedCode, selectedTheme),
-        data: (list) => _buildBody(context, tr, list.isEmpty ? ['en', 'ru'] : list, selectedCode, selectedTheme),
+        error: (_, __) =>
+            _buildBody(context, tr, ['en', 'ru'], selectedCode, selectedTheme),
+        data: (list) => _buildBody(context, tr,
+            list.isEmpty ? ['en', 'ru'] : list, selectedCode, selectedTheme),
       ),
     );
   }
 
-  Widget _buildBody(BuildContext context, String Function(String) tr, List<String> localeList, String selectedCode, String selectedTheme) {
+  Widget _buildBody(BuildContext context, String Function(String) tr,
+      List<String> localeList, String selectedCode, String selectedTheme) {
     final gamFlagsAsync = ref.watch(gamificationFeatureFlagsProvider);
     return ListView(
       children: [
         Padding(
           padding: const EdgeInsets.all(16),
-          child: Text(tr('theme'), style: Theme.of(context).textTheme.titleMedium),
+          child:
+              Text(tr('theme'), style: Theme.of(context).textTheme.titleMedium),
         ),
         _themeTile(tr, 'system', tr('theme_current'), selectedTheme),
         _themeTile(tr, 'main', tr('theme_main'), selectedTheme),
@@ -80,7 +84,8 @@ class _OptionsScreenState extends ConsumerState<OptionsScreen> {
         const Divider(height: 24),
         Padding(
           padding: const EdgeInsets.all(16),
-          child: Text(tr('language'), style: Theme.of(context).textTheme.titleMedium),
+          child: Text(tr('language'),
+              style: Theme.of(context).textTheme.titleMedium),
         ),
         ...localeList.map((code) {
           final isSelected = code == selectedCode;
@@ -89,10 +94,23 @@ class _OptionsScreenState extends ConsumerState<OptionsScreen> {
             title: Text(_localeDisplayName(tr, code)),
             trailing: isSelected
                 ? const Icon(Icons.check, color: Colors.green)
-                : (isSaving ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2)) : null),
+                : (isSaving
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2))
+                    : null),
             onTap: isSaving ? null : () => _selectLocale(code),
           );
         }),
+        const Divider(height: 24),
+        ListTile(
+          leading: const Icon(Icons.workspace_premium_outlined),
+          title: Text(tr('paywall_title')),
+          subtitle: Text(tr('paywall_subtitle')),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => context.go('/billing/paywall?required=premium'),
+        ),
         const Divider(height: 24),
         gamFlagsAsync.when(
           data: (flags) => Column(
@@ -104,7 +122,9 @@ class _OptionsScreenState extends ConsumerState<OptionsScreen> {
                 onChanged: (v) async {
                   final next = flags.copyWith(xpEnabled: v);
                   try {
-                    await ref.read(gamificationRepositoryProvider).saveFeaturePreferences(next);
+                    await ref
+                        .read(gamificationRepositoryProvider)
+                        .saveFeaturePreferences(next);
                   } catch (_) {}
                   ref.invalidate(gamificationFeatureFlagsProvider);
                   ref.invalidate(gamificationProfileProvider);
@@ -120,7 +140,9 @@ class _OptionsScreenState extends ConsumerState<OptionsScreen> {
                 onChanged: (v) async {
                   final next = flags.copyWith(leaderboardEnabled: v);
                   try {
-                    await ref.read(gamificationRepositoryProvider).saveFeaturePreferences(next);
+                    await ref
+                        .read(gamificationRepositoryProvider)
+                        .saveFeaturePreferences(next);
                   } catch (_) {}
                   ref.invalidate(gamificationFeatureFlagsProvider);
                   ref.invalidate(gamificationLeaderboardMiniProvider);
@@ -134,7 +156,9 @@ class _OptionsScreenState extends ConsumerState<OptionsScreen> {
                 onChanged: (v) async {
                   final next = flags.copyWith(badgesEnabled: v);
                   try {
-                    await ref.read(gamificationRepositoryProvider).saveFeaturePreferences(next);
+                    await ref
+                        .read(gamificationRepositoryProvider)
+                        .saveFeaturePreferences(next);
                   } catch (_) {}
                   ref.invalidate(gamificationFeatureFlagsProvider);
                   ref.invalidate(gamificationBadgeWallProvider);
@@ -147,7 +171,9 @@ class _OptionsScreenState extends ConsumerState<OptionsScreen> {
                 onChanged: (v) async {
                   final next = flags.copyWith(trainerRankingEnabled: v);
                   try {
-                    await ref.read(gamificationRepositoryProvider).saveFeaturePreferences(next);
+                    await ref
+                        .read(gamificationRepositoryProvider)
+                        .saveFeaturePreferences(next);
                   } catch (_) {}
                   ref.invalidate(gamificationFeatureFlagsProvider);
                   ref.invalidate(trainerClientsLeaderboardProvider);
@@ -162,14 +188,20 @@ class _OptionsScreenState extends ConsumerState<OptionsScreen> {
     );
   }
 
-  Widget _themeTile(String Function(String) tr, String key, String label, String selectedTheme) {
+  Widget _themeTile(String Function(String) tr, String key, String label,
+      String selectedTheme) {
     final isSelected = selectedTheme == key;
     final isSaving = _savingThemeKey == key;
     return ListTile(
       title: Text(label),
       trailing: isSelected
           ? const Icon(Icons.check, color: Colors.green)
-          : (isSaving ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2)) : null),
+          : (isSaving
+              ? const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2))
+              : null),
       onTap: _savingThemeKey != null ? null : () => _selectTheme(key),
     );
   }

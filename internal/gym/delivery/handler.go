@@ -149,6 +149,10 @@ func (h *Handler) AddMyGym(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "gym not found"})
 			return
 		}
+		if err == gymdomain.ErrCoachingPurposeTrainerOnly {
+			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -355,4 +359,3 @@ func toGymResponse(g *gymdomain.Gym) GymResponse {
 		ContactURL:   g.ContactURL,
 	}
 }
-

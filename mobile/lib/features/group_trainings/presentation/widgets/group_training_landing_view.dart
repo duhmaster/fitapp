@@ -2,6 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:fitflow/features/group_trainings/domain/group_training_models.dart';
 
+/// Resolves relative API paths to full URLs (template photo, trainer avatar, participant avatar).
+String? resolveGroupTrainingMediaUrl(String? path, String imageBaseUrl) {
+  if (path == null || path.isEmpty) return null;
+  if (path.startsWith('http://') || path.startsWith('https://')) return path;
+  if (imageBaseUrl.isNotEmpty) {
+    final base = imageBaseUrl.replaceAll(RegExp(r'/$'), '');
+    final p = path.startsWith('/') ? path : '/$path';
+    return '$base$p';
+  }
+  return null;
+}
+
 /// When API omits `display`, build a minimal card from core [GroupTraining] fields.
 GroupTrainingBookingItem groupTrainingFallbackDisplay({
   required GroupTraining training,
@@ -26,6 +38,30 @@ GroupTrainingBookingItem groupTrainingFallbackDisplay({
     gymName: training.gymName,
     city: training.city,
     participantsCount: participantsCount,
+    trainerDisplayName: null,
+    trainerAvatarUrl: null,
+  );
+}
+
+/// Leading avatar for a participant row ([ParticipantProfile.avatarUrl] may be relative).
+Widget groupTrainingParticipantLeading(
+  BuildContext context,
+  ParticipantProfile p,
+  String imageBaseUrl,
+) {
+  final cs = Theme.of(context).colorScheme;
+  final url = resolveGroupTrainingMediaUrl(p.avatarUrl, imageBaseUrl);
+  if (url != null) {
+    return CircleAvatar(
+      backgroundColor: cs.primaryContainer,
+      backgroundImage: NetworkImage(url),
+      onBackgroundImageError: (_, __) {},
+      child: null,
+    );
+  }
+  return CircleAvatar(
+    backgroundColor: cs.primaryContainer,
+    child: Icon(Icons.person, color: cs.onPrimaryContainer),
   );
 }
 
@@ -47,19 +83,9 @@ class GroupTrainingLandingView extends StatelessWidget {
   /// Optional API/files base to resolve relative photo paths.
   final String imageBaseUrl;
 
-  static bool _isHttpUrl(String? s) => s != null && (s.startsWith('http://') || s.startsWith('https://'));
+  String? _photoUrl() => resolveGroupTrainingMediaUrl(item.photoPath, imageBaseUrl);
 
-  String? _photoUrl() {
-    final p = item.photoPath;
-    if (p == null || p.isEmpty) return null;
-    if (_isHttpUrl(p)) return p;
-    if (imageBaseUrl.isNotEmpty) {
-      final base = imageBaseUrl.replaceAll(RegExp(r'/$'), '');
-      final path = p.startsWith('/') ? p : '/$p';
-      return '$base$path';
-    }
-    return null;
-  }
+  String? _trainerAvatarUrl() => resolveGroupTrainingMediaUrl(item.trainerAvatarUrl, imageBaseUrl);
 
   @override
   Widget build(BuildContext context) {
@@ -175,12 +201,27 @@ class GroupTrainingLandingView extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (onTrainerTap != null)
+              if ((item.trainerDisplayName?.trim().isNotEmpty ?? false) ||
+                  (item.trainerAvatarUrl?.trim().isNotEmpty ?? false)) ...[
+                _TrainerCard(
+                  theme: theme,
+                  cs: cs,
+                  nameLabel: tr('group_training_trainer'),
+                  displayName: item.trainerDisplayName?.trim().isNotEmpty == true
+                      ? item.trainerDisplayName!.trim()
+                      : tr('group_training_view_trainer'),
+                  avatarUrl: _trainerAvatarUrl(),
+                  showChevron: onTrainerTap != null,
+                  onTap: onTrainerTap,
+                ),
+                const SizedBox(height: 12),
+              ] else if (onTrainerTap != null) ...[
                 TextButton.icon(
                   onPressed: onTrainerTap,
                   icon: const Icon(Icons.person_search_outlined),
                   label: Text(tr('group_training_view_trainer')),
                 ),
+              ],
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -278,6 +319,76 @@ class GroupTrainingLandingView extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _TrainerCard extends StatelessWidget {
+  const _TrainerCard({
+    required this.theme,
+    required this.cs,
+    required this.nameLabel,
+    required this.displayName,
+    required this.avatarUrl,
+    required this.showChevron,
+    this.onTap,
+  });
+
+  final ThemeData theme;
+  final ColorScheme cs;
+  final String nameLabel;
+  final String displayName;
+  final String? avatarUrl;
+  final bool showChevron;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final tile = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 28,
+            backgroundColor: cs.primaryContainer,
+            backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl!) : null,
+            onBackgroundImageError: avatarUrl != null ? (_, __) {} : null,
+            child: avatarUrl == null
+                ? Icon(Icons.person, size: 30, color: cs.onPrimaryContainer)
+                : null,
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  nameLabel,
+                  style: theme.textTheme.labelMedium?.copyWith(color: cs.onSurfaceVariant),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  displayName,
+                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+          ),
+          if (showChevron) Icon(Icons.chevron_right, color: cs.onSurfaceVariant),
+        ],
+      ),
+    );
+
+    return Material(
+      color: cs.surfaceContainerHighest.withValues(alpha: 0.5),
+      borderRadius: BorderRadius.circular(16),
+      child: onTap != null
+          ? InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: onTap,
+              child: tile,
+            )
+          : tile,
     );
   }
 }

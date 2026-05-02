@@ -52,7 +52,10 @@ import 'package:fitflow/features/group_trainings/presentation/my_group_trainings
 import 'package:fitflow/features/group_trainings/presentation/group_training_detail_screen.dart';
 import 'package:fitflow/features/group_trainings/presentation/group_training_public_screen.dart';
 import 'package:fitflow/features/group_trainings/presentation/available_group_trainings_screen.dart';
+import 'package:fitflow/features/billing/presentation/billing_paywall_screen.dart';
+import 'package:fitflow/features/billing/presentation/billing_payment_status_screen.dart';
 import 'package:fitflow/core/widgets/loading_screen.dart';
+import 'package:fitflow/core/router/post_auth_redirect.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final authNotifier = ref.read(authRedirectNotifierProvider);
@@ -76,7 +79,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return null;
       }
       if (!authNotifier.isLoggedIn && !isAuthRoute) return '/login';
-      if (authNotifier.isLoggedIn && isAuthRoute) return '/home';
+      if (authNotifier.isLoggedIn && isAuthRoute) {
+        final redirect = state.uri.queryParameters['redirect'];
+        if (isAllowedPostAuthRedirect(redirect)) {
+          return redirect!;
+        }
+        return '/home';
+      }
       if (state.matchedLocation == '/') return '/home';
       //if (state.matchedLocation == '/trainer') return '/trainer/profile';
       if (state.matchedLocation == '/trainer/calendar') return '/calendar';
@@ -167,6 +176,19 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                   path: 'system-messages',
                   builder: (_, __) => const SystemMessagesScreen()),
+              GoRoute(
+                path: 'billing/paywall',
+                builder: (_, state) => BillingPaywallScreen(
+                  requiredPlan:
+                      state.uri.queryParameters['required'] ?? 'premium',
+                ),
+              ),
+              GoRoute(
+                path: 'billing/payment/:paymentId',
+                builder: (_, state) => BillingPaymentStatusScreen(
+                  paymentId: state.pathParameters['paymentId']!,
+                ),
+              ),
               GoRoute(
                   path: 'group-trainings',
                   builder: (_, __) => const MyGroupTrainingsScreen()),

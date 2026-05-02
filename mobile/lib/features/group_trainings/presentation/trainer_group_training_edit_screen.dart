@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:fitflow/core/errors/app_exceptions.dart';
 import 'package:fitflow/core/locale/locale_provider.dart';
 import 'package:fitflow/features/gym/gym_screen.dart';
 import 'package:fitflow/features/gym/data/gym_repository.dart';
@@ -357,6 +358,10 @@ class _TrainerGroupTrainingEditScreenState
       context.pop();
     } catch (e) {
       if (!mounted) return;
+      if (e is AppException && e.isCoachProRequired) {
+        context.go('/billing/paywall?required=coach_pro');
+        return;
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
             content: Text(e.toString()),

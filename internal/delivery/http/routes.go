@@ -7,6 +7,7 @@ import (
 	"github.com/fitflow/fitflow/internal/admin"
 	authdelivery "github.com/fitflow/fitflow/internal/auth/delivery"
 	"github.com/fitflow/fitflow/internal/auth/domain"
+	billingdelivery "github.com/fitflow/fitflow/internal/billing/delivery"
 	blogdelivery "github.com/fitflow/fitflow/internal/blog/delivery"
 	"github.com/fitflow/fitflow/internal/delivery/http/spec"
 	"github.com/fitflow/fitflow/internal/delivery/middleware"
@@ -39,6 +40,7 @@ type RoutesConfig struct {
 	ProgressHandler          *progressdelivery.Handler
 	SocialHandler            *socialdelivery.Handler
 	BlogHandler              *blogdelivery.Handler
+	BillingHandler           *billingdelivery.Handler
 	TrainerHandler           *trainerdelivery.Handler
 	NotificationHandler      *notificationdelivery.Handler
 	SystemMessageHandler     *systemmessagedelivery.Handler
@@ -133,6 +135,10 @@ func (s *Server) RegisterRoutes(cfg *RoutesConfig) {
 		if cfg.GamificationHandler != nil {
 			v1.GET("/gamification/leaderboards/public", cfg.GamificationHandler.GetPublicLeaderboard)
 		}
+		if cfg.BillingHandler != nil {
+			v1.GET("/billing/plans", cfg.BillingHandler.ListPlans)
+			v1.POST("/billing/webhook/provider", cfg.BillingHandler.ProviderWebhook)
+		}
 
 		if len(cfg.JWTSecret) > 0 && cfg.AuthHandler != nil {
 			protected := v1.Group("")
@@ -196,6 +202,13 @@ func (s *Server) RegisterRoutes(cfg *RoutesConfig) {
 					protected.POST("/me/workout-templates/:template_id/start", cfg.WorkoutHandler.StartWorkoutFromTemplate)
 					protected.GET("/me/progress/exercise-ids", cfg.WorkoutHandler.ListProgressExerciseIDs)
 					protected.GET("/me/progress/exercises/:exercise_id/volume-history", cfg.WorkoutHandler.ListExerciseVolumeHistory)
+				}
+				if cfg.BillingHandler != nil {
+					protected.GET("/me/billing/entitlements", cfg.BillingHandler.GetMyEntitlements)
+					protected.GET("/me/billing/subscription", cfg.BillingHandler.GetMySubscription)
+					protected.POST("/me/billing/checkout", cfg.BillingHandler.CreateCheckout)
+					protected.GET("/me/billing/payments/:payment_id", cfg.BillingHandler.GetMyPayment)
+					protected.POST("/me/billing/payments/:payment_id/mock-confirm", cfg.BillingHandler.MockConfirmMyPayment)
 				}
 
 				if cfg.RecommendationHandler != nil {

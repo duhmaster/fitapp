@@ -13,8 +13,12 @@ import (
 
 	"github.com/fitflow/fitflow/internal/admin"
 	authdelivery "github.com/fitflow/fitflow/internal/auth/delivery"
+	authdomain "github.com/fitflow/fitflow/internal/auth/domain"
 	authrepository "github.com/fitflow/fitflow/internal/auth/repository"
 	authusecase "github.com/fitflow/fitflow/internal/auth/usecase"
+	billingdelivery "github.com/fitflow/fitflow/internal/billing/delivery"
+	billingrepository "github.com/fitflow/fitflow/internal/billing/repository"
+	billingusecase "github.com/fitflow/fitflow/internal/billing/usecase"
 	blogdelivery "github.com/fitflow/fitflow/internal/blog/delivery"
 	blogrepository "github.com/fitflow/fitflow/internal/blog/repository"
 	blogusecase "github.com/fitflow/fitflow/internal/blog/usecase"
@@ -172,6 +176,9 @@ func run() error {
 	userUC.SetGamificationOnBodyMeasurement(func(ctx context.Context, userID, measurementID uuid.UUID) error {
 		return gamUC.ApplyBodyMeasurementReward(ctx, userID, measurementID)
 	})
+	billingRepo := billingrepository.NewPG(db)
+	billingUC := billingusecase.New(billingRepo)
+	billingHandler := billingdelivery.NewHandler(billingUC, cfg.BillingWebhookSecret)
 
 	// Workout module
 	exerciseRepo := workoutrepository.NewExerciseRepository(db)
@@ -215,6 +222,9 @@ func run() error {
 	bodyFatRepo := progressrepository.NewBodyFatTrackingRepository(db)
 	healthMetricRepo := progressrepository.NewHealthMetricRepository(db)
 	progressUC := progressusecase.NewProgressUseCase(weightRepo, bodyFatRepo, healthMetricRepo)
+	progressUC.SetAnalyticsAccessChecker(func(ctx context.Context, user *authdomain.User) (bool, error) {
+		return billingUC.IsPremiumUser(ctx, user)
+	})
 	progressHandler := progressdelivery.NewHandler(progressUC)
 
 	// Group training module
@@ -244,6 +254,9 @@ func run() error {
 	blogPostTagRepo := blogrepository.NewBlogPostTagRepository(db)
 	blogUC := blogusecase.NewBlogUseCase(blogPostRepo, blogPhotoRepo, tagRepo, blogPostTagRepo)
 	blogHandler := blogdelivery.NewHandler(blogUC)
+	workoutUC.SetAnalyticsAccessChecker(func(ctx context.Context, user *authdomain.User) (bool, error) {
+		return billingUC.IsPremiumUser(ctx, user)
+	})
 
 	// Trainer module
 	trainerClientRepo := trainerrepository.NewTrainerClientRepository(db)
@@ -488,6 +501,7 @@ func run() error {
 		ProgressHandler:          progressHandler,
 		SocialHandler:            socialHandler,
 		BlogHandler:              blogHandler,
+		BillingHandler:           billingHandler,
 		TrainerHandler:           trainerHandler,
 		NotificationHandler:      notificationHandler,
 		SystemMessageHandler:     systemMessageHandler,

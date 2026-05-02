@@ -210,6 +210,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     uploadingAvatar: _uploadingAvatar,
                     paidSubscriber: data.paidSubscriber,
                     subscriptionExpiresAt: data.subscriptionExpiresAt,
+                    onOpenPlans: () =>
+                        context.go('/billing/paywall?required=premium'),
                   ),
                   const SizedBox(height: 10),
                   stats,
@@ -234,6 +236,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     uploadingAvatar: _uploadingAvatar,
                     paidSubscriber: data.paidSubscriber,
                     subscriptionExpiresAt: data.subscriptionExpiresAt,
+                    onOpenPlans: () =>
+                        context.go('/billing/paywall?required=premium'),
                   ),
                 ),
                 const SizedBox(width: 16),

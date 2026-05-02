@@ -107,10 +107,7 @@ class TrainerGroupTrainingDetailScreen extends ConsumerWidget {
                               elevation: 0,
                               color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                               child: ListTile(
-                                leading: CircleAvatar(
-                                  backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                                  child: Icon(Icons.person, color: Theme.of(context).colorScheme.onPrimaryContainer),
-                                ),
+                                leading: groupTrainingParticipantLeading(context, p, config.apiBaseUrl),
                                 title: Text(p.displayLabel()),
                                 subtitle: p.city?.isNotEmpty == true ? Text(p.city!) : null,
                               ),

@@ -133,7 +133,15 @@ class GroupTrainingPublicScreen extends ConsumerWidget {
                         FilledButton.icon(
                           icon: const Icon(Icons.login),
                           label: Text(tr('group_training_login_to_enroll')),
-                          onPressed: () => context.push('/login'),
+                          onPressed: () {
+                            final back = Uri(path: '/g/$trainingId').toString();
+                            context.push(
+                              Uri(
+                                path: '/login',
+                                queryParameters: {'redirect': back},
+                              ).toString(),
+                            );
+                          },
                         ),
                     ],
                   ),

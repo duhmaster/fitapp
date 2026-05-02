@@ -12,6 +12,7 @@ type ProgressUseCase struct {
 	weight    progressdomain.WeightTrackingRepository
 	bodyFat   progressdomain.BodyFatTrackingRepository
 	health    progressdomain.HealthMetricRepository
+	canAccessFullAnalytics func(ctx context.Context, user *authdomain.User) (bool, error)
 }
 
 func NewProgressUseCase(
@@ -31,7 +32,7 @@ func (uc *ProgressUseCase) RecordWeight(ctx context.Context, user *authdomain.Us
 }
 
 func (uc *ProgressUseCase) ListWeightHistory(ctx context.Context, user *authdomain.User, limit, offset int) ([]*progressdomain.WeightTracking, error) {
-	return uc.weight.ListByUserID(ctx, user.ID, limit, offset)
+	return uc.listWeightHistoryWithEntitlement(ctx, user, limit, offset)
 }
 
 func (uc *ProgressUseCase) RecordBodyFat(ctx context.Context, user *authdomain.User, bodyFatPct float64, recordedAt time.Time) (*progressdomain.BodyFatTracking, error) {
@@ -39,7 +40,7 @@ func (uc *ProgressUseCase) RecordBodyFat(ctx context.Context, user *authdomain.U
 }
 
 func (uc *ProgressUseCase) ListBodyFatHistory(ctx context.Context, user *authdomain.User, limit, offset int) ([]*progressdomain.BodyFatTracking, error) {
-	return uc.bodyFat.ListByUserID(ctx, user.ID, limit, offset)
+	return uc.listBodyFatHistoryWithEntitlement(ctx, user, limit, offset)
 }
 
 func (uc *ProgressUseCase) RecordHealthMetric(ctx context.Context, user *authdomain.User, metricType string, value *float64, recordedAt time.Time, source *string) (*progressdomain.HealthMetric, error) {
@@ -47,5 +48,91 @@ func (uc *ProgressUseCase) RecordHealthMetric(ctx context.Context, user *authdom
 }
 
 func (uc *ProgressUseCase) ListHealthMetrics(ctx context.Context, user *authdomain.User, metricType string, limit, offset int) ([]*progressdomain.HealthMetric, error) {
-	return uc.health.ListByUserID(ctx, user.ID, metricType, limit, offset)
+	return uc.listHealthMetricsWithEntitlement(ctx, user, metricType, limit, offset)
+}
+
+func (uc *ProgressUseCase) SetAnalyticsAccessChecker(checker func(ctx context.Context, user *authdomain.User) (bool, error)) {
+	uc.canAccessFullAnalytics = checker
+}
+
+func (uc *ProgressUseCase) listWeightHistoryWithEntitlement(ctx context.Context, user *authdomain.User, limit, offset int) ([]*progressdomain.WeightTracking, error) {
+	rows, err := uc.weight.ListByUserID(ctx, user.ID, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	isPremium, err := uc.hasFullAnalytics(ctx, user)
+	if err != nil {
+		return nil, err
+	}
+	if isPremium {
+		return rows, nil
+	}
+	if offset > 0 {
+		return nil, progressdomain.ErrPremiumRequired
+	}
+	cutoff := time.Now().UTC().AddDate(0, 0, -14)
+	filtered := make([]*progressdomain.WeightTracking, 0, len(rows))
+	for _, row := range rows {
+		if row.RecordedAt.After(cutoff) || row.RecordedAt.Equal(cutoff) {
+			filtered = append(filtered, row)
+		}
+	}
+	return filtered, nil
+}
+
+func (uc *ProgressUseCase) listBodyFatHistoryWithEntitlement(ctx context.Context, user *authdomain.User, limit, offset int) ([]*progressdomain.BodyFatTracking, error) {
+	rows, err := uc.bodyFat.ListByUserID(ctx, user.ID, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	isPremium, err := uc.hasFullAnalytics(ctx, user)
+	if err != nil {
+		return nil, err
+	}
+	if isPremium {
+		return rows, nil
+	}
+	if offset > 0 {
+		return nil, progressdomain.ErrPremiumRequired
+	}
+	cutoff := time.Now().UTC().AddDate(0, 0, -14)
+	filtered := make([]*progressdomain.BodyFatTracking, 0, len(rows))
+	for _, row := range rows {
+		if row.RecordedAt.After(cutoff) || row.RecordedAt.Equal(cutoff) {
+			filtered = append(filtered, row)
+		}
+	}
+	return filtered, nil
+}
+
+func (uc *ProgressUseCase) listHealthMetricsWithEntitlement(ctx context.Context, user *authdomain.User, metricType string, limit, offset int) ([]*progressdomain.HealthMetric, error) {
+	rows, err := uc.health.ListByUserID(ctx, user.ID, metricType, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	isPremium, err := uc.hasFullAnalytics(ctx, user)
+	if err != nil {
+		return nil, err
+	}
+	if isPremium {
+		return rows, nil
+	}
+	if offset > 0 {
+		return nil, progressdomain.ErrPremiumRequired
+	}
+	cutoff := time.Now().UTC().AddDate(0, 0, -14)
+	filtered := make([]*progressdomain.HealthMetric, 0, len(rows))
+	for _, row := range rows {
+		if row.RecordedAt.After(cutoff) || row.RecordedAt.Equal(cutoff) {
+			filtered = append(filtered, row)
+		}
+	}
+	return filtered, nil
+}
+
+func (uc *ProgressUseCase) hasFullAnalytics(ctx context.Context, user *authdomain.User) (bool, error) {
+	if uc.canAccessFullAnalytics == nil {
+		return true, nil
+	}
+	return uc.canAccessFullAnalytics(ctx, user)
 }

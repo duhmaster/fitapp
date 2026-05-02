@@ -38,12 +38,12 @@ type Handler struct {
 	getWorkoutCount func(context.Context, uuid.UUID) (int, error)
 	getGymsForUser  func(context.Context, uuid.UUID) ([]PublicProfileGym, error)
 
-	getLatestMetric      func(context.Context, uuid.UUID) (heightCm, weightKg *float64, err error)
-	getLatestBodyFat     func(context.Context, uuid.UUID) (*float64, error)
-	getBodyMeasurements  func(context.Context, uuid.UUID, int) ([]ClientProfileMeasurement, error)
-	getClientWorkouts    func(context.Context, uuid.UUID, int, int) ([]map[string]interface{}, error)
+	getLatestMetric     func(context.Context, uuid.UUID) (heightCm, weightKg *float64, err error)
+	getLatestBodyFat    func(context.Context, uuid.UUID) (*float64, error)
+	getBodyMeasurements func(context.Context, uuid.UUID, int) ([]ClientProfileMeasurement, error)
+	getClientWorkouts   func(context.Context, uuid.UUID, int, int) ([]map[string]interface{}, error)
 
-	getClientExerciseIDs          func(context.Context, uuid.UUID) ([]string, error)
+	getClientExerciseIDs           func(context.Context, uuid.UUID) ([]string, error)
 	getClientExerciseVolumeHistory func(context.Context, uuid.UUID, uuid.UUID) ([]map[string]interface{}, error)
 
 	workoutUC *workoutusecase.WorkoutUseCase
@@ -442,6 +442,13 @@ func (h *Handler) AddClient(c *gin.Context) {
 			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 			return
 		}
+		if err == trainerdomain.ErrCoachClientLimitExceeded {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error": "coach pro required",
+				"code":  "coach_pro_required",
+			})
+			return
+		}
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -686,11 +693,11 @@ func (h *Handler) CreateClientTemplate(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{
-		"id":            t.ID.String(),
-		"name":          t.Name,
-		"created_at":    t.CreatedAt.Format(time.RFC3339),
+		"id":             t.ID.String(),
+		"name":           t.Name,
+		"created_at":     t.CreatedAt.Format(time.RFC3339),
 		"use_rest_timer": t.UseRestTimer,
-		"rest_seconds":  t.RestSeconds,
+		"rest_seconds":   t.RestSeconds,
 	})
 }
 
@@ -795,12 +802,12 @@ func (h *Handler) CreateClientWorkout(c *gin.Context) {
 
 func toClientWorkoutResponse(w *workoutdomain.Workout) gin.H {
 	resp := gin.H{
-		"id":         w.ID.String(),
-		"user_id":    w.UserID.String(),
+		"id":           w.ID.String(),
+		"user_id":      w.UserID.String(),
 		"scheduled_at": nil,
-		"started_at":  nil,
-		"finished_at": nil,
-		"created_at":  w.CreatedAt.Format(time.RFC3339),
+		"started_at":   nil,
+		"finished_at":  nil,
+		"created_at":   w.CreatedAt.Format(time.RFC3339),
 	}
 	if w.TemplateID != nil {
 		resp["template_id"] = w.TemplateID.String()
@@ -900,18 +907,18 @@ func (h *Handler) ListMyTrainers(c *gin.Context) {
 
 // TrainerPublicProfileResponse is the response for GET /trainers/:user_id (no auth).
 type TrainerPublicProfileResponse struct {
-	UserID        string                   `json:"user_id"`
-	DisplayName   string                   `json:"display_name"`
-	City          string                   `json:"city"`
-	AvatarURL     string                   `json:"avatar_url"`
-	AboutMe       string                   `json:"about_me"`
-	Contacts      string                   `json:"contacts"`
-	ProfileLink   string                   `json:"profile_link"`
-	Photos        []TrainerPhotoResponse   `json:"photos"`
-	TraineesCount int                      `json:"trainees_count"`
-	WorkoutsCount int                      `json:"workouts_count"`
-	Rating        *float64                 `json:"rating,omitempty"`
-	Gyms          []PublicProfileGym       `json:"gyms"`
+	UserID        string                 `json:"user_id"`
+	DisplayName   string                 `json:"display_name"`
+	City          string                 `json:"city"`
+	AvatarURL     string                 `json:"avatar_url"`
+	AboutMe       string                 `json:"about_me"`
+	Contacts      string                 `json:"contacts"`
+	ProfileLink   string                 `json:"profile_link"`
+	Photos        []TrainerPhotoResponse `json:"photos"`
+	TraineesCount int                    `json:"trainees_count"`
+	WorkoutsCount int                    `json:"workouts_count"`
+	Rating        *float64               `json:"rating,omitempty"`
+	Gyms          []PublicProfileGym     `json:"gyms"`
 }
 
 func (h *Handler) GetTrainerPublic(c *gin.Context) {

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fitflow/core/locale/locale_provider.dart';
-import 'package:fitflow/core/widgets/error_state_widget.dart';
+import 'package:fitflow/core/widgets/paywall_required_widget.dart';
 import 'package:fitflow/core/widgets/loading_skeleton.dart';
 import 'package:fitflow/features/profile/domain/profile_models.dart';
 import 'package:fitflow/features/profile/presentation/profile_provider.dart';
@@ -29,16 +29,21 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
       appBar: inShell ? null : AppBar(title: Text(tr('progress_measurements'))),
       body: measurementsAsync.when(
         loading: () => const _ProgressSkeleton(),
-        error: (e, _) => ErrorStateWidget(
-          message: e.toString(),
+        error: (e, _) => PaywallRequiredWidget(
+          error: e,
           onRetry: () => ref.invalidate(bodyMeasurementsProvider),
         ),
-        data: (list) => _buildFromMeasurements(context, tr, list, profileHeight),
+        data: (list) =>
+            _buildFromMeasurements(context, tr, list, profileHeight),
       ),
     );
   }
 
-  Widget _buildFromMeasurements(BuildContext context, String Function(String) tr, List<BodyMeasurement> list, double? profileHeight) {
+  Widget _buildFromMeasurements(
+      BuildContext context,
+      String Function(String) tr,
+      List<BodyMeasurement> list,
+      double? profileHeight) {
     final now = DateTime.now();
     final start = now.subtract(Duration(days: _dateRangeDays));
     final filtered = list.where((m) {
@@ -49,7 +54,8 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
 
     final withInterp = filtered.map((m) {
       final h = m.heightCm ?? profileHeight;
-      final interp = interpretBodyMeasurement(m.weightKg, m.bodyFatPct, h, (_) => '');
+      final interp =
+          interpretBodyMeasurement(m.weightKg, m.bodyFatPct, h, (_) => '');
       return _ChartPoint(
         date: m.recordedAt,
         weight: m.weightKg,
@@ -60,11 +66,16 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
     }).toList();
 
     final latestWeight = withInterp.isNotEmpty ? withInterp.last.weight : null;
-    final latestBodyFat = withInterp.isNotEmpty ? withInterp.last.bodyFat : null;
+    final latestBodyFat =
+        withInterp.isNotEmpty ? withInterp.last.bodyFat : null;
     final latestFfmi = withInterp.isNotEmpty ? withInterp.last.ffmi : null;
     final latestBmi = withInterp.isNotEmpty ? withInterp.last.bmi : null;
-    final minWeight = withInterp.isEmpty ? null : withInterp.map((e) => e.weight).reduce((a, b) => a < b ? a : b);
-    final maxWeight = withInterp.isEmpty ? null : withInterp.map((e) => e.weight).reduce((a, b) => a > b ? a : b);
+    final minWeight = withInterp.isEmpty
+        ? null
+        : withInterp.map((e) => e.weight).reduce((a, b) => a < b ? a : b);
+    final maxWeight = withInterp.isEmpty
+        ? null
+        : withInterp.map((e) => e.weight).reduce((a, b) => a > b ? a : b);
 
     return RefreshIndicator(
       onRefresh: () async {
@@ -84,57 +95,113 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
                 ButtonSegment(value: 90, label: Text(tr('date_range_90d'))),
               ],
               selected: {_dateRangeDays},
-              onSelectionChanged: (s) => setState(() => _dateRangeDays = s.first),
+              onSelectionChanged: (s) =>
+                  setState(() => _dateRangeDays = s.first),
             ),
             const SizedBox(height: 24),
             Row(
               children: [
-                Expanded(child: _StatCard(title: tr('latest_weight'), value: latestWeight != null ? '${latestWeight.toStringAsFixed(1)} kg' : '—')),
-                Expanded(child: _StatCard(title: tr('body_fat_pct_label'), value: latestBodyFat != null ? '${latestBodyFat.toStringAsFixed(1)}%' : '—')),
+                Expanded(
+                    child: _StatCard(
+                        title: tr('latest_weight'),
+                        value: latestWeight != null
+                            ? '${latestWeight.toStringAsFixed(1)} kg'
+                            : '—')),
+                Expanded(
+                    child: _StatCard(
+                        title: tr('body_fat_pct_label'),
+                        value: latestBodyFat != null
+                            ? '${latestBodyFat.toStringAsFixed(1)}%'
+                            : '—')),
               ],
             ),
             const SizedBox(height: 12),
             Row(
               children: [
-                Expanded(child: _StatCard(title: tr('min_weight'), value: minWeight != null ? '${minWeight.toStringAsFixed(1)} kg' : '—')),
-                Expanded(child: _StatCard(title: tr('max_weight'), value: maxWeight != null ? '${maxWeight.toStringAsFixed(1)} kg' : '—')),
+                Expanded(
+                    child: _StatCard(
+                        title: tr('min_weight'),
+                        value: minWeight != null
+                            ? '${minWeight.toStringAsFixed(1)} kg'
+                            : '—')),
+                Expanded(
+                    child: _StatCard(
+                        title: tr('max_weight'),
+                        value: maxWeight != null
+                            ? '${maxWeight.toStringAsFixed(1)} kg'
+                            : '—')),
               ],
             ),
             if (latestFfmi != null || latestBmi != null) ...[
               const SizedBox(height: 12),
               Row(
                 children: [
-                  if (latestFfmi != null) Expanded(child: _StatCard(title: tr('ffmi_interpretation'), value: latestFfmi.toStringAsFixed(1))),
-                  if (latestBmi != null) Expanded(child: _StatCard(title: tr('bmi_interpretation'), value: latestBmi.toStringAsFixed(1))),
+                  if (latestFfmi != null)
+                    Expanded(
+                        child: _StatCard(
+                            title: tr('ffmi_interpretation'),
+                            value: latestFfmi.toStringAsFixed(1))),
+                  if (latestBmi != null)
+                    Expanded(
+                        child: _StatCard(
+                            title: tr('bmi_interpretation'),
+                            value: latestBmi.toStringAsFixed(1))),
                 ],
               ),
             ],
             const SizedBox(height: 24),
             if (withInterp.isNotEmpty) ...[
-              Text(tr('weight_chart'), style: Theme.of(context).textTheme.titleMedium),
+              Text(tr('weight_chart'),
+                  style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
-              SizedBox(height: _chartHeight(context), child: LineChart(_chartData(withInterp.map((e) => e.weight).toList(), context), duration: const Duration(milliseconds: 250))),
+              SizedBox(
+                  height: _chartHeight(context),
+                  child: LineChart(
+                      _chartData(
+                          withInterp.map((e) => e.weight).toList(), context),
+                      duration: const Duration(milliseconds: 250))),
               const SizedBox(height: 24),
-              Text(tr('body_fat_chart'), style: Theme.of(context).textTheme.titleMedium),
+              Text(tr('body_fat_chart'),
+                  style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
-              SizedBox(height: _chartHeight(context), child: LineChart(_chartData(withInterp.map((e) => e.bodyFat).toList(), context, isPct: true), duration: const Duration(milliseconds: 250))),
+              SizedBox(
+                  height: _chartHeight(context),
+                  child: LineChart(
+                      _chartData(
+                          withInterp.map((e) => e.bodyFat).toList(), context,
+                          isPct: true),
+                      duration: const Duration(milliseconds: 250))),
               if (withInterp.any((e) => e.ffmi != null)) ...[
                 const SizedBox(height: 24),
-                Text(tr('ffmi_interpretation'), style: Theme.of(context).textTheme.titleMedium),
+                Text(tr('ffmi_interpretation'),
+                    style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 8),
-                SizedBox(height: _chartHeight(context), child: LineChart(_chartData(withInterp.map((e) => e.ffmi ?? 0).toList(), context), duration: const Duration(milliseconds: 250))),
+                SizedBox(
+                    height: _chartHeight(context),
+                    child: LineChart(
+                        _chartData(withInterp.map((e) => e.ffmi ?? 0).toList(),
+                            context),
+                        duration: const Duration(milliseconds: 250))),
               ],
               if (withInterp.any((e) => e.bmi != null)) ...[
                 const SizedBox(height: 24),
-                Text(tr('bmi_interpretation'), style: Theme.of(context).textTheme.titleMedium),
+                Text(tr('bmi_interpretation'),
+                    style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 8),
-                SizedBox(height: _chartHeight(context), child: LineChart(_chartData(withInterp.map((e) => e.bmi ?? 0).toList(), context), duration: const Duration(milliseconds: 250))),
+                SizedBox(
+                    height: _chartHeight(context),
+                    child: LineChart(
+                        _chartData(withInterp.map((e) => e.bmi ?? 0).toList(),
+                            context),
+                        duration: const Duration(milliseconds: 250))),
               ],
             ],
             if (withInterp.isEmpty)
               Padding(
                 padding: const EdgeInsets.all(24),
-                child: Text(tr('no_data_in_range'), style: Theme.of(context).textTheme.bodyMedium, textAlign: TextAlign.center),
+                child: Text(tr('no_data_in_range'),
+                    style: Theme.of(context).textTheme.bodyMedium,
+                    textAlign: TextAlign.center),
               ),
           ],
         ),
@@ -149,10 +216,19 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
     return 200;
   }
 
-  LineChartData _chartData(List<double> values, BuildContext context, {bool isPct = false}) {
-    final spots = values.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value)).toList();
-    final minY = values.isEmpty ? 0.0 : values.reduce((a, b) => a < b ? a : b) - (isPct ? 2 : 1);
-    final maxY = values.isEmpty ? 100.0 : values.reduce((a, b) => a > b ? a : b) + (isPct ? 2 : 1);
+  LineChartData _chartData(List<double> values, BuildContext context,
+      {bool isPct = false}) {
+    final spots = values
+        .asMap()
+        .entries
+        .map((e) => FlSpot(e.key.toDouble(), e.value))
+        .toList();
+    final minY = values.isEmpty
+        ? 0.0
+        : values.reduce((a, b) => a < b ? a : b) - (isPct ? 2 : 1);
+    final maxY = values.isEmpty
+        ? 100.0
+        : values.reduce((a, b) => a > b ? a : b) + (isPct ? 2 : 1);
     return LineChartData(
       gridData: FlGridData(show: true),
       titlesData: FlTitlesData(show: false),
@@ -168,7 +244,10 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
           color: Theme.of(context).colorScheme.primary,
           barWidth: 2,
           dotData: FlDotData(show: values.length <= 20),
-          belowBarData: BarAreaData(show: true, color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)),
+          belowBarData: BarAreaData(
+              show: true,
+              color:
+                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)),
         ),
       ],
     );
@@ -176,7 +255,12 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
 }
 
 class _ChartPoint {
-  _ChartPoint({required this.date, required this.weight, required this.bodyFat, this.ffmi, this.bmi});
+  _ChartPoint(
+      {required this.date,
+      required this.weight,
+      required this.bodyFat,
+      this.ffmi,
+      this.bmi});
   final DateTime date;
   final double weight;
   final double bodyFat;
@@ -199,7 +283,11 @@ class _StatCard extends StatelessWidget {
           children: [
             Text(title, style: Theme.of(context).textTheme.bodySmall),
             const SizedBox(height: 4),
-            Text(value, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+            Text(value,
+                style: Theme.of(context)
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(fontWeight: FontWeight.bold)),
           ],
         ),
       ),

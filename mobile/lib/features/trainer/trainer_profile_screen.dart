@@ -8,9 +8,14 @@ import 'package:fitflow/features/gamification/presentation/gamification_provider
 import 'package:fitflow/features/gamification/presentation/widgets/home_gamification_strip.dart';
 import 'package:fitflow/features/gamification/presentation/widgets/trainee_success_meter.dart';
 import 'package:fitflow/features/gamification/presentation/widgets/trainer_rank_card.dart';
+import 'package:fitflow/features/billing/data/billing_repository.dart';
 import 'package:fitflow/features/trainer/data/trainer_repository.dart';
 import 'package:fitflow/features/trainer/presentation/widgets/trainer_profile_view.dart';
 import 'package:fitflow/features/trainer/trainer_providers.dart';
+
+final coachEntitlementsProvider = FutureProvider.autoDispose((ref) {
+  return ref.read(billingRepositoryProvider).getMyEntitlements();
+});
 
 /// Trainer's own profile page (menu: Тренер → Профиль).
 class TrainerProfileScreen extends ConsumerWidget {
@@ -39,7 +44,8 @@ class TrainerProfileScreen extends ConsumerWidget {
                 return Center(child: Text(tr('error_label')));
               }
               final appConfig = ref.watch(appConfigProvider);
-              final profileLink = '${appConfig.appBaseUrlForLinks.replaceAll(RegExp(r'/$'), '')}/t/${public.userId}';
+              final profileLink =
+                  '${appConfig.appBaseUrlForLinks.replaceAll(RegExp(r'/$'), '')}/t/${public.userId}';
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -48,10 +54,30 @@ class TrainerProfileScreen extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        ref.watch(coachEntitlementsProvider).maybeWhen(
+                              data: (ent) => Card(
+                                child: ListTile(
+                                  leading: const Icon(
+                                      Icons.workspace_premium_outlined),
+                                  title: Text(tr('coach_subscription_status')),
+                                  subtitle: Text(ent.coachPro
+                                      ? tr('coach_pro_active')
+                                      : tr('coach_free_limited')),
+                                  trailing: TextButton(
+                                    onPressed: () => context.go(
+                                        '/billing/paywall?required=coach_pro'),
+                                    child: Text(tr('paywall_open')),
+                                  ),
+                                ),
+                              ),
+                              orElse: () => const SizedBox.shrink(),
+                            ),
+                        const SizedBox(height: 8),
                         _trainerGamificationSection(context, ref, tr),
                         TrainerRankCard(tr: tr),
                         const SizedBox(height: 8),
-                        TraineeSuccessMeter(tr: tr, traineeCount: public.traineesCount),
+                        TraineeSuccessMeter(
+                            tr: tr, traineeCount: public.traineesCount),
                       ],
                     ),
                   ),
@@ -61,12 +87,15 @@ class TrainerProfileScreen extends ConsumerWidget {
                       isOwnProfile: true,
                       profileLinkDisplay: profileLink,
                       onShareLink: () async {
-                        await Clipboard.setData(ClipboardData(text: profileLink));
+                        await Clipboard.setData(
+                            ClipboardData(text: profileLink));
                         if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('copied'))));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(tr('copied'))));
                         }
                       },
-                      onEditPressed: () => context.push('/trainer/profile/edit'),
+                      onEditPressed: () =>
+                          context.push('/trainer/profile/edit'),
                     ),
                   ),
                 ],
@@ -79,7 +108,8 @@ class TrainerProfileScreen extends ConsumerWidget {
   }
 }
 
-Widget _trainerGamificationSection(BuildContext context, WidgetRef ref, String Function(String) tr) {
+Widget _trainerGamificationSection(
+    BuildContext context, WidgetRef ref, String Function(String) tr) {
   final flagsAsync = ref.watch(gamificationFeatureFlagsProvider);
   return flagsAsync.when(
     data: (f) {
@@ -112,10 +142,12 @@ class _CreateTrainerProfileForm extends ConsumerStatefulWidget {
   final String Function(String) tr;
 
   @override
-  ConsumerState<_CreateTrainerProfileForm> createState() => _CreateTrainerProfileFormState();
+  ConsumerState<_CreateTrainerProfileForm> createState() =>
+      _CreateTrainerProfileFormState();
 }
 
-class _CreateTrainerProfileFormState extends ConsumerState<_CreateTrainerProfileForm> {
+class _CreateTrainerProfileFormState
+    extends ConsumerState<_CreateTrainerProfileForm> {
   final _aboutController = TextEditingController();
   final _contactsController = TextEditingController();
   bool _saving = false;
@@ -136,9 +168,13 @@ class _CreateTrainerProfileFormState extends ConsumerState<_CreateTrainerProfile
           );
       ref.invalidate(trainerProfileProvider);
       ref.invalidate(myTrainerPublicProfileProvider);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(widget.tr('saved'))));
+      if (mounted)
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(widget.tr('saved'))));
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+      if (mounted)
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.toString())));
     } finally {
       if (mounted) setState(() => _saving = false);
     }

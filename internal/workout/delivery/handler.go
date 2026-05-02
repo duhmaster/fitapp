@@ -350,6 +350,13 @@ func (h *Handler) ListMyWorkouts(c *gin.Context) {
 
 	list, err := h.uc.ListMyWorkouts(c.Request.Context(), user, limit, offset, finishedFrom, finishedTo)
 	if err != nil {
+		if err == workoutdomain.ErrPremiumRequired {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error": "premium required",
+				"code":  "premium_required",
+			})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -1093,6 +1100,13 @@ func (h *Handler) ListExerciseVolumeHistory(c *gin.Context) {
 	}
 	list, err := h.uc.ListExerciseVolumeHistoryForProgress(c.Request.Context(), user, exerciseID)
 	if err != nil {
+		if err == workoutdomain.ErrPremiumRequired {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error": "premium required",
+				"code":  "premium_required",
+			})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

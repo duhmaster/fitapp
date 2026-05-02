@@ -6,10 +6,10 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/fitflow/fitflow/internal/grouptraining/domain"
-	"github.com/fitflow/fitflow/internal/grouptraining/usecase"
 	authdomain "github.com/fitflow/fitflow/internal/auth/domain"
 	"github.com/fitflow/fitflow/internal/delivery/middleware"
+	"github.com/fitflow/fitflow/internal/grouptraining/domain"
+	"github.com/fitflow/fitflow/internal/grouptraining/usecase"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -330,24 +330,24 @@ func (h *Handler) SoftDeleteTrainerTemplate(c *gin.Context) {
 // ---- Group trainings (trainer) ----
 
 type GroupTrainingCreateRequest struct {
-	TemplateID   string `json:"template_id" binding:"required"`
+	TemplateID  string `json:"template_id" binding:"required"`
 	ScheduledAt string `json:"scheduled_at" binding:"required"`
-	GymID        string `json:"gym_id" binding:"required"`
+	GymID       string `json:"gym_id" binding:"required"`
 }
 
 type GroupTrainingUpdateRequest = GroupTrainingCreateRequest
 
 type GroupTrainingResponse struct {
-	ID             string `json:"id"`
-	TemplateID     string `json:"template_id"`
-	TemplateName   string `json:"template_name"`
-	ScheduledAt    string `json:"scheduled_at"`
-	TrainerUserID  string `json:"trainer_user_id"`
-	GymID          string `json:"gym_id"`
-	GymName        string `json:"gym_name"`
-	City           string `json:"city"`
-	CreatedAt      string `json:"created_at"`
-	UpdatedAt      string `json:"updated_at"`
+	ID            string `json:"id"`
+	TemplateID    string `json:"template_id"`
+	TemplateName  string `json:"template_name"`
+	ScheduledAt   string `json:"scheduled_at"`
+	TrainerUserID string `json:"trainer_user_id"`
+	GymID         string `json:"gym_id"`
+	GymName       string `json:"gym_name"`
+	City          string `json:"city"`
+	CreatedAt     string `json:"created_at"`
+	UpdatedAt     string `json:"updated_at"`
 }
 
 func (h *Handler) ListTrainerTrainings(c *gin.Context) {
@@ -608,23 +608,25 @@ func (h *Handler) UnregisterFromTraining(c *gin.Context) {
 }
 
 type GroupTrainingBookingItemResponse struct {
-	TrainingID           string   `json:"training_id"`
-	TemplateID           string   `json:"template_id"`
-	TemplateName         string   `json:"template_name"`
-	Description          string   `json:"description"`
-	DurationMinutes      int      `json:"duration_minutes"`
-	Equipment            []string `json:"equipment"`
-	LevelOfPreparation   string   `json:"level_of_preparation"`
-	PhotoPath            *string  `json:"photo_path"`
-	MaxPeopleCount       int      `json:"max_people_count"`
-	GroupTypeID          string   `json:"group_type_id"`
-	GroupTypeName        string   `json:"group_type_name"`
-	ScheduledAt          string   `json:"scheduled_at"`
-	TrainerUserID        string   `json:"trainer_user_id"`
-	GymID                string   `json:"gym_id"`
-	GymName              string   `json:"gym_name"`
-	City                 string   `json:"city"`
-	ParticipantsCount    int      `json:"participants_count"`
+	TrainingID         string   `json:"training_id"`
+	TemplateID         string   `json:"template_id"`
+	TemplateName       string   `json:"template_name"`
+	Description        string   `json:"description"`
+	DurationMinutes    int      `json:"duration_minutes"`
+	Equipment          []string `json:"equipment"`
+	LevelOfPreparation string   `json:"level_of_preparation"`
+	PhotoPath          *string  `json:"photo_path"`
+	MaxPeopleCount     int      `json:"max_people_count"`
+	GroupTypeID        string   `json:"group_type_id"`
+	GroupTypeName      string   `json:"group_type_name"`
+	ScheduledAt        string   `json:"scheduled_at"`
+	TrainerUserID      string   `json:"trainer_user_id"`
+	GymID              string   `json:"gym_id"`
+	GymName            string   `json:"gym_name"`
+	City               string   `json:"city"`
+	ParticipantsCount  int      `json:"participants_count"`
+	TrainerDisplayName *string  `json:"trainer_display_name,omitempty"`
+	TrainerAvatarURL   *string  `json:"trainer_avatar_url,omitempty"`
 }
 
 func (h *Handler) ListAvailableForUser(c *gin.Context) {
@@ -755,38 +757,40 @@ func toGroupTrainingTemplateResponse(t *domain.GroupTrainingTemplate) GroupTrain
 
 func toGroupTrainingResponse(t *domain.GroupTraining) GroupTrainingResponse {
 	return GroupTrainingResponse{
-		ID:             t.ID.String(),
-		TemplateID:     t.TemplateID.String(),
-		TemplateName:   t.TemplateName,
-		ScheduledAt:    t.ScheduledAt.UTC().Format(time.RFC3339),
-		TrainerUserID:  t.TrainerUserID.String(),
-		GymID:          t.GymID.String(),
-		GymName:        t.GymName,
-		City:           t.City,
-		CreatedAt:      t.CreatedAt.UTC().Format(time.RFC3339),
-		UpdatedAt:      t.UpdatedAt.UTC().Format(time.RFC3339),
+		ID:            t.ID.String(),
+		TemplateID:    t.TemplateID.String(),
+		TemplateName:  t.TemplateName,
+		ScheduledAt:   t.ScheduledAt.UTC().Format(time.RFC3339),
+		TrainerUserID: t.TrainerUserID.String(),
+		GymID:         t.GymID.String(),
+		GymName:       t.GymName,
+		City:          t.City,
+		CreatedAt:     t.CreatedAt.UTC().Format(time.RFC3339),
+		UpdatedAt:     t.UpdatedAt.UTC().Format(time.RFC3339),
 	}
 }
 
 func toBookingItemResponse(it *domain.GroupTrainingBookingItem) GroupTrainingBookingItemResponse {
 	return GroupTrainingBookingItemResponse{
-		TrainingID:        it.TrainingID.String(),
-		TemplateID:        it.TemplateID.String(),
-		TemplateName:      it.TemplateName,
-		Description:       it.Description,
-		DurationMinutes:   it.DurationMinutes,
-		Equipment:         it.Equipment,
+		TrainingID:         it.TrainingID.String(),
+		TemplateID:         it.TemplateID.String(),
+		TemplateName:       it.TemplateName,
+		Description:        it.Description,
+		DurationMinutes:    it.DurationMinutes,
+		Equipment:          it.Equipment,
 		LevelOfPreparation: it.LevelOfPreparation,
-		PhotoPath:         it.PhotoPath,
-		MaxPeopleCount:    it.MaxPeopleCount,
-		GroupTypeID:       it.GroupTypeID.String(),
-		GroupTypeName:     it.GroupTypeName,
-		ScheduledAt:       it.ScheduledAt.UTC().Format(time.RFC3339),
-		TrainerUserID:     it.TrainerUserID.String(),
-		GymID:             it.GymID.String(),
-		GymName:           it.GymName,
-		City:              it.City,
-		ParticipantsCount: it.ParticipantsCount,
+		PhotoPath:          it.PhotoPath,
+		MaxPeopleCount:     it.MaxPeopleCount,
+		GroupTypeID:        it.GroupTypeID.String(),
+		GroupTypeName:      it.GroupTypeName,
+		ScheduledAt:        it.ScheduledAt.UTC().Format(time.RFC3339),
+		TrainerUserID:      it.TrainerUserID.String(),
+		GymID:              it.GymID.String(),
+		GymName:            it.GymName,
+		City:               it.City,
+		ParticipantsCount:  it.ParticipantsCount,
+		TrainerDisplayName: it.TrainerDisplayName,
+		TrainerAvatarURL:   it.TrainerAvatarURL,
 	}
 }
 
@@ -859,4 +863,3 @@ func parseUUIDParam(c *gin.Context, key string) (uuid.UUID, bool) {
 	}
 	return id, true
 }
-

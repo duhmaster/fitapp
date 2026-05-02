@@ -7,6 +7,7 @@ var (
 	ErrWorkoutNotFound          = errors.New("workout not found")
 	ErrWorkoutForbidden         = errors.New("workout does not belong to user")
 	ErrWorkoutFeedbackInvalid   = errors.New("invalid workout feedback payload")
+	ErrPremiumRequired          = errors.New("premium required")
 	ErrProgramNotFound          = errors.New("program not found")
 	ErrTemplateNotFound         = errors.New("template not found")
 	ErrTemplateForbidden        = errors.New("template does not belong to user")

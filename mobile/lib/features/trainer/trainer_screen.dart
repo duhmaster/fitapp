@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:fitflow/core/locale/locale_provider.dart';
 import 'package:fitflow/core/widgets/removable_image_tile.dart';
@@ -13,7 +14,9 @@ final _trainerPhotosProvider = FutureProvider<List<TrainerPhoto>>((ref) {
 });
 
 final _myGymsForTrainerProvider = FutureProvider<List<Gym>>((ref) {
-  return ref.watch(gymRepositoryProvider).listMyGyms();
+  return ref
+      .watch(gymRepositoryProvider)
+      .listMyGyms(purpose: UserGymPurpose.coaching);
 });
 
 final _traineesProvider = FutureProvider<List<TraineeItem>>((ref) {
@@ -262,14 +265,39 @@ class _TrainerProfileContent extends ConsumerWidget {
             Text(profile.contacts),
             const SizedBox(height: 16),
           ],
-          Text(tr('my_gyms'), style: Theme.of(context).textTheme.titleSmall),
+          Text(tr('gyms_section_coaching_title'), style: Theme.of(context).textTheme.titleSmall),
           const SizedBox(height: 4),
+          Text(
+            tr('gyms_section_coaching_subtitle'),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+          ),
+          const SizedBox(height: 8),
           myGymsAsync.when(
             loading: () => const Padding(padding: EdgeInsets.all(8), child: CircularProgressIndicator()),
             error: (_, __) => const SizedBox.shrink(),
             data: (gyms) => Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: gyms.map((g) => ListTile(title: Text(g.name), subtitle: g.city != null ? Text(g.city!) : null)).toList(),
+              children: [
+                ...gyms.map((g) => ListTile(
+                      title: Text(g.name),
+                      subtitle: g.city != null ? Text(g.city!) : null,
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                    )),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: () async {
+                      await context.push('/gym');
+                      ref.invalidate(_myGymsForTrainerProvider);
+                    },
+                    icon: const Icon(Icons.edit_outlined, size: 20),
+                    label: Text(tr('trainer_gyms_open_manager')),
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 16),

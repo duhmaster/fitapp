@@ -18,22 +18,23 @@ type TrainerClientChecker interface {
 }
 
 type WorkoutUseCase struct {
-	exercises             workoutdomain.ExerciseRepository
-	workouts              workoutdomain.WorkoutRepository
-	feedbacks             workoutdomain.WorkoutFeedbackRepository
-	woExercises           workoutdomain.WorkoutExerciseRepository
-	logs                  workoutdomain.ExerciseLogRepository
-	programs              workoutdomain.ProgramRepository
-	programExercises      workoutdomain.ProgramExerciseRepository
-	templates             workoutdomain.WorkoutTemplateRepository
-	templateExercises     workoutdomain.WorkoutTemplateExerciseRepository
-	templateSets          workoutdomain.TemplateExerciseSetRepository
-	trainerChecker        TrainerClientChecker
-	gamificationOnFinish  func(ctx context.Context, userID, workoutID uuid.UUID, volumeKg float64) error
-	finishPool            *pgxpool.Pool
-	gamEnqueue            func(ctx context.Context, tx pgx.Tx, userID, workoutID uuid.UUID, volumeKg float64) error
-	gamProcess            func(ctx context.Context) error
-	recommendationEnqueue func(ctx context.Context, userID, workoutID uuid.UUID, feedback *workoutdomain.WorkoutFeedback) error
+	exercises              workoutdomain.ExerciseRepository
+	workouts               workoutdomain.WorkoutRepository
+	feedbacks              workoutdomain.WorkoutFeedbackRepository
+	woExercises            workoutdomain.WorkoutExerciseRepository
+	logs                   workoutdomain.ExerciseLogRepository
+	programs               workoutdomain.ProgramRepository
+	programExercises       workoutdomain.ProgramExerciseRepository
+	templates              workoutdomain.WorkoutTemplateRepository
+	templateExercises      workoutdomain.WorkoutTemplateExerciseRepository
+	templateSets           workoutdomain.TemplateExerciseSetRepository
+	trainerChecker         TrainerClientChecker
+	gamificationOnFinish   func(ctx context.Context, userID, workoutID uuid.UUID, volumeKg float64) error
+	finishPool             *pgxpool.Pool
+	gamEnqueue             func(ctx context.Context, tx pgx.Tx, userID, workoutID uuid.UUID, volumeKg float64) error
+	gamProcess             func(ctx context.Context) error
+	recommendationEnqueue  func(ctx context.Context, userID, workoutID uuid.UUID, feedback *workoutdomain.WorkoutFeedback) error
+	canAccessFullAnalytics func(ctx context.Context, user *authdomain.User) (bool, error)
 }
 
 func NewWorkoutUseCase(
@@ -84,6 +85,10 @@ func (uc *WorkoutUseCase) SetWorkoutFeedbackRepository(repo workoutdomain.Workou
 
 func (uc *WorkoutUseCase) SetRecommendationEnqueue(enqueue func(ctx context.Context, userID, workoutID uuid.UUID, feedback *workoutdomain.WorkoutFeedback) error) {
 	uc.recommendationEnqueue = enqueue
+}
+
+func (uc *WorkoutUseCase) SetAnalyticsAccessChecker(checker func(ctx context.Context, user *authdomain.User) (bool, error)) {
+	uc.canAccessFullAnalytics = checker
 }
 
 func (uc *WorkoutUseCase) canAccessWorkout(ctx context.Context, user *authdomain.User, workoutUserID uuid.UUID) bool {
@@ -187,6 +192,28 @@ func (uc *WorkoutUseCase) StartWorkoutFromProgram(ctx context.Context, user *aut
 }
 
 func (uc *WorkoutUseCase) ListMyWorkouts(ctx context.Context, user *authdomain.User, limit, offset int, finishedFrom, finishedTo *time.Time) ([]*workoutdomain.Workout, error) {
+	if uc.canAccessFullAnalytics != nil {
+		isPremium, err := uc.canAccessFullAnalytics(ctx, user)
+		if err != nil {
+			return nil, err
+		}
+		if !isPremium {
+			cutoff := time.Now().UTC().AddDate(0, 0, -14)
+			if offset > 0 {
+				return nil, workoutdomain.ErrPremiumRequired
+			}
+			if finishedFrom != nil && finishedFrom.Before(cutoff) {
+				return nil, workoutdomain.ErrPremiumRequired
+			}
+			if finishedTo != nil && finishedTo.Before(cutoff) {
+				return nil, workoutdomain.ErrPremiumRequired
+			}
+			// Free users are limited to recent history when no explicit "from" is provided.
+			if finishedFrom == nil {
+				finishedFrom = &cutoff
+			}
+		}
+	}
 	return uc.workouts.ListByUserID(ctx, user.ID, limit, offset, finishedFrom, finishedTo)
 }
 
@@ -559,5 +586,26 @@ func (uc *WorkoutUseCase) ListUserExerciseIDsForProgress(ctx context.Context, us
 
 // ListExerciseVolumeHistoryForProgress returns per-workout volume for an exercise.
 func (uc *WorkoutUseCase) ListExerciseVolumeHistoryForProgress(ctx context.Context, user *authdomain.User, exerciseID uuid.UUID) ([]workoutdomain.ExerciseVolumeEntry, error) {
-	return uc.logs.ListVolumeHistoryByExerciseForUser(ctx, user.ID, exerciseID)
+	history, err := uc.logs.ListVolumeHistoryByExerciseForUser(ctx, user.ID, exerciseID)
+	if err != nil {
+		return nil, err
+	}
+	if uc.canAccessFullAnalytics == nil {
+		return history, nil
+	}
+	isPremium, err := uc.canAccessFullAnalytics(ctx, user)
+	if err != nil {
+		return nil, err
+	}
+	if isPremium {
+		return history, nil
+	}
+	cutoff := time.Now().UTC().AddDate(0, 0, -14)
+	filtered := make([]workoutdomain.ExerciseVolumeEntry, 0, len(history))
+	for _, row := range history {
+		if row.WorkoutDate.After(cutoff) || row.WorkoutDate.Equal(cutoff) {
+			filtered = append(filtered, row)
+		}
+	}
+	return filtered, nil
 }

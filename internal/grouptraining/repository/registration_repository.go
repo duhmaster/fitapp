@@ -71,14 +71,21 @@ func (r *GroupTrainingRegistrationRepository) ListParticipantsByTrainingID(ctx c
 	rows, err := r.pool.Query(ctx, `
 		SELECT
 			u.id,
-			p.display_name,
+			CASE
+				WHEN p.display_name IS NOT NULL AND BTRIM(p.display_name) <> '' THEN BTRIM(p.display_name)
+				ELSE SPLIT_PART(u.email, '@', 1)
+			END AS display_name,
 			p.city,
 			p.avatar_url
 		FROM group_training_registrations r
 		INNER JOIN users u ON u.id = r.user_id
 		LEFT JOIN user_profiles p ON p.user_id = u.id
 		WHERE r.group_training_id = $1
-		ORDER BY p.display_name ASC
+		ORDER BY
+			CASE
+				WHEN p.display_name IS NOT NULL AND BTRIM(p.display_name) <> '' THEN BTRIM(p.display_name)
+				ELSE SPLIT_PART(u.email, '@', 1)
+			END ASC
 	`, trainingID)
 	if err != nil {
 		return nil, err
@@ -111,4 +118,3 @@ func (r *GroupTrainingRegistrationRepository) CountUserRegistrationsInWeek(ctx c
 
 var _ uuid.UUID
 var _ time.Time
-

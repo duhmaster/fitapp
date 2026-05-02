@@ -78,6 +78,9 @@ func (uc *GymUseCase) ListGymsByUserIDAndPurpose(ctx context.Context, userID uui
 
 // AddGymToUser links an existing gym to the user, or creates a new gym and links it.
 func (uc *GymUseCase) AddGymToUser(ctx context.Context, user *authdomain.User, gymID *uuid.UUID, orCreate *CreateGymInput, purpose gymdomain.UserGymPurpose) (*gymdomain.Gym, error) {
+	if purpose == gymdomain.UserGymPurposeCoaching && user.Role != authdomain.RoleTrainer && user.Role != authdomain.RoleAdmin {
+		return nil, gymdomain.ErrCoachingPurposeTrainerOnly
+	}
 	if gymID != nil {
 		if _, err := uc.gyms.GetByID(ctx, *gymID); err != nil {
 			return nil, err
@@ -159,4 +162,3 @@ func (uc *GymUseCase) GetLoad(ctx context.Context, gymID uuid.UUID, now time.Tim
 func (uc *GymUseCase) GetLoadHistory(ctx context.Context, gymID uuid.UUID, limit int) ([]*gymdomain.LoadSnapshot, error) {
 	return uc.snapshots.ListByGymID(ctx, gymID, limit)
 }
-

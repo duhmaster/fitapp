@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fitflow/core/locale/locale_provider.dart';
-import 'package:fitflow/core/widgets/error_state_widget.dart';
+import 'package:fitflow/core/widgets/paywall_required_widget.dart';
 import 'package:fitflow/features/workouts/data/workout_repository.dart';
 import 'package:fitflow/features/workouts/domain/workout_models.dart';
 import 'package:fitflow/features/workouts/presentation/workout_stats_screen.dart';
@@ -18,7 +18,8 @@ class _MuscleStatsRange {
   final List<WorkoutMuscleGroupVolume> muscleGroupLoads;
 }
 
-final muscleStatsRangeProvider = FutureProvider.family<_MuscleStatsRange, String>(
+final muscleStatsRangeProvider =
+    FutureProvider.family<_MuscleStatsRange, String>(
   (ref, key) async {
     final repo = ref.watch(workoutRepositoryProvider);
 
@@ -27,13 +28,21 @@ final muscleStatsRangeProvider = FutureProvider.family<_MuscleStatsRange, String
 
     final fp = parts[0].split('-');
     final tp = parts[1].split('-');
-    if (fp.length != 3 || tp.length != 3) throw FormatException('Invalid date range key');
-    final fromDay = DateTime(int.parse(fp[0]), int.parse(fp[1]), int.parse(fp[2]));
-    final toDay = DateTime(int.parse(tp[0]), int.parse(tp[1]), int.parse(tp[2]));
+    if (fp.length != 3 || tp.length != 3)
+      throw FormatException('Invalid date range key');
+    final fromDay =
+        DateTime(int.parse(fp[0]), int.parse(fp[1]), int.parse(fp[2]));
+    final toDay =
+        DateTime(int.parse(tp[0]), int.parse(tp[1]), int.parse(tp[2]));
 
     // API: GET /api/v1/me/workouts?from=&to= filters by finished_at (RFC3339, inclusive).
-    final finishedFrom = DateTime(fromDay.year, fromDay.month, fromDay.day).toUtc().toIso8601String();
-    final finishedTo = DateTime(toDay.year, toDay.month, toDay.day, 23, 59, 59, 999).toUtc().toIso8601String();
+    final finishedFrom = DateTime(fromDay.year, fromDay.month, fromDay.day)
+        .toUtc()
+        .toIso8601String();
+    final finishedTo =
+        DateTime(toDay.year, toDay.month, toDay.day, 23, 59, 59, 999)
+            .toUtc()
+            .toIso8601String();
 
     final all = <Workout>[];
     var offset = 0;
@@ -54,7 +63,8 @@ final muscleStatsRangeProvider = FutureProvider.family<_MuscleStatsRange, String
     final completedInRange = all.where((w) => w.isCompleted).toList();
 
     if (completedInRange.isEmpty) {
-      return _MuscleStatsRange(workoutsCount: 0, totalVolumeKg: 0, muscleGroupLoads: const []);
+      return _MuscleStatsRange(
+          workoutsCount: 0, totalVolumeKg: 0, muscleGroupLoads: const []);
     }
 
     // Cache template details to avoid fetching them repeatedly.
@@ -67,7 +77,8 @@ final muscleStatsRangeProvider = FutureProvider.family<_MuscleStatsRange, String
       if (templateId == null || templateId.isEmpty) continue;
 
       final detail = await repo.getWorkout(w.id);
-      final templateDetail = await templateCache.putIfAbsent(templateId, () => repo.getTemplate(templateId));
+      final templateDetail = await templateCache.putIfAbsent(
+          templateId, () => repo.getTemplate(templateId));
 
       // Mapping: exerciseId -> muscleLoads map (group -> load share).
       final loadsByExerciseId = <String, Map<String, double>>{};
@@ -90,7 +101,8 @@ final muscleStatsRangeProvider = FutureProvider.family<_MuscleStatsRange, String
         if (sumLoads <= 0) continue;
 
         loads.forEach((group, loadShare) {
-          groupKg[group] = (groupKg[group] ?? 0) + volume * (loadShare / sumLoads);
+          groupKg[group] =
+              (groupKg[group] ?? 0) + volume * (loadShare / sumLoads);
         });
       }
     }
@@ -120,7 +132,8 @@ class ProgressMusclesScreen extends ConsumerStatefulWidget {
   const ProgressMusclesScreen({super.key});
 
   @override
-  ConsumerState<ProgressMusclesScreen> createState() => _ProgressMusclesScreenState();
+  ConsumerState<ProgressMusclesScreen> createState() =>
+      _ProgressMusclesScreenState();
 }
 
 class _ProgressMusclesScreenState extends ConsumerState<ProgressMusclesScreen> {
@@ -147,13 +160,14 @@ class _ProgressMusclesScreenState extends ConsumerState<ProgressMusclesScreen> {
       appBar: AppBar(title: Text(tr('progress_muscles'))),
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => ErrorStateWidget(
-          message: e.toString(),
+        error: (e, _) => PaywallRequiredWidget(
+          error: e,
           onRetry: () => ref.invalidate(muscleStatsRangeProvider(key)),
         ),
         data: (data) {
           return RefreshIndicator(
-            onRefresh: () async => ref.invalidate(muscleStatsRangeProvider(key)),
+            onRefresh: () async =>
+                ref.invalidate(muscleStatsRangeProvider(key)),
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(16),
@@ -171,7 +185,8 @@ class _ProgressMusclesScreenState extends ConsumerState<ProgressMusclesScreen> {
                   if (data.workoutsCount == 0) ...[
                     Padding(
                       padding: const EdgeInsets.all(24),
-                      child: Text(tr('no_data_in_range'), textAlign: TextAlign.center),
+                      child: Text(tr('no_data_in_range'),
+                          textAlign: TextAlign.center),
                     ),
                   ] else ...[
                     Text(
@@ -184,7 +199,6 @@ class _ProgressMusclesScreenState extends ConsumerState<ProgressMusclesScreen> {
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                     const SizedBox(height: 20),
-
                     if (data.muscleGroupLoads.isNotEmpty) ...[
                       Text(
                         tr('muscle_groups_load'),
@@ -223,8 +237,10 @@ class _ProgressMusclesScreenState extends ConsumerState<ProgressMusclesScreen> {
                               ),
                             ),
                             title: Text(g.group),
-                            subtitle: Text('${g.sharePercent.toStringAsFixed(0)}% ${tr('of_volume')}'),
-                            trailing: Text('${g.performedVolumeKg.toStringAsFixed(0)} ${tr('kg_short')}'),
+                            subtitle: Text(
+                                '${g.sharePercent.toStringAsFixed(0)}% ${tr('of_volume')}'),
+                            trailing: Text(
+                                '${g.performedVolumeKg.toStringAsFixed(0)} ${tr('kg_short')}'),
                           ),
                         );
                       }),
@@ -235,7 +251,7 @@ class _ProgressMusclesScreenState extends ConsumerState<ProgressMusclesScreen> {
             ),
           );
         },
-            ),
+      ),
     );
   }
 
@@ -273,16 +289,21 @@ class _DateRangeControls extends StatelessWidget {
               child: OutlinedButton(
                 onPressed: () async {
                   final now = DateTime.now();
-                  final initial = from ?? DateTime(now.year, now.month, now.day);
+                  final initial =
+                      from ?? DateTime(now.year, now.month, now.day);
                   final picked = await showDatePicker(
                     context: context,
                     initialDate: initial,
                     firstDate: DateTime(2000),
                     lastDate: DateTime(2100),
                   );
-                  if (picked != null) onFromChanged(DateTime(picked.year, picked.month, picked.day));
+                  if (picked != null)
+                    onFromChanged(
+                        DateTime(picked.year, picked.month, picked.day));
                 },
-                    child: Text(from != null ? '${from!.day}.${from!.month}.${from!.year}' : tr('from')),
+                child: Text(from != null
+                    ? '${from!.day}.${from!.month}.${from!.year}'
+                    : tr('from')),
               ),
             ),
             const SizedBox(width: 12),
@@ -297,9 +318,13 @@ class _DateRangeControls extends StatelessWidget {
                     firstDate: DateTime(2000),
                     lastDate: DateTime(2100),
                   );
-                  if (picked != null) onToChanged(DateTime(picked.year, picked.month, picked.day));
+                  if (picked != null)
+                    onToChanged(
+                        DateTime(picked.year, picked.month, picked.day));
                 },
-                    child: Text(to != null ? '${to!.day}.${to!.month}.${to!.year}' : tr('to')),
+                child: Text(to != null
+                    ? '${to!.day}.${to!.month}.${to!.year}'
+                    : tr('to')),
               ),
             ),
           ],
@@ -313,4 +338,3 @@ class _DateRangeControls extends StatelessWidget {
     );
   }
 }
-

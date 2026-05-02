@@ -72,6 +72,12 @@ class HomeScreen extends ConsumerWidget {
             onTap: () => context.push('/trainer'),
           ),
           _NavTile(
+            title: tr('paywall_title'),
+            subtitle: tr('paywall_subtitle'),
+            icon: Icons.workspace_premium_outlined,
+            onTap: () => context.go('/billing/paywall?required=premium'),
+          ),
+          _NavTile(
             title: tr('options'),
             subtitle: tr('language'),
             icon: Icons.settings,

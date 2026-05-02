@@ -10,6 +10,7 @@ import 'package:fitflow/core/widgets/barbell_logo.dart';
 import 'package:fitflow/features/auth/data/auth_repository.dart';
 import 'package:fitflow/features/auth/domain/auth_models.dart';
 import 'package:fitflow/features/auth/presentation/auth_state.dart';
+import 'package:fitflow/core/router/post_auth_redirect.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -61,7 +62,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         setLocale: (code) => ref.read(selectedLocaleCodeProvider.notifier).update((_) => code),
         localeRepo: ref.read(localeRepositoryProvider),
       );
-      if (mounted) context.go('/home');
+      if (!mounted) return;
+      final redirect = GoRouterState.of(context).uri.queryParameters['redirect'];
+      if (isAllowedPostAuthRedirect(redirect)) {
+        context.go(redirect!);
+      } else {
+        context.go('/home');
+      }
     } on DioException catch (e) {
       String msg;
       if (e.error is AppException) {
@@ -203,7 +210,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                             const SizedBox(height: 14),
                             TextButton(
-                              onPressed: _loading ? null : () => context.push('/register'),
+                              onPressed: _loading
+                                  ? null
+                                  : () {
+                                      final r =
+                                          GoRouterState.of(context).uri.queryParameters['redirect'];
+                                      if (isAllowedPostAuthRedirect(r)) {
+                                        context.push(
+                                          Uri(
+                                            path: '/register',
+                                            queryParameters: {'redirect': r},
+                                          ).toString(),
+                                        );
+                                      } else {
+                                        context.push('/register');
+                                      }
+                                    },
                               child: Text(tr('create_account')),
                             ),
                           ],

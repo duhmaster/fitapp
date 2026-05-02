@@ -374,7 +374,7 @@ Future<void> showCreateWorkoutForClientDialog(
   try {
     templates = await trainerRepo.getClientTemplates(clientId);
     final profile = await trainerRepo.getClientProfile(clientId);
-    final trainerGyms = await gymRepo.listMyGyms();
+    final trainerGyms = await gymRepo.listMyGyms(purpose: UserGymPurpose.coaching);
     final trainerIds = trainerGyms.map((g) => g.id).toSet();
     availableGyms = List<Gym>.from(trainerGyms);
     for (final g in profile.gyms) {

@@ -10,6 +10,7 @@ import 'package:fitflow/features/auth/data/auth_repository.dart';
 import 'package:fitflow/features/auth/domain/auth_models.dart';
 import 'package:fitflow/features/auth/presentation/auth_state.dart';
 import 'package:fitflow/features/auth/presentation/terms_of_use_dialog.dart';
+import 'package:fitflow/core/router/post_auth_redirect.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -67,7 +68,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             ref.read(selectedLocaleCodeProvider.notifier).update((_) => code),
         localeRepo: ref.read(localeRepositoryProvider),
       );
-      if (mounted) context.go('/home');
+      if (!mounted) return;
+      final redirect = GoRouterState.of(context).uri.queryParameters['redirect'];
+      if (isAllowedPostAuthRedirect(redirect)) {
+        context.go(redirect!);
+      } else {
+        context.go('/home');
+      }
     } on DioException catch (e) {
       String msg;
       if (e.error is AppException) {

@@ -113,6 +113,8 @@ class GroupTrainingBookingItem {
     required this.groupTypeName,
     required this.scheduledAt,
     required this.trainerUserId,
+    this.trainerDisplayName,
+    this.trainerAvatarUrl,
     required this.gymId,
     this.gymName,
     required this.city,
@@ -132,6 +134,8 @@ class GroupTrainingBookingItem {
   final String groupTypeName;
   final DateTime scheduledAt;
   final String trainerUserId;
+  final String? trainerDisplayName;
+  final String? trainerAvatarUrl;
   final String gymId;
   final String? gymName;
   final String city;
@@ -154,6 +158,8 @@ class GroupTrainingBookingItem {
       groupTypeName: json['group_type_name'] as String,
       scheduledAt: DateTime.parse(json['scheduled_at'] as String),
       trainerUserId: json['trainer_user_id'] as String,
+      trainerDisplayName: json['trainer_display_name'] as String?,
+      trainerAvatarUrl: json['trainer_avatar_url'] as String?,
       gymId: json['gym_id'] as String,
       gymName: json['gym_name'] as String?,
       city: json['city'] as String,

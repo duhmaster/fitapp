@@ -11,8 +11,8 @@ import (
 // Loaded from environment variables for 12-factor compatibility.
 type Config struct {
 	// Server
-	Port              int
-	Env               string
+	Port               int
+	Env                string
 	CORSAllowedOrigins string // comma-separated; "*" = allow all; empty = no CORS
 
 	// Database
@@ -34,12 +34,12 @@ type Config struct {
 	JWTRefreshExpiry time.Duration
 
 	// Storage (for avatars, etc.)
-	StoragePath  string
+	StoragePath    string
 	StorageBaseURL string
 
 	// Gym load tracking
-	GymPresenceWindow   time.Duration
-	GymSnapshotInterval time.Duration
+	GymPresenceWindow    time.Duration
+	GymSnapshotInterval  time.Duration
 	GymSnapshotBatchSize int
 
 	// Admin panel (HTTP Basic or session; separate from app users)
@@ -51,49 +51,53 @@ type Config struct {
 	DADATASecretKey string
 
 	// S3 (production file uploads, e.g. Selectel)
-	S3Endpoint   string
-	S3AccessKey  string
-	S3SecretKey  string
-	S3Bucket     string
-	S3Region     string
-	S3PublicURL  string // e.g. http://s3.gymmore.ru
-	S3UseSSL     bool
+	S3Endpoint  string
+	S3AccessKey string
+	S3SecretKey string
+	S3Bucket    string
+	S3Region    string
+	S3PublicURL string // e.g. http://s3.gymmore.ru
+	S3UseSSL    bool
+
+	// Billing
+	BillingWebhookSecret string
 }
 
 // Load reads configuration from environment variables.
 func Load() (*Config, error) {
 	cfg := &Config{
-		Port:               getEnvInt("PORT", 8080),
-		Env:                getEnv("ENV", "development"),
-		CORSAllowedOrigins: getEnv("CORS_ALLOWED_ORIGINS", corsDefault(getEnv("ENV", "development"))),
-		DBHost:        getEnv("DB_HOST", "localhost"),
-		DBPort:        getEnvInt("DB_PORT", 5432),
-		DBName:        getEnv("DB_NAME", "fitflow"),
-		DBUser:        getEnv("DB_USER", "fitflow"),
-		DBPassword:    getEnv("DB_PASSWORD", ""),
-		DBSSLMode:     getEnv("DB_SSLMODE", "disable"),
-		RedisAddr:      getEnv("REDIS_ADDR", "localhost:6379"),
-		RedisPassword:  getEnv("REDIS_PASSWORD", ""),
-		RedisDB:        getEnvInt("REDIS_DB", 0),
-		JWTSecret:        getEnv("JWT_SECRET", "change-me-in-production"),
-		JWTAccessExpiry:  getEnvDuration("JWT_ACCESS_EXPIRY", 15*time.Minute),
-		JWTRefreshExpiry: getEnvDuration("JWT_REFRESH_EXPIRY", 7*24*time.Hour),
-		StoragePath:      getEnv("STORAGE_PATH", "./uploads"),
-		StorageBaseURL:   getEnv("STORAGE_BASE_URL", "http://localhost:8080/uploads"),
-		GymPresenceWindow:   getEnvDuration("GYM_PRESENCE_WINDOW", 90*time.Minute),
-		GymSnapshotInterval: getEnvDuration("GYM_SNAPSHOT_INTERVAL", 5*time.Minute),
+		Port:                 getEnvInt("PORT", 8080),
+		Env:                  getEnv("ENV", "development"),
+		CORSAllowedOrigins:   getEnv("CORS_ALLOWED_ORIGINS", corsDefault(getEnv("ENV", "development"))),
+		DBHost:               getEnv("DB_HOST", "localhost"),
+		DBPort:               getEnvInt("DB_PORT", 5432),
+		DBName:               getEnv("DB_NAME", "fitflow"),
+		DBUser:               getEnv("DB_USER", "fitflow"),
+		DBPassword:           getEnv("DB_PASSWORD", ""),
+		DBSSLMode:            getEnv("DB_SSLMODE", "disable"),
+		RedisAddr:            getEnv("REDIS_ADDR", "localhost:6379"),
+		RedisPassword:        getEnv("REDIS_PASSWORD", ""),
+		RedisDB:              getEnvInt("REDIS_DB", 0),
+		JWTSecret:            getEnv("JWT_SECRET", "change-me-in-production"),
+		JWTAccessExpiry:      getEnvDuration("JWT_ACCESS_EXPIRY", 15*time.Minute),
+		JWTRefreshExpiry:     getEnvDuration("JWT_REFRESH_EXPIRY", 7*24*time.Hour),
+		StoragePath:          getEnv("STORAGE_PATH", "./uploads"),
+		StorageBaseURL:       getEnv("STORAGE_BASE_URL", "http://localhost:8080/uploads"),
+		GymPresenceWindow:    getEnvDuration("GYM_PRESENCE_WINDOW", 90*time.Minute),
+		GymSnapshotInterval:  getEnvDuration("GYM_SNAPSHOT_INTERVAL", 5*time.Minute),
 		GymSnapshotBatchSize: getEnvInt("GYM_SNAPSHOT_BATCH_SIZE", 1000),
-		AdminUsername: getEnv("ADMIN_USERNAME", "admin"),
-		AdminPassword: getEnv("ADMIN_PASSWORD", adminPasswordDefault(getEnv("ENV", "development"))),
-		DADATAAPIKey:    getEnv("DADATA_API_KEY", "dfd6d88dbc8ad4121becbac2491eb6d9fdd1dc90"),
-		DADATASecretKey: getEnv("DADATA_SECRET_KEY", "6da2b0c689818b4a38a8accd7f197fa5fc0e3fb4"),
-		S3Endpoint:      getEnv("S3_ENDPOINT", ""),
-		S3AccessKey:     getEnv("S3_ACCESS_KEY", ""),
-		S3SecretKey:     getEnv("S3_SECRET_KEY", ""),
-		S3Bucket:        getEnv("S3_BUCKET", "gymmore"),
-		S3Region:        getEnv("S3_REGION", "ru-7"),
-		S3PublicURL:     getEnv("S3_PUBLIC_URL", "http://s3.gymmore.ru"),
-		S3UseSSL:        getEnv("S3_USE_SSL", "true") == "true",
+		AdminUsername:        getEnv("ADMIN_USERNAME", "admin"),
+		AdminPassword:        getEnv("ADMIN_PASSWORD", adminPasswordDefault(getEnv("ENV", "development"))),
+		DADATAAPIKey:         getEnv("DADATA_API_KEY", "dfd6d88dbc8ad4121becbac2491eb6d9fdd1dc90"),
+		DADATASecretKey:      getEnv("DADATA_SECRET_KEY", "6da2b0c689818b4a38a8accd7f197fa5fc0e3fb4"),
+		S3Endpoint:           getEnv("S3_ENDPOINT", ""),
+		S3AccessKey:          getEnv("S3_ACCESS_KEY", ""),
+		S3SecretKey:          getEnv("S3_SECRET_KEY", ""),
+		S3Bucket:             getEnv("S3_BUCKET", "gymmore"),
+		S3Region:             getEnv("S3_REGION", "ru-7"),
+		S3PublicURL:          getEnv("S3_PUBLIC_URL", "http://s3.gymmore.ru"),
+		S3UseSSL:             getEnv("S3_USE_SSL", "true") == "true",
+		BillingWebhookSecret: getEnv("BILLING_WEBHOOK_SECRET", ""),
 	}
 
 	return cfg, nil

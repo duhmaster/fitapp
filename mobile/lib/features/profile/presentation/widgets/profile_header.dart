@@ -14,6 +14,7 @@ class ProfileHeader extends ConsumerWidget {
     this.uploadingAvatar = false,
     this.paidSubscriber = false,
     this.subscriptionExpiresAt,
+    this.onOpenPlans,
   });
 
   final String displayName;
@@ -21,20 +22,25 @@ class ProfileHeader extends ConsumerWidget {
   final String? city;
   final String? avatarUrl;
   final VoidCallback? onAvatarTap;
+
   /// Shown when [avatarUrl] is non-empty (e.g. in profile edit mode).
   final VoidCallback? onRemoveAvatar;
   final bool uploadingAvatar;
   final bool paidSubscriber;
   final String? subscriptionExpiresAt;
+  final VoidCallback? onOpenPlans;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tr = ref.watch(trProvider);
     String subscriptionStatus;
-    if (paidSubscriber && subscriptionExpiresAt != null && subscriptionExpiresAt!.isNotEmpty) {
+    if (paidSubscriber &&
+        subscriptionExpiresAt != null &&
+        subscriptionExpiresAt!.isNotEmpty) {
       try {
         final d = DateTime.parse(subscriptionExpiresAt!);
-        subscriptionStatus = '${tr('subscription_until')} ${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year}';
+        subscriptionStatus =
+            '${tr('subscription_until')} ${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year}';
       } catch (_) {
         subscriptionStatus = tr('subscription_until');
       }
@@ -51,7 +57,9 @@ class ProfileHeader extends ConsumerWidget {
               size: 100,
               uploading: uploadingAvatar,
             ),
-            if (onRemoveAvatar != null && avatarUrl != null && avatarUrl!.isNotEmpty)
+            if (onRemoveAvatar != null &&
+                avatarUrl != null &&
+                avatarUrl!.isNotEmpty)
               Positioned(
                 top: 0,
                 right: 0,
@@ -107,7 +115,9 @@ class ProfileHeader extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.location_on_outlined, size: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
+              Icon(Icons.location_on_outlined,
+                  size: 18,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant),
               const SizedBox(width: 4),
               Flexible(
                 child: Text(
@@ -122,7 +132,9 @@ class ProfileHeader extends ConsumerWidget {
           ),
         ],
         const SizedBox(height: 8),
-        Text(tr('subscription_status'), style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+        Text(tr('subscription_status'),
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant)),
         const SizedBox(height: 2),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -135,6 +147,14 @@ class ProfileHeader extends ConsumerWidget {
             style: Theme.of(context).textTheme.labelMedium,
           ),
         ),
+        if (onOpenPlans != null) ...[
+          const SizedBox(height: 8),
+          TextButton.icon(
+            onPressed: onOpenPlans,
+            icon: const Icon(Icons.workspace_premium_outlined),
+            label: Text(tr('paywall_open')),
+          ),
+        ],
       ],
     );
   }
@@ -160,7 +180,8 @@ class _AvatarCircle extends StatelessWidget {
         children: [
           CircleAvatar(
             radius: size / 2,
-            backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+            backgroundColor:
+                Theme.of(context).colorScheme.surfaceContainerHighest,
             backgroundImage: avatarUrl != null && avatarUrl!.isNotEmpty
                 ? NetworkImage(avatarUrl!)
                 : null,

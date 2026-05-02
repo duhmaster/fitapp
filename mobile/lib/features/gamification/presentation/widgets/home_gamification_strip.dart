@@ -57,7 +57,9 @@ class HomeGamificationStrip extends ConsumerWidget {
                     child: Padding(
                       padding: EdgeInsets.all(pad),
                       child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        // In scrollable parents this row can receive unbounded height.
+                        // `stretch` requires a finite max height and crashes on web.
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           SizedBox(
                             width: avatarSize + 4,

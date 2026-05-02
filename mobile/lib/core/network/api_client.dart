@@ -24,9 +24,13 @@ final apiClientProvider = Provider<Dio>((ref) {
     },
     onError: (err, handler) async {
       final statusCode = err.response?.statusCode;
-      final msg = err.response?.data is Map
-          ? (err.response!.data['message'] ?? err.response!.data['error'] ?? err.message)
+      final responseMap = err.response?.data is Map
+          ? Map<String, dynamic>.from(err.response!.data as Map)
+          : null;
+      final msg = responseMap != null
+          ? (responseMap['message'] ?? responseMap['error'] ?? err.message)
           : err.message ?? 'Request failed';
+      final code = responseMap != null ? responseMap['code'] as String? : null;
       final unauthEx = DioException(
         requestOptions: err.requestOptions,
         error: UnauthorizedException(msg is String ? msg : 'Unauthorized'),
@@ -47,7 +51,11 @@ final apiClientProvider = Provider<Dio>((ref) {
       }
       return handler.next(DioException(
         requestOptions: err.requestOptions,
-        error: AppException(msg is String ? msg : 'Request failed', statusCode: statusCode),
+        error: AppException(
+          msg is String ? msg : 'Request failed',
+          statusCode: statusCode,
+          code: code,
+        ),
         response: err.response,
       ));
     },
@@ -63,7 +71,10 @@ Future<bool> _refreshTokens(String baseUrl, TokenStorage tokenStorage) async {
     final dio = Dio(BaseOptions(
       baseUrl: baseUrl,
       connectTimeout: const Duration(seconds: 10),
-      headers: {'Accept': 'application/json', 'Content-Type': 'application/json'},
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
     ));
     final res = await dio.post<Map<String, dynamic>>(
       '/api/v1/auth/refresh',
