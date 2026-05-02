@@ -70,13 +70,15 @@ func (r *WorkoutRepository) ListByUserID(ctx context.Context, userID uuid.UUID, 
 		offset = 0
 	}
 
+	// When `from`/`to` are set (incl. implicit free-tier cutoff), rows with finished_at NULL are still
+	// returned so planned/active workouts are listed; callers that need only completed workouts filter client-side.
 	query := `
 		SELECT w.id, w.template_id, w.program_id, w.user_id, w.trainer_id, w.gym_id, w.scheduled_at, w.started_at, w.finished_at, w.created_at, COALESCE(g.name, '')
 		FROM workouts w
 		LEFT JOIN gyms g ON g.id = w.gym_id
 		WHERE w.user_id = $1
-		  AND ($4::timestamptz IS NULL OR (w.finished_at IS NOT NULL AND w.finished_at >= $4))
-		  AND ($5::timestamptz IS NULL OR (w.finished_at IS NOT NULL AND w.finished_at <= $5))
+		  AND ($4::timestamptz IS NULL OR w.finished_at IS NULL OR w.finished_at >= $4)
+		  AND ($5::timestamptz IS NULL OR w.finished_at IS NULL OR w.finished_at <= $5)
 		ORDER BY w.created_at DESC
 		LIMIT $2 OFFSET $3
 	`
